@@ -55,6 +55,9 @@ pub const Grammar = struct {
     /// Weight by quant parameter id, and by op for non-quant, non-atom ops.
     quant_w: []f64,
     op_w: [11]f64,
+    /// >0 (Perl): track max match length saturating at this cap and only
+    /// apply lookbehind to bodies shorter than it.
+    lookbehind_len_cap: u16 = 0,
 
     pub fn init(gpa: Allocator, cfg: *const config.Config, flags: Flags) !Grammar {
         const W = &cfg.weights;
@@ -134,6 +137,7 @@ pub const Grammar = struct {
             .allow_diagonal_lookarounds = cfg.allow_diagonal_lookarounds,
             .quant_w = &.{},
             .op_w = undefined,
+            .lookbehind_len_cap = if (alpha.perl) 16 else 0,
         };
         try g.indexWeights(gpa);
         return g;
@@ -170,6 +174,7 @@ pub const Grammar = struct {
 
     pub fn hashInto(self: *const Grammar, h: *std.crypto.hash.sha2.Sha256) void {
         h.update(&[_]u8{self.flags.bits()});
+        h.update(std.mem.asBytes(&self.lookbehind_len_cap));
         for (self.atoms, self.atom_w) |a, w| {
             h.update(std.mem.asBytes(&a.kind));
             h.update(&[_]u8{ a.sub, @intFromBool(a.neg), a.n });
@@ -600,7 +605,8 @@ pub fn build(in: BuildInput) BuildError!*Table {
 fn Builder(comptime R: type) type {
     return struct {
         const Self = @This();
-        const Key = extern struct { a: [R.n_rows]R.Row, r: [R.n_rows]R.Row };
+        /// aux: saturating max match length (Perl lookbehind restriction); 0 in JS mode.
+        const Key = extern struct { a: [R.n_rows]R.Row, r: [R.n_rows]R.Row, aux: u16 = 0 };
         const Slot = extern struct { id: u32, hash: u32 };
 
         table: *Table,
@@ -628,6 +634,9 @@ fn Builder(comptime R: type) type {
 
         fn keyOf(ra: R, rr: R) Key {
             return .{ .a = ra.rows, .r = rr.rows };
+        }
+        fn keyAux(ra: R, rr: R, aux: u16) Key {
+            return .{ .a = ra.rows, .r = rr.rows, .aux = aux };
         }
         fn relA(k: Key) R {
             return .{ .rows = k.a };
@@ -826,17 +835,37 @@ fn Builder(comptime R: type) type {
                     nr = rr;
                 },
             }
-            const key = keyOf(na, nr);
+            var aux: u16 = 0;
+            if (self.g.lookbehind_len_cap > 0) {
+                const cap = self.g.lookbehind_len_cap;
+                const ya = ky.aux;
+                switch (u.op) {
+                    .quant => {
+                        const q = self.g.quants[u.arg];
+                        aux = if (q.max == ast.inf) cap else @min(cap, ya * @as(u16, q.max));
+                    },
+                    .look_ahead, .neg_look_ahead => aux = 0,
+                    .look_behind, .neg_look_behind => {
+                        // Perl only accepts bounded lookbehind bodies.
+                        if (ya >= cap) return;
+                        aux = 0;
+                    },
+                    else => aux = ya,
+                }
+            }
+            const key = keyAux(na, nr, aux);
             self.record(u.op, u.arg, y, none, &key);
         }
 
         fn applyBinary(self: *Self, op: Op, y: u32, z: u32) void {
             const ky = self.keys.items[y];
             const kz = self.keys.items[z];
+            const cap = self.g.lookbehind_len_cap;
+            const aux: u16 = if (cap == 0) 0 else if (op == .concat) @min(cap, ky.aux + kz.aux) else @max(ky.aux, kz.aux);
             const key = if (op == .concat)
-                keyOf(relA(ky).mul(relA(kz)), relR(ky).mul(relR(kz)))
+                keyAux(relA(ky).mul(relA(kz)), relR(ky).mul(relR(kz)), aux)
             else
-                keyOf(relA(ky).orr(relA(kz)), relR(ky).orr(relR(kz)));
+                keyAux(relA(ky).orr(relA(kz)), relR(ky).orr(relR(kz)), aux);
             self.record(op, 0, y, z, &key);
         }
 
@@ -898,7 +927,7 @@ fn Builder(comptime R: type) type {
             self.setQuota(1);
             for (self.g.atoms, 0..) |*a, i| {
                 if (self.g.atom_w[i] <= 0) continue;
-                const key = keyOf(atoms.relation(R, a, self.g.flags, wa), atoms.relation(R, a, self.g.flags, wr));
+                const key = keyAux(atoms.relation(R, a, self.g.flags, wa), atoms.relation(R, a, self.g.flags, wr), if (self.g.lookbehind_len_cap > 0 and a.isConsuming()) 1 else 0);
                 self.record(.atom, @intCast(i), none, none, &key);
                 tab.stats.atoms += 1;
                 if (self.stopped) break;

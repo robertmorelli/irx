@@ -186,7 +186,10 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     ucd.init();
     _ = sys.signal(sys.SIGPIPE, sys.SIG_IGN);
     const is_perl = o.perl != null;
-    if (is_perl) sample.dialect = .perl;
+    if (is_perl) {
+        sample.dialect = .perl;
+        alpha.perl = true;
+    }
     const d8 = o.perl orelse o.d8 orelse {
         sys.stderrPrint("--d8 PATH (or --perl PATH) is required\n", .{});
         usage();
@@ -208,12 +211,21 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     var dd: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(driver_src, &dd, .{});
     if (is_perl) {
-        // No v-mode set syntax in Perl: drop v flag sets.
+        // Perl strings are code points and the driver always uses /u, so every
+        // flag set gets u; v-mode set syntax does not exist in Perl. Dedupe.
         var n: u8 = 0;
-        for (cfg.flagSets()) |f| if (!f.v) {
-            cfg.flag_sets[n] = f;
-            n += 1;
-        };
+        for (cfg.flagSets()) |f0| {
+            var f = f0;
+            f.v = false;
+            f.u = true;
+            const dup = for (cfg.flag_sets[0..n]) |g| {
+                if (g.bits() == f.bits()) break true;
+            } else false;
+            if (!dup) {
+                cfg.flag_sets[n] = f;
+                n += 1;
+            }
+        }
         cfg.n_flag_sets = n;
     }
     const driver_hash = try gpa.dupe(u8, &std.fmt.bytesToHex(dd, .lower));
@@ -521,7 +533,7 @@ fn cmdFuzz(gpa: Allocator, o: *const Options) !u8 {
 
 fn cmdSelfcheck(gpa: Allocator, o: *const Options) !u8 {
     var opts = o.*;
-    opts.modes = "interp";
+    opts.modes = if (o.perl != null) "perl" else "interp";
     var s = try setup(gpa, &opts, false);
     try writeManifest(&s, 0, 0);
     const r = try runSelfcheck(&s);
