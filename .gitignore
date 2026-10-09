@@ -1,3 +1,4 @@
 .zig-cache/
 zig-out/
 findings/
+vendor/perl-blead/
