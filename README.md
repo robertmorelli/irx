@@ -97,23 +97,27 @@ OUT/summary.json        end-of-run totals
 * **Budgets**: deterministic truncation under tiny caps (identical digests), resource rejection with zero leaked
   bytes, zero-mass rejection, A = R rejection, finite retry exhaustion (gate scenario `retry-exhaustion`).
 
-## First results: a V8 15.5 irregexp regression
+## Candidate V8 bugs found
 
-Within 45 seconds the fuzzer reported (and triage reproduced and minimized) wrong results in every d8 mode
-of V8 15.5.35.20 (Homebrew):
+About 15 million patterns (roughly 50–60 million regex executions across 3–6 d8 modes) against
+V8 15.5.35.20 (Homebrew d8) produced three wrong-result candidates. All reproduce in fresh processes and
+were minimized by the fuzzer's own triage. None has been checked against current V8 main or Chrome, and
+none has been reported upstream; per the spec they are reproduced candidates, not confirmed V8 bugs.
 
-```js
-/(?:.*?B^|a)/s.test("a")        // d8 15.5: false   expected/ES spec & Node 25 (older V8): true
-/^(?:.*?a^)*$/s.test("")        // d8 15.5: false   expected: true (zero iterations)
-/a(?:.*?[A-Z]^)|aa/s.test("aa") // d8 15.5: false   expected: true
-```
+| # | Minimized repro | d8 15.5 | Correct (ES spec) | Notes |
+|---|---|---|---|---|
+| 1 | `/(?:.*?B^\|a)/s.test("a")` | `false` | `true` | Fixed by `--no-regexp-quick-check` and by `--no-regexp-optimization`. Node 25.8 (older V8) and the `l` linear engine are correct. |
+| 2 | `/^(?:.*?a^)*$/s.test("")` | `false` | `true` (zero iterations) | Fixed by `--no-regexp-quick-check` but **not** by `--no-regexp-optimization`, so possibly distinct from #1. Node 25.8 is correct. |
+| 3 | `/(?<![\s\S])(?:(?:^)*)(?![\s\S])/mu.test("😀")` | `true` | `false` | A unicode-mode match apparently starts between the two halves of a surrogate pair. Not affected by `--no-regexp-quick-check`. The simpler `/(?<![\s\S])(?![\s\S])/u` is correct in 15.5 but wrong in Node 25.8 (match at index 1), so this looks like a surviving variant of an older bug. |
 
-Lazy any-char loops followed by a class and `^` make later alternatives (or the empty iteration) unreachable.
-`--no-regexp-quick-check` restores the correct answer in all three cases; `--no-regexp-optimization` fixes the
-first but not the second. The experimental linear engine (`l` flag) answers correctly. The jsvu SpiderMonkey
-shell returns the same wrong answers — it vendors V8's irregexp, so its agreement is *not* independent evidence
-(triage says so in `classification`). This has not been reported upstream; per the spec it is a reproduced
-candidate, not a confirmed V8 bug, until reviewed.
+Candidates 1 and 2 have the same shape: a lazy any-char loop followed by an unsatisfiable `^`, after which
+V8 skips later alternatives (or the empty iteration). They account for every quick-check finding seen
+(~25 tables, all with the `s` flag). Candidate 3 produced ~8.8k distinct findings from a single `msu` table whose
+reject string contained surrogate pairs. The jsvu SpiderMonkey shell gives the same wrong answers for all
+three; it vendors V8's irregexp, so its agreement is not independent evidence.
+
+First detection took about 6 seconds of fuzzing (candidates 1 and 2); candidate 3 appeared in the
+edit-distance-5 campaign (`[strings] max_edit_distance = 5`).
 
 ## Deviations, limitations and measured decisions
 
