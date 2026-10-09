@@ -1,0 +1,72 @@
+# Fixed performance-gate corpus. Each [[scenario]] is a config overlay plus
+# name/seed/cases; the gate runs them single-lane in interp mode.
+
+[[scenario]]
+name = "short-strings"
+seed = 101
+cases = 4000
+[strings]
+min_len = 1
+max_len = 2
+[limits]
+samples_per_table = 1000
+
+[[scenario]]
+name = "long-strings"
+seed = 102
+cases = 3000
+[strings]
+min_len = 12
+max_len = 15
+[limits]
+samples_per_table = 1000
+max_pairs = 262144
+max_combos = 4194304
+
+[[scenario]]
+name = "case-folding"
+seed = 103
+cases = 4000
+[flags]
+sets = ["i", "iu", "iv"]
+[limits]
+samples_per_table = 1000
+
+[[scenario]]
+name = "multiline-dotall"
+seed = 104
+cases = 3000
+[flags]
+sets = ["m", "ms", "imv", "su"]
+[limits]
+samples_per_table = 1000
+
+[[scenario]]
+name = "repeated-length"
+seed = 105
+cases = 3000
+[strings]
+min_len = 8
+max_len = 8
+[limits]
+samples_per_table = 500
+
+[[scenario]]
+name = "tiny-budgets"
+seed = 106
+cases = 3000
+[limits]
+samples_per_table = 500
+max_pairs = 2000
+max_combos = 20000
+max_prods = 20000
+max_count_terms = 1000000
+max_table_bytes = 67108864
+
+[[scenario]]
+name = "retry-exhaustion"
+seed = 107
+cases = 100
+[limits]
+max_table_bytes = 4096
+max_table_attempts = 5

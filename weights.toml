@@ -1,0 +1,77 @@
+# Example irx configuration. Every key is optional; omitted keys keep the
+# defaults shown in src/config.zig. Weights are finite and nonnegative; zero
+# disables a construct. Within a category (e.g. all class templates, all
+# {m,n} parameters) the category weight is split evenly across its entries.
+
+[weights]
+literal = 1.0
+dot = 0.7
+class = 1.0
+range = 1.0
+escape = 1.0
+vset = 1.0
+caret = 1.0
+dollar = 1.0
+backslash_b = 1.0
+backslash_B = 1.0
+empty = 0.2
+concat = 4.0
+alt = 1.5
+star = 0.25
+plus = 0.2
+opt = 0.2
+rep = 0.15
+rep_open = 0.08
+rep_exact = 0.08
+lazy = 0.5            # multiplier applied to the lazy variant of each quantifier
+lookahead = 0.4
+neg_lookahead = 0.4
+lookbehind = 0.4
+neg_lookbehind = 0.4
+group = 0.05
+nc_group = 0.05
+named_group = 0.03
+
+[sizes]
+uniform = [4, 24]     # or: weights = [D(1), D(2), ...]
+
+[strings]
+min_len = 1
+max_len = 8
+max_symbols = 15
+max_edit_distance = 5   # >0: R = A after 1..k edits (edit distance <= k)
+
+[grammar]
+max_size = 24
+max_rep_bound = 3
+class_max_members = 2
+max_pattern_bytes = 16384
+allow_diagonal_lookarounds = false
+usefulness_pass = true
+
+[flags]
+sets = ["", "i", "m", "s", "u", "v", "iu", "iv", "im", "is", "ms", "ims", "imu", "imv", "isu", "isv", "msu", "msv", "imsu", "imsv", "su", "sv", "mu", "mv"]
+
+[limits]
+max_pairs = 1048576
+max_combos = 67108864
+max_prods = 4194304
+max_count_terms = 268435456
+max_table_bytes = 1073741824
+max_host_bytes = 4294967296
+max_table_attempts = 64
+samples_per_table = 100000
+alias_cache = true
+max_pending_findings = 256
+
+[harness]
+batch_size = 512
+startup_deadline_ms = 10000
+batch_deadline_base_ms = 2000
+batch_deadline_per512_ms = 2000
+recycle_cases = 1000000
+
+[adaptive]
+adaptive = false
+adaptive_factor = 1.5
+adaptive_cap = 10.0
