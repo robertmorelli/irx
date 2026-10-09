@@ -32,7 +32,7 @@ pub const Triage = struct {
 
     fn exeFor(self: *Triage, m: *const harness.ModeSpec) []const u8 {
         return switch (m.engine) {
-            .d8 => self.run.d8_exe,
+            .d8, .perl => self.run.d8_exe,
             .sm => self.run.sm_exe orelse "",
             .jsc => self.run.jsc_exe orelse "",
         };

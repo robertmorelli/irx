@@ -10,5 +10,6 @@
         "build.zig.zon",
         "src",
         "driver.js",
+        "driver.pl",
     },
 }
