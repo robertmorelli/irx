@@ -42,8 +42,14 @@ while {[gets stdin line] >= 0} {
         set ::lone 0
         set f [jstr $line i]; incr i; set a [jstr $line i]; incr i; set r [jstr $line i]; incr i; set p [jstr $line i]; incr i
         if {$::lone} { append out 40; continue }
-        regsub -all {\\x\{([0-9A-Fa-f]+)\}} $p {[format %c 0x\1]} p2
-        set p [subst -novariables -nobackslashes $p2]
+        # Expand \x{H} escapes to raw characters without subst (patterns contain [ ]).
+        set p2 ""
+        while {[regexp -indices {\\x\{([0-9A-Fa-f]+)\}} $p all hex]} {
+            append p2 [string range $p 0 [expr {[lindex $all 0] - 1}]]
+            append p2 [format %c [expr 0x[string range $p {*}$hex]]]
+            set p [string range $p [expr {[lindex $all 1] + 1}] end]
+        }
+        set p "$p2$p"
         set opts {}
         if {[string first i $f] >= 0} { lappend opts -nocase }
         if {[string first m $f] >= 0} { lappend opts -lineanchor }
