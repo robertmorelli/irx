@@ -24,3 +24,21 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END emacs 1m results -->
+
+<!-- BEGIN emacs 10m results -->
+### Emacs Lisp regexps (translated): 10m campaign
+
+* 1,975,264 patterns, 21 tables, 1,510 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 1,502 timeout (batch), 8 crash (batch)
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END emacs 10m results -->
+
+<!-- BEGIN emacs 10m triage -->
+### emacs: 10-minute campaign triage
+
+* New: **IRX-EMACS-1**, the 8 crashes: SIGABRT in `forall_firstchar_1` during `regex_compile`. It only reproduces
+  with a whole recorded batch (minimized to 10 patterns, `docs/repros/IRX-EMACS-1.jsonl`).
+* No wrong results; self-check clean after the dialect work.
+* 1,502 timeouts, none reproduced alone; Emacs's backtracker is slow on the longer subjects. Not investigated further.
+<!-- END emacs 10m triage -->

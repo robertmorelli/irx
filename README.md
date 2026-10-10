@@ -211,6 +211,7 @@ reported upstream yet. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.
 | IRX-LLVM-1 | LLVM 23.1.2 `llvm::Regex` (BSD/Spencer ERE) | wrong result (not leftmost) | `Regex("(()|a)b").match("ab", &m)` reports `[1,2)`; `(()|a)$` on `"a"` reports `[1,1)` | `[0,2)`; `[0,1)` | a match starting at 0 exists but is skipped when the first alternative can be empty (also `(x*|a)$`); `(a|())$` is fine. With REG_NEWLINE it turns full-match checks into misses |
 | IRX-LLVM-2 | LLVM 23.1.2 `llvm::Regex` (BSD/Spencer ERE) | wrong result | `Regex("(^){2}x").match("x")` → false; `(^){2}` misses `""` | true | an exact count on a group holding an anchor never matches (`(^){2}`, `($){2}`); `(^)(^)`, `(^){1,2}`, `(^)+` and `(()){2}` are fine |
 | IRX-JAVA-1 | OpenJDK 23 `java.util.regex` (`CASE_INSENSITIVE \| UNICODE_CASE`) | wrong result (asymmetric case folding) | `Pattern.compile("ß", CASE_INSENSITIVE \| UNICODE_CASE).matcher("ẞ").matches()` → false | true (`Pattern.compile("ẞ", …).matcher("ß")` is true) | a literal or class member with no simple case mapping (ß) compiles to an exact match, while ẞ is folded through `toLowerCase`; same in classes (`[ß]`, `[aß]`) |
+| IRX-EMACS-1 | GNU Emacs 31.1 (Homebrew, native-comp) | crash (SIGABRT) | `emacs -Q --batch -l hosts/emacs/host.el shell < docs/repros/IRX-EMACS-1.jsonl` → `abort()` in `forall_firstchar_1` ← `regex_compile` ← `string_match_1`, while compiling the translation of `[aσ]\|(?:-\|\B)[😀İ](?:)(?:[a-c]\|^)\|(?:\b)?\|(?:\w*?)*\|$` | compiles | deterministic with the recorded 10-pattern batch (each pattern is needed). Compiling that pattern alone, or replaying the same `string-match` calls without the host's JSON work, does not abort, so it looks like stale or uninitialized state in the compiler (8 batches in 10 minutes) |
 
 ### Imported from regex_comparison
 
@@ -304,7 +305,7 @@ dialect gaps rather than bugs. Structural matchers (CSS, DOM, FileCheck, macros,
 | PHP 8.5 `preg_*` | [`php-pcre2`](targets/php-pcre2) | `hosts/script/php_host.php` | Perl (exact) | IRX-PCRE2-1 |
 | Swift Regex 6.4 | [`swift-regex`](targets/swift-regex) | `hosts/swift` (scalar semantics) | Swift (exact) | IRX-SWIFT-1 |
 | .NET 9 interpreter / Compiled / NonBacktracking | [`dotnet-interp`](targets/dotnet-interp), [`dotnet-compiled`](targets/dotnet-compiled), [`dotnet-nonbacktracking`](targets/dotnet-nonbacktracking) | `hosts/dotnet` | `dotnet` / `dotnet-nonbacktracking`: UTF-16 units, `\w` = L\|Mn\|Nd\|Pc (exact) | IRX-DOTNET-1…6 |
-| ICU (`NSRegularExpression`) | [`icu`](targets/icu) | `hosts/swift` | `icu`: UTS #18 classes, Unicode line ends, CRLF `$` (exact) | 0 self-check mismatches |
+| ICU (`NSRegularExpression`) | [`icu`](targets/icu) | `hosts/swift` | `icu`: UTS #18 classes, Unicode line ends, CRLF `$` (exact) | IRX-EMACS-1 |
 | Rust `regex` | [`rust-regex`](targets/rust-regex) | `hosts/rust` | `rust` (exact) | 0 self-check mismatches; 1.2M patterns, 0 findings |
 | fancy-regex | [`fancy-regex`](targets/fancy-regex) | `hosts/rust` | `fancy`: fixed-length lookbehind, no empty-body quantifiers (exact) | 0 self-check mismatches |
 | RE# (`resharp`) | [`resharp`](targets/resharp) | `hosts/rust` | `resharp`: UnicodeMode::Full; no lazy, lookbehind, mid-pattern `^`/`\b`, lookahead under `*` (exact) | 0 self-check mismatches; named groups under quantifiers rejected |
