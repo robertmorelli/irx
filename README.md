@@ -169,6 +169,11 @@ reported upstream yet.
 | IRX-PERL-2 | Perl 5.34.1, 5.44.0, blead 5.45.4 | wrong result | `"a" =~ /\A^\ba*\z/m` → false | true | needs `\A`, `/m` `^`, `\b` and a quantified atom together |
 | IRX-XS-1 | XS (jsvu, Moddable) | rejects valid pattern | `new RegExp("[]", "v")`, `new RegExp("[^]", "v")` → SyntaxError | accepted (ES2024) | empty `ClassContents` is legal in UnicodeSets mode |
 | IRX-BOA-1 | Boa (`boa_cli`, cargo) | rejects valid input (JSON) | `JSON.parse('"\\ud83d"')` → SyntaxError | 1-unit string | lone-surrogate escapes are valid JSON; not a regex bug, found while wiring the harness |
+| IRX-BOA-2 | Boa (`boa_cli`, cargo) | wrong result | `/^[\uD83D\uDE00]$/.test("\ud83d")` → `false` | `true` | without `u`, an escaped surrogate pair in a class is merged into one code point |
+| IRX-BOA-3 | Boa (`boa_cli`, cargo) | wrong result | `/^s$/i.test("ſ")` → `true` | `false` | non-`u` `i` uses Unicode simple folding instead of `toUpperCase` canonicalization; `\w`/`i` also matches ſ and K |
+| IRX-BOA-4 | Boa (`boa_cli`, cargo) | wrong result | `/^(?:\D\b)$/iv.test("\u212a")` → `false` | `true` | `\b` ignores the extra `iu`/`iv` word characters (ſ, K) |
+| IRX-BOA-5 | Boa (`boa_cli`, cargo) | wrong result | `/^(?:(?:\s(?:(?:){0,1}\|a))+)+$/.test("\u2028a")` → `false` | `true` | an empty group quantified `{0,1}` as an alternative breaks nested loops; `(?:\|a)` is fine |
+| IRX-BOA-6 | Boa (`boa_cli`, cargo) | wrong result | `/^[s[^a]]$/iv.test("a")` → `true` | `false` | nested complements in `v` classes are not case-folded under `i` |
 | IRX-XS-2 | XS (jsvu, Moddable) | wrong result | `/^[S\u{1F600}]$/iv.test("s")` → `false`; `/^[^A]$/iv.test("a")` → `true` | `true`; `false` | `v`-mode classes ignore `i`: neither members nor complements are case-folded (~250 findings) |
 | IRX-XS-3 | XS (jsvu, Moddable) | uncatchable abort (sequence-dependent) | a 512-case batch aborts the script with uncaught `RangeError: buffer overflow` although every case runs inside `try` | per-case result bits | 780 batches; no single case aborts alone, not yet minimized |
 | IRX-E262-1 | engine262 (npm `@engine262/engine262`) | rejects valid pattern | `new RegExp("[\u{17F}--\u{212A}]", "v")` → SyntaxError "Expect a CharacterClassEscape" | accepted | a `\u{…}` escape is not accepted as a `ClassSetOperand` in set operations (~9.7k findings) |
@@ -260,7 +265,7 @@ self-check reaches zero mismatches, and (3) grammar restrictions for unsupported
 | ECMAScript: XS | `xs` | bridge | ES2024 | done; IRX-XS-1, IRX-XS-2, IRX-XS-3 |
 | ECMAScript: engine262 | `engine262` | bridge | ES2024 | done; IRX-E262-1, IRX-E262-2 |
 | ECMAScript: Hermes | `hermes` | bridge | ES2024 minus `v` | done; IRX-HERMES-1, IRX-HERMES-2 |
-| ECMAScript: Boa | `boa` | bridge (object-literal batches, IRX-BOA-1) | ES2024 | pending rerun |
+| ECMAScript: Boa | `boa` | bridge (object-literal batches, IRX-BOA-1) | ES2024 | done; IRX-BOA-1…6 |
 | ECMAScript: JavaScriptCore (`jsc`, Bun) | — | `driver.js` (`--jsc`) | ES2024 | needs a `jsc` binary |
 | ECMAScript: LibJS (Ladybird) | — | `driver.js` | ES2024 | needs a ~1 h Ladybird build |
 | Perl | `perl` | `driver.pl` | Perl `/u` (done) | done; 2 bugs |
