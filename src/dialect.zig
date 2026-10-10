@@ -86,7 +86,8 @@ pub const rust = @import("dialects/rust.zig").dialect;
 pub const fancy = @import("dialects/rust.zig").fancy;
 pub const re2 = @import("dialects/re2.zig").dialect;
 pub const go = @import("dialects/re2.zig").go;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go };
+pub const python = @import("dialects/python.zig").dialect;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;

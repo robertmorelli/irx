@@ -5,5 +5,5 @@
 title = "Python re"
 kind = "shell"   # d8 | perl | shell
 command = "/opt/homebrew/bin/python3 {root}/hosts/script/py_host.py {mode}"
-dialect = "perl"   # src/dialects/
+dialect = "python"   # src/dialects/
 selfcheck = true

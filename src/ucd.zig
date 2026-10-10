@@ -225,6 +225,11 @@ fn canonNonUnicodeCompute(ch: u16) u16 {
     return @intCast(u);
 }
 
+/// Simple lowercase mapping (UnicodeData field 13); identity when absent.
+pub fn simpleLower(c: u21) u21 {
+    return lookup(data.lower, c) orelse c;
+}
+
 /// Full lowercase mapping when it is a single code point; otherwise c (Swift-style).
 pub fn lower1(c: u21) u21 {
     if (std.sort.binarySearch(u21, data.lower_multi, c, struct {
