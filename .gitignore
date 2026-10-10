@@ -2,3 +2,5 @@
 zig-out/
 findings/
 vendor/
+hosts/bin/
+hosts/rust/target/

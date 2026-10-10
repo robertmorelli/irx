@@ -1,0 +1,11 @@
+[package]
+name = "irx-hosts"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+regex = "1"
+fancy-regex = "0.14"
+
+[profile.release]
+opt-level = 3
