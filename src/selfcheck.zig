@@ -60,7 +60,21 @@ pub const Checker = struct {
     /// selfcheck/mismatches.tsv: every mismatch (flags, kind, pattern, A, model, engine).
     tsv: ?c_int = null,
 
+    fn hasLoneSurrogate(s: []const u16) bool {
+        var i: usize = 0;
+        while (i < s.len) : (i += 1) {
+            const u = s[i];
+            if (u >= 0xD800 and u <= 0xDBFF and i + 1 < s.len and s[i + 1] >= 0xDC00 and s[i + 1] <= 0xDFFF) {
+                i += 1;
+                continue;
+            }
+            if (u >= 0xD800 and u <= 0xDFFF) return true;
+        }
+        return false;
+    }
+
     fn addProbe(self: *Checker, flags: Flags, at: atoms.AtomSpec, pos: i16, a: finding.Subject, r: finding.Subject, what: []const u8) !void {
+        if (dialect.noLoneSurrogates() and (hasLoneSurrogate(a.slice()) or hasLoneSurrogate(r.slice()))) return;
         var tree: ast.Ast = .{};
         try makeTree(&tree, at, pos);
         const ea = ast.oracle(&tree, flags, a.slice()) orelse return;
@@ -212,6 +226,11 @@ pub const Checker = struct {
             if (harness.runSync(c, &b) != .answered) {
                 self.result.engine_failures += 1;
                 try self.report.print(self.gpa, "engine {s}: batch {d} failed: {s}\n", .{ spec.name, seq, c.message() });
+                if (self.result.engine_failures <= 3) {
+                    const tail = try c.err.copyOut(self.gpa);
+                    defer self.gpa.free(tail);
+                    try self.report.print(self.gpa, "  stderr tail: {s}\n", .{tail[tail.len -| 600..]});
+                }
                 i = end;
                 continue;
             }

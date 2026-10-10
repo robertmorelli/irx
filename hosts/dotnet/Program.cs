@@ -16,14 +16,17 @@ while ((line = stdin.ReadLine()) != null) {
     var root = doc.RootElement;
     var sb = new StringBuilder(root[0].GetRawText()).Append(' ');
     foreach (var c in root[1].EnumerateArray()) {
-        string f = c[0].GetString(), a = c[1].GetString(), r = c[2].GetString(), p = c[3].GetString();
+        string f, a, r, p;
+        try { f = c[0].GetString(); a = c[1].GetString(); r = c[2].GetString(); p = c[3].GetString(); }
+        catch (InvalidOperationException) { sb.Append("40"); continue; } // undecodable (lone surrogate)
         bool lone = (a + r + p).Contains('\uFFFF');
         foreach (var s in new[] { a, r, p }) for (int i = 0; i < s.Length; i++) {
             if (char.IsHighSurrogate(s[i]) && i + 1 < s.Length && char.IsLowSurrogate(s[i + 1])) { i++; continue; }
             if (char.IsSurrogate(s[i])) lone = true;
         }
         if (lone) { sb.Append("40"); continue; }
-        p = xesc.Replace(p, m => char.ConvertFromUtf32(Convert.ToInt32(m.Groups[1].Value, 16)));
+        // \x{H} -> raw char; surrogate halves (UTF-16 dialect literals) become single chars.
+        p = xesc.Replace(p, m => { int cp = Convert.ToInt32(m.Groups[1].Value, 16); return cp >= 0xD800 && cp <= 0xDFFF ? ((char)cp).ToString() : char.ConvertFromUtf32(cp); });
         var o = RegexOptions.CultureInvariant;
         if (f.Contains('i')) o |= RegexOptions.IgnoreCase;
         if (f.Contains('m')) o |= RegexOptions.Multiline;

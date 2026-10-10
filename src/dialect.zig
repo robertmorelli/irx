@@ -100,7 +100,9 @@ pub const python = @import("dialects/python.zig").dialect;
 pub const java = @import("dialects/java.zig").dialect;
 pub const ruby = @import("dialects/ruby.zig").dialect;
 pub const oniguruma = @import("dialects/ruby.zig").oniguruma;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma };
+pub const dotnet = @import("dialects/dotnet.zig").dialect;
+pub const dotnet_nb = @import("dialects/dotnet.zig").nonbacktracking;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
