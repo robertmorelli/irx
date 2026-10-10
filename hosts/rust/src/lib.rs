@@ -12,7 +12,7 @@ fn parse_str(b: &[u8], i: &mut usize) -> Option<(String, bool)> {
     *i += 1;
     let mut s: Vec<u8> = Vec::new();
     let mut bad = false;
-    let mut pushc = |s: &mut Vec<u8>, c: char| { let mut t = [0u8; 4]; s.extend_from_slice(c.encode_utf8(&mut t).as_bytes()); };
+    let pushc = |s: &mut Vec<u8>, c: char| { let mut t = [0u8; 4]; s.extend_from_slice(c.encode_utf8(&mut t).as_bytes()); };
     while *i < b.len() && b[*i] != b'"' {
         if b[*i] != b'\\' { s.push(b[*i]); *i += 1; continue; }
         *i += 1;

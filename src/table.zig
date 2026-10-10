@@ -65,6 +65,8 @@ pub const Grammar = struct {
     no_empty_quant: bool = false,
     /// Lookbehind bodies must have min == max length.
     lookbehind_fixed: bool = false,
+    /// Forbid lookaheads (and `$` under m) inside unbounded quantifiers; tracked as aux bit 31.
+    no_la_in_star: bool = false,
 
     pub fn init(gpa: Allocator, cfg: *const config.Config, flags: Flags) !Grammar {
         const W = &cfg.weights;
@@ -154,6 +156,7 @@ pub const Grammar = struct {
             .len_cap = if (dialect_mod.active.lookbehind_len_cap > 0) dialect_mod.active.lookbehind_len_cap else if (dialect_mod.active.lookbehind_fixed or !dialect_mod.active.allow_empty_quant) @intCast(dialect_mod.len_cap_default) else 0,
             .lookbehind_fixed = dialect_mod.active.lookbehind_fixed,
             .no_empty_quant = !dialect_mod.active.allow_empty_quant,
+            .no_la_in_star = !dialect_mod.active.lookahead_in_star,
         };
         try g.indexWeights(gpa);
         return g;
@@ -192,7 +195,7 @@ pub const Grammar = struct {
         h.update(&[_]u8{self.flags.bits()});
         h.update(std.mem.asBytes(&self.lookbehind_len_cap));
         h.update(std.mem.asBytes(&self.len_cap));
-        h.update(&[_]u8{ @intFromBool(self.no_empty_quant), @intFromBool(self.lookbehind_fixed) });
+        h.update(&[_]u8{ @intFromBool(self.no_empty_quant), @intFromBool(self.lookbehind_fixed), @intFromBool(self.no_la_in_star) });
         for (self.atoms, self.atom_w) |a, w| {
             h.update(std.mem.asBytes(&a.kind));
             h.update(&[_]u8{ a.sub, @intFromBool(a.neg), a.n });
@@ -654,6 +657,8 @@ fn Builder(comptime R: type) type {
         fn keyOf(ra: R, rr: R) Key {
             return .{ .a = ra.rows, .r = rr.rows };
         }
+        const la_bit: u32 = 1 << 31;
+
         fn keyAux(ra: R, rr: R, aux: u32) Key {
             return .{ .a = ra.rows, .r = rr.rows, .aux = aux };
         }
@@ -854,25 +859,28 @@ fn Builder(comptime R: type) type {
                     nr = rr;
                 },
             }
-            // aux packs saturating (max, min) subtree lengths: max in bits 0..15, min in 16..31.
+            // aux packs saturating (max, min) subtree lengths: max in bits 0..15, min in 16..30;
+            // bit 31 marks a subtree containing a lookahead (no_la_in_star).
             var aux: u32 = 0;
-            if (self.g.len_cap > 0) {
+            if (self.g.len_cap > 0 or self.g.no_la_in_star) {
                 const cap: u32 = self.g.len_cap;
                 const ymax = ky.aux & 0xFFFF;
-                const ymin = ky.aux >> 16;
+                const ymin = (ky.aux >> 16) & 0x7FFF;
+                const la = ky.aux & la_bit;
                 switch (u.op) {
                     .quant => {
                         if (self.g.no_empty_quant and ymax == 0) return;
                         const q = self.g.quants[u.arg];
+                        if (self.g.no_la_in_star and la != 0 and q.max == ast.inf) return;
                         const mx: u32 = if (q.max == ast.inf) cap else @min(cap, ymax * @as(u32, q.max));
                         const mn: u32 = @min(cap, ymin * @as(u32, q.min));
-                        aux = mx | (mn << 16);
+                        aux = mx | (mn << 16) | la;
                     },
-                    .look_ahead, .neg_look_ahead => aux = 0,
+                    .look_ahead, .neg_look_ahead => aux = if (self.g.no_la_in_star) la_bit else 0,
                     .look_behind, .neg_look_behind => {
                         if (self.g.lookbehind_len_cap > 0 and ymax >= cap) return;
                         if (self.g.lookbehind_fixed and (ymin != ymax or ymax >= cap)) return;
-                        aux = 0;
+                        aux = la;
                     },
                     else => aux = ky.aux,
                 }
@@ -885,13 +893,14 @@ fn Builder(comptime R: type) type {
             const ky = self.keys.items[y];
             const kz = self.keys.items[z];
             const cap: u32 = self.g.len_cap;
-            const aux: u32 = if (cap == 0) 0 else blk: {
+            const aux: u32 = if (cap == 0 and !self.g.no_la_in_star) 0 else blk: {
                 const amax = ky.aux & 0xFFFF;
-                const amin = ky.aux >> 16;
+                const amin = (ky.aux >> 16) & 0x7FFF;
                 const bmax = kz.aux & 0xFFFF;
-                const bmin = kz.aux >> 16;
-                if (op == .concat) break :blk @min(cap, amax + bmax) | (@min(cap, amin + bmin) << 16);
-                break :blk @max(amax, bmax) | (@min(amin, bmin) << 16);
+                const bmin = (kz.aux >> 16) & 0x7FFF;
+                const la = (ky.aux | kz.aux) & la_bit;
+                if (op == .concat) break :blk @min(cap, amax + bmax) | (@min(cap, amin + bmin) << 16) | la;
+                break :blk @max(amax, bmax) | (@min(amin, bmin) << 16) | la;
             };
             const key = if (op == .concat)
                 keyAux(relA(ky).mul(relA(kz)), relR(ky).mul(relR(kz)), aux)
@@ -958,7 +967,8 @@ fn Builder(comptime R: type) type {
             self.setQuota(1);
             for (self.g.atoms, 0..) |*a, i| {
                 if (self.g.atom_w[i] <= 0) continue;
-                const key = keyAux(atoms.relation(R, a, self.g.flags, wa), atoms.relation(R, a, self.g.flags, wr), if (self.g.len_cap > 0 and a.isConsuming()) 1 else 0);
+                const la: u32 = if (self.g.no_la_in_star and a.kind == .dollar and self.g.flags.m) la_bit else 0;
+                const key = keyAux(atoms.relation(R, a, self.g.flags, wa), atoms.relation(R, a, self.g.flags, wr), (if (self.g.len_cap > 0 and a.isConsuming()) @as(u32, 1) else 0) | la);
                 self.record(.atom, @intCast(i), none, none, &key);
                 tab.stats.atoms += 1;
                 if (self.stopped) break;

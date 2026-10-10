@@ -5,5 +5,10 @@
 title = "RE# (resharp)"
 kind = "shell"   # d8 | perl | shell
 command = "{root}/hosts/bin/resharp_host {mode}"
-dialect = "perl"   # src/dialects/
+dialect = "resharp"   # src/dialects/
 selfcheck = true
+
+# config overlay (merged over weights.toml): UnicodeMode::Full compiles ~15 ms per pattern, so smaller batches, longer deadline.
+[harness]
+batch_size = 128
+batch_deadline_per512_ms = 40000

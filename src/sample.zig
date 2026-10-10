@@ -330,15 +330,19 @@ pub const Printer = struct {
 
     /// Literal outside classes.
     pub fn literal(self: *Printer, c: u21) PrintError!void {
-        if (!isPrintableAscii(c)) return self.escapedCodePoint(c);
+        if (!isPrintableAscii(c) or self.extraMeta(c)) return self.escapedCodePoint(c);
         const b: u8 = @intCast(c);
         if (std.mem.indexOfScalar(u8, "^$\\.*+?()[]{}|/", b) != null) try self.putc('\\');
         try self.putc(b);
     }
 
+    fn extraMeta(_: *Printer, c: u21) bool {
+        return c < 0x80 and std.mem.indexOfScalar(u8, dialect.active.extra_meta, @intCast(c)) != null;
+    }
+
     /// Literal inside a class, per mode.
     pub fn classLiteral(self: *Printer, c: u21) PrintError!void {
-        if (!isPrintableAscii(c)) return self.escapedCodePoint(c);
+        if (!isPrintableAscii(c) or self.extraMeta(c)) return self.escapedCodePoint(c);
         const b: u8 = @intCast(c);
         const needs = if (self.flags.v)
             // ClassSetSyntaxCharacter, ClassSetReservedPunctuator, and the remaining

@@ -80,6 +80,12 @@ pub const Dialect = struct {
     /// Grammar restrictions for constructs the engine does not support.
     allow_lookahead: bool = true,
     allow_lookbehind: bool = true,
+    /// `^`, `\\b`, `\\B` usable mid-pattern (resharp compiles them as start-only lookbehinds).
+    allow_lookbehind_assertions: bool = true,
+    /// Lookaheads (and `$` under m) allowed inside unbounded `*`/`+` (resharp: no).
+    lookahead_in_star: bool = true,
+    /// Extra ASCII metacharacters, printed as code-point escapes (resharp: _ & ~).
+    extra_meta: []const u8 = "",
     allow_lazy: bool = true,
     /// Quantifiers over bodies that can only match the empty string, e.g. (?:)* or (?:\\b)*.
     allow_empty_quant: bool = true,
@@ -105,7 +111,8 @@ pub const oniguruma = @import("dialects/ruby.zig").oniguruma;
 pub const dotnet = @import("dialects/dotnet.zig").dialect;
 pub const dotnet_nb = @import("dialects/dotnet.zig").nonbacktracking;
 pub const icu = @import("dialects/icu.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu };
+pub const resharp = @import("dialects/resharp.zig").dialect;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
@@ -126,7 +133,8 @@ pub fn codePointsOnly() bool {
 }
 
 /// Length bounds of a subtree: (min, max) symbols, saturating at `cap`.
-pub const Len = struct { min: u32, max: u32 };
+/// Subtree length bounds; `la`: contains a lookahead or `$` (no flags here, so conservative).
+pub const Len = struct { min: u32, max: u32, la: bool = false };
 pub const len_cap_default: u32 = 16;
 
 /// Does a tree respect the active dialect's grammar restrictions? (Used by the
@@ -143,28 +151,32 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
     const cap = len_cap_default;
     const d = active;
     switch (n.op) {
-        .atom => return if (n.atom.isConsuming()) .{ .min = 1, .max = 1 } else .{ .min = 0, .max = 0 },
+        .atom => {
+            if (!d.allow_lookbehind_assertions and (n.atom.kind == .caret or n.atom.kind == .wordb or n.atom.kind == .nwordb)) ok.* = false;
+            return if (n.atom.isConsuming()) .{ .min = 1, .max = 1 } else .{ .min = 0, .max = 0, .la = n.atom.kind == .dollar };
+        },
         .concat => {
             const a = lenOf(t, n.a, ok);
             const b = lenOf(t, n.b, ok);
-            return .{ .min = @min(cap, a.min + b.min), .max = @min(cap, a.max + b.max) };
+            return .{ .min = @min(cap, a.min + b.min), .max = @min(cap, a.max + b.max), .la = a.la or b.la };
         },
         .alt => {
             const a = lenOf(t, n.a, ok);
             const b = lenOf(t, n.b, ok);
-            return .{ .min = @min(a.min, b.min), .max = @max(a.max, b.max) };
+            return .{ .min = @min(a.min, b.min), .max = @max(a.max, b.max), .la = a.la or b.la };
         },
         .quant => {
             const c = lenOf(t, n.a, ok);
             const q = n.quant;
             if (q.lazy and !d.allow_lazy) ok.* = false;
             if (!d.allow_empty_quant and c.max == 0) ok.* = false;
-            return .{ .min = @min(cap, c.min * q.min), .max = if (q.max == ast.inf) cap else @min(cap, c.max * q.max) };
+            if (!d.lookahead_in_star and c.la and q.max == ast.inf) ok.* = false;
+            return .{ .min = @min(cap, c.min * q.min), .max = if (q.max == ast.inf) cap else @min(cap, c.max * q.max), .la = c.la };
         },
         .look_ahead, .neg_look_ahead => {
             _ = lenOf(t, n.a, ok);
             if (!d.allow_lookahead) ok.* = false;
-            return .{ .min = 0, .max = 0 };
+            return .{ .min = 0, .max = 0, .la = true };
         },
         .look_behind, .neg_look_behind => {
             const c = lenOf(t, n.a, ok);
