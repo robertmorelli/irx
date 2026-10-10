@@ -28,7 +28,7 @@ TARGETS=(
   "python-re|--shell $PY@$S/py_host.py@{mode} --dialect perl|"
   "ruby-onigmo|--shell /opt/homebrew/bin/ruby@$S/rb_host.rb@{mode} --dialect perl|"
   "php-pcre2|--shell /opt/homebrew/bin/php@$S/php_host.php@{mode} --dialect perl|"
-  "tcl|--shell /usr/bin/tclsh@$S/tcl_host.tcl@{mode} --dialect perl|$NOLB"
+  "tcl|--shell /opt/homebrew/bin/tclsh@$S/tcl_host.tcl@{mode} --dialect perl|$NOLB"
   "java|--shell /usr/bin/java@-cp@$H/java@Host@{mode} --dialect perl|"
   "dotnet-interp|--shell $H/dotnet/host@interp@{mode} --dialect perl|"
   "dotnet-compiled|--shell $H/dotnet/host@compiled@{mode} --dialect perl|"
