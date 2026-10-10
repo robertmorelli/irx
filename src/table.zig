@@ -63,6 +63,8 @@ pub const Grammar = struct {
     len_cap: u16 = 0,
     /// Forbid quantifiers over bodies whose max length is 0.
     no_empty_quant: bool = false,
+    /// Lookbehind bodies must have min == max length.
+    lookbehind_fixed: bool = false,
 
     pub fn init(gpa: Allocator, cfg: *const config.Config, flags: Flags) !Grammar {
         const W = &cfg.weights;
@@ -149,7 +151,8 @@ pub const Grammar = struct {
             .quant_w = &.{},
             .op_w = undefined,
             .lookbehind_len_cap = dialect_mod.active.lookbehind_len_cap,
-            .len_cap = if (dialect_mod.active.lookbehind_len_cap > 0) dialect_mod.active.lookbehind_len_cap else if (!dialect_mod.active.allow_empty_quant) 2 else 0,
+            .len_cap = if (dialect_mod.active.lookbehind_len_cap > 0) dialect_mod.active.lookbehind_len_cap else if (dialect_mod.active.lookbehind_fixed or !dialect_mod.active.allow_empty_quant) @intCast(dialect_mod.len_cap_default) else 0,
+            .lookbehind_fixed = dialect_mod.active.lookbehind_fixed,
             .no_empty_quant = !dialect_mod.active.allow_empty_quant,
         };
         try g.indexWeights(gpa);
@@ -189,7 +192,7 @@ pub const Grammar = struct {
         h.update(&[_]u8{self.flags.bits()});
         h.update(std.mem.asBytes(&self.lookbehind_len_cap));
         h.update(std.mem.asBytes(&self.len_cap));
-        h.update(&[_]u8{@intFromBool(self.no_empty_quant)});
+        h.update(&[_]u8{ @intFromBool(self.no_empty_quant), @intFromBool(self.lookbehind_fixed) });
         for (self.atoms, self.atom_w) |a, w| {
             h.update(std.mem.asBytes(&a.kind));
             h.update(&[_]u8{ a.sub, @intFromBool(a.neg), a.n });
@@ -851,23 +854,27 @@ fn Builder(comptime R: type) type {
                     nr = rr;
                 },
             }
+            // aux packs saturating (max, min) subtree lengths: max in bits 0..15, min in 16..31.
             var aux: u32 = 0;
             if (self.g.len_cap > 0) {
-                const cap = self.g.len_cap;
-                const ya = ky.aux;
+                const cap: u32 = self.g.len_cap;
+                const ymax = ky.aux & 0xFFFF;
+                const ymin = ky.aux >> 16;
                 switch (u.op) {
                     .quant => {
-                        if (self.g.no_empty_quant and ya == 0) return;
+                        if (self.g.no_empty_quant and ymax == 0) return;
                         const q = self.g.quants[u.arg];
-                        aux = if (q.max == ast.inf) cap else @min(cap, ya * @as(u32, q.max));
+                        const mx: u32 = if (q.max == ast.inf) cap else @min(cap, ymax * @as(u32, q.max));
+                        const mn: u32 = @min(cap, ymin * @as(u32, q.min));
+                        aux = mx | (mn << 16);
                     },
                     .look_ahead, .neg_look_ahead => aux = 0,
                     .look_behind, .neg_look_behind => {
-                        // Bounded lookbehind bodies only (e.g. Perl's 255 limit).
-                        if (self.g.lookbehind_len_cap > 0 and ya >= cap) return;
+                        if (self.g.lookbehind_len_cap > 0 and ymax >= cap) return;
+                        if (self.g.lookbehind_fixed and (ymin != ymax or ymax >= cap)) return;
                         aux = 0;
                     },
-                    else => aux = ya,
+                    else => aux = ky.aux,
                 }
             }
             const key = keyAux(na, nr, aux);
@@ -877,8 +884,15 @@ fn Builder(comptime R: type) type {
         fn applyBinary(self: *Self, op: Op, y: u32, z: u32) void {
             const ky = self.keys.items[y];
             const kz = self.keys.items[z];
-            const cap = self.g.len_cap;
-            const aux: u32 = if (cap == 0) 0 else if (op == .concat) @min(cap, ky.aux + kz.aux) else @max(ky.aux, kz.aux);
+            const cap: u32 = self.g.len_cap;
+            const aux: u32 = if (cap == 0) 0 else blk: {
+                const amax = ky.aux & 0xFFFF;
+                const amin = ky.aux >> 16;
+                const bmax = kz.aux & 0xFFFF;
+                const bmin = kz.aux >> 16;
+                if (op == .concat) break :blk @min(cap, amax + bmax) | (@min(cap, amin + bmin) << 16);
+                break :blk @max(amax, bmax) | (@min(amin, bmin) << 16);
+            };
             const key = if (op == .concat)
                 keyAux(relA(ky).mul(relA(kz)), relR(ky).mul(relR(kz)), aux)
             else

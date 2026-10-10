@@ -255,6 +255,7 @@ pub const Triage = struct {
     // ---- candidate validation ----
 
     fn validFor(t: *const ast.Ast, flags: Flags) bool {
+        if (!@import("dialect.zig").treeAllowed(t)) return false;
         for (t.nodes[0..t.len]) |n| {
             if (n.op != .atom) continue;
             const at = n.atom;

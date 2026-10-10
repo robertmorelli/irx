@@ -72,12 +72,16 @@ pub const Dialect = struct {
     pool_exclude: []const u21 = &.{},
     /// Lookbehind bodies must have a provably bounded length (< cap); 0 = no limit.
     lookbehind_len_cap: u16 = 0,
+    /// Lookbehind bodies must have a fixed length (min == max); implies a cap.
+    lookbehind_fixed: bool = false,
 };
 
 pub const es = @import("dialects/es.zig").dialect;
 pub const perl = @import("dialects/perl.zig").dialect;
 pub const swift = @import("dialects/swift.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &swift };
+pub const rust = @import("dialects/rust.zig").dialect;
+pub const fancy = @import("dialects/rust.zig").fancy;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
@@ -95,6 +99,58 @@ pub fn isEs() bool {
 /// Strings decode to code points only (no lone surrogates on the wire).
 pub fn codePointsOnly() bool {
     return active.strings == .code_points;
+}
+
+/// Length bounds of a subtree: (min, max) symbols, saturating at `cap`.
+pub const Len = struct { min: u32, max: u32 };
+pub const len_cap_default: u32 = 16;
+
+/// Does a tree respect the active dialect's grammar restrictions? (Used by the
+/// shrinker so candidates stay inside the grammar the tables generate.)
+pub fn treeAllowed(t: anytype) bool {
+    var ok = true;
+    _ = lenOf(t, t.root, &ok);
+    return ok;
+}
+
+fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
+    const ast = @import("ast.zig");
+    const n = t.nodes[idx];
+    const cap = len_cap_default;
+    const d = active;
+    switch (n.op) {
+        .atom => return if (n.atom.isConsuming()) .{ .min = 1, .max = 1 } else .{ .min = 0, .max = 0 },
+        .concat => {
+            const a = lenOf(t, n.a, ok);
+            const b = lenOf(t, n.b, ok);
+            return .{ .min = @min(cap, a.min + b.min), .max = @min(cap, a.max + b.max) };
+        },
+        .alt => {
+            const a = lenOf(t, n.a, ok);
+            const b = lenOf(t, n.b, ok);
+            return .{ .min = @min(a.min, b.min), .max = @max(a.max, b.max) };
+        },
+        .quant => {
+            const c = lenOf(t, n.a, ok);
+            const q = n.quant;
+            if (q.lazy and !d.allow_lazy) ok.* = false;
+            if (!d.allow_empty_quant and c.max == 0) ok.* = false;
+            return .{ .min = @min(cap, c.min * q.min), .max = if (q.max == ast.inf) cap else @min(cap, c.max * q.max) };
+        },
+        .look_ahead, .neg_look_ahead => {
+            _ = lenOf(t, n.a, ok);
+            if (!d.allow_lookahead) ok.* = false;
+            return .{ .min = 0, .max = 0 };
+        },
+        .look_behind, .neg_look_behind => {
+            const c = lenOf(t, n.a, ok);
+            if (!d.allow_lookbehind) ok.* = false;
+            if (d.lookbehind_len_cap > 0 and c.max >= d.lookbehind_len_cap) ok.* = false;
+            if (d.lookbehind_fixed and (c.min != c.max or c.max >= cap)) ok.* = false;
+            return .{ .min = 0, .max = 0 };
+        },
+        else => return lenOf(t, n.a, ok),
+    }
 }
 
 /// Subjects never contain lone surrogates for this dialect.
