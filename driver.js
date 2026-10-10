@@ -15,7 +15,8 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
   var args = __irx_args;
   var mode = args.length > 0 ? String(args[0]) : "interp";
   var bridge = typeof __IRX_BATCH !== "undefined";
-  var out = typeof print === "function" ? print : null;
+  var out = typeof print === "function" ? print
+    : (typeof console === "object" && typeof console.log === "function") ? function (s) { console.log(s); } : null;
   if (out && typeof std === "object" && std.out) {
     var p0 = out;
     out = function (s) { p0(s); std.out.flush(); };
