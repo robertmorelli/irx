@@ -54,8 +54,10 @@ while {[gets stdin line] >= 0} {
         if {[string first i $f] >= 0} { lappend opts -nocase }
         if {[string first m $f] >= 0} { lappend opts -lineanchor }
         if {[string first s $f] < 0} { lappend opts -linestop }
-        set re "^(?:$p)\$"
-        if {[catch {regexp {*}$opts -- $re ""} err]} { append out 04; continue }
+        # \A..\Z, not ^..$: under -lineanchor ^/$ are line anchors.
+        set re "\\A(?:$p)\\Z"
+        # REG_ETOOBIG ("too complex") is a resource limit, reported as unsupported.
+        if {[catch {regexp {*}$opts -- $re ""} err]} { append out [expr {[string match "*too complex*" $err] ? 40 : "04"}]; continue }
         set bits 0
         for {set k 0} {$k < $rep} {incr k} {
             if {[regexp {*}$opts -- $re $a]} { set bits [expr {$bits | (1 << (4*$k))}] }
