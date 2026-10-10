@@ -24,3 +24,35 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END dotnet-interp 1m results -->
+
+<!-- BEGIN dotnet-interp 10m results -->
+### .NET 9 Regex (interpreter): 10m campaign
+
+* 699,840 patterns, 8 tables, 2,459 distinct findings; self-check 336,272 probes, 0 mismatches, 0 engine failures
+* findings by kind: 2,204 timeout (batch), 226 wrong_result, 29 exception
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 16 | wrong_result | `` | `"aa"` | `""` | `(?:a(?:)+?)+` | 00 |
+| 8 | wrong_result | `` | `"aa"` | `"S"` | `(?:a(?:)+?)*` | 00 |
+| 8 | exception | `` | `""` | `"a"` | `(?!(?:)+?a)` | 08 |
+| 6 | wrong_result | `` | `"aa"` | `"0"` | `(?:a(?:)+?)*` | 00 |
+| 2 | wrong_result | `` | `"aaaaaaaa"` | `"aaaaaa"` | `(?:(?:aa(?:)*?){2}){0,}` | 03 |
+| 2 | wrong_result | `` | `"aaaaaaaa"` | `"a"` | `(?:(?:aa(?:)+?){0,2}){0,2}` | 00 |
+| 2 | exception | `` | `"aaaaaaaa"` | `""` | `(?:a(?<=(?:)+?)aaa)+` | 08 |
+| 2 | wrong_result | `` | `"aa"` | `"S"` | `(?:a(?:(?![k-s]))+?)*` | 00 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END dotnet-interp 10m results -->
+
+<!-- BEGIN dotnet-interp 10m triage -->
+### dotnet-interp: 10-minute campaign triage
+
+* New: **IRX-DOTNET-3**. Nearly all 226 wrong results are a lazy loop over a nullable body inside another loop,
+  e.g. `(?:a(?:)+?)+` on `"aa"` → `[1,2)`.
+* The 29 exceptions are the IRX-DOTNET-1 family (`(?!(?:)+?a)` → `IndexOutOfRangeException`).
+* 2,204 timeouts; triage replays reproduced only 252 of 2,435 findings (mostly the wrong results), so the
+  timeouts look load-induced. The self-check finished in 1.6 s with 0 mismatches.
+<!-- END dotnet-interp 10m triage -->

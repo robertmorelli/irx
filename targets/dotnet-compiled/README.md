@@ -22,3 +22,34 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END dotnet-compiled 1m results -->
+
+<!-- BEGIN dotnet-compiled 10m results -->
+### .NET 9 Regex (Compiled): 10m campaign
+
+* 848,640 patterns, 10 tables, 1,887 distinct findings; self-check 336,272 probes, 0 mismatches, 0 engine failures
+* findings by kind: 986 exception, 759 timeout (batch), 142 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 10 | exception | `` | `""` | `"a"` | `(?<=(?:)*?)` | 08 |
+| 8 | exception | `` | `"a"` | `""` | `(?<=(?:)*?)a` | 08 |
+| 6 | exception | `` | `"a"` | `""` | `a(?<=(?:)*?)` | 08 |
+| 6 | exception | `` | `"a"` | `""` | `a\|(?<!(?:)*?)` | 08 |
+| 6 | exception | `` | `"a"` | `""` | `a(?<=(?:){0,1}?)` | 08 |
+| 4 | exception | `` | `""` | `"a"` | `(?<=(?:)??)` | 08 |
+| 4 | exception | `` | `""` | `"a"` | `(?<=(?:){0,1}?)` | 08 |
+| 4 | exception | `` | `"a"` | `""` | `(?<!(?:)*?)\|a` | 08 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END dotnet-compiled 10m results -->
+
+<!-- BEGIN dotnet-compiled 10m triage -->
+### dotnet-compiled: 10-minute campaign triage
+
+* New: **IRX-DOTNET-4** (`ArgumentOutOfRangeException ... 'newSize'` from `(?:(?:a|(?:\B){2,}?)a)*a` on `"aaa"`)
+  and **IRX-DOTNET-5** (lazy loops with a lower bound inside a loop or lookbehind: `(?:(?:){2,3}?a)*` misses `"a"`).
+* The 986 exceptions are mostly IRX-DOTNET-2 (`(?<=(?:)*?)` and other lazy empty loops in lookarounds), plus IRX-DOTNET-4.
+* 759 timeouts, not investigated: Compiled pays ~1 ms of IL generation per pattern.
+<!-- END dotnet-compiled 10m triage -->
