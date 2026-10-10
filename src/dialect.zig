@@ -55,6 +55,8 @@ pub const Dialect = struct {
     anchors_always_multiline: bool = false,
     /// Word set used by \\b/\\B when it differs from \\w (null = isWord).
     isBoundaryWord: ?*const fn (u21, Flags) bool = null,
+    /// Full override for \\b at position i of w (Emacs: buffer edges, script changes).
+    boundaryAt: ?*const fn ([]const u21, usize, Flags) bool = null,
     /// `^` under multiline never matches at the end of input (Java: not even in "").
     caret_m_never_at_end: bool = false,
     /// `$` without multiline also matches before a final line terminator (Perl, Java).
@@ -119,7 +121,8 @@ pub const resharp = @import("dialects/resharp.zig").dialect;
 pub const nim = @import("dialects/nim.zig").dialect;
 pub const racket = @import("dialects/racket.zig").dialect;
 pub const tcl = @import("dialects/tcl.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim, &racket, &tcl };
+pub const emacs = @import("dialects/emacs.zig").dialect;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim, &racket, &tcl, &emacs };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;

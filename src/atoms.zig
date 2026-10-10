@@ -272,7 +272,7 @@ pub fn assertionMask(spec: *const AtomSpec, flags0: Flags, w: []const u21) u32 {
                     (dl.crlf_atomic and i + 2 == n and w[i] == '\r' and w[i + 1] == '\n'))),
             .wordb, .nwordb => blk: {
                 const ii: isize = @intCast(i);
-                const b = isWordAt(w, ii - 1, flags) != isWordAt(w, ii, flags);
+                const b = if (dl.boundaryAt) |f| f(w, i, flags) else isWordAt(w, ii - 1, flags) != isWordAt(w, ii, flags);
                 break :blk if (spec.kind == .wordb) b else !b;
             },
             else => unreachable,

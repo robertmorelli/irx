@@ -2,7 +2,8 @@
 ;; Perl-dialect patterns are translated to Emacs syntax: (?: -> \(?:, | -> \|,
 ;; {m,n} -> \{m,n\}, \d -> [0-9], \s -> [[:space:]], \x{H} -> raw char.
 ;; Lookarounds have no Emacs equivalent (translation error -> compile error bit).
-;; Emacs ^/$ are always line anchors and . never matches \n (s flag emulated).
+;; Emacs ^/$ are always line anchors (emitted as \(?:^\) / \(?:$\), since a bare ^ or $
+;; mid-pattern is literal) and . never matches \n (s flag emulated).
 (require 'json)
 (require 'cl-lib)
 (defun irx--sanitize (line)
@@ -75,8 +76,14 @@
            (t (push "\\(" out) (setq i (1+ i)))))
          ((eq c ?\)) (push "\\)" out) (setq i (1+ i)))
          ((eq c ?|) (push "\\|" out) (setq i (1+ i)))
-         ((eq c ?{) (let ((e (string-match "}" s i))) (push (concat "\\{" (substring s (1+ i) e) "\\}") out) (setq i (1+ e))))
+         ;; Emacs has no lazy intervals (\{m,n\}? is an optional interval); lazy and greedy
+         ;; agree on full matches, so a lazy `?` after `}` is dropped.
+         ((eq c ?{) (let ((e (string-match "}" s i))) (push (concat "\\{" (substring s (1+ i) e) "\\}") out)
+                      (setq i (if (and (< (1+ e) n) (eq (aref s (1+ e)) ??)) (+ e 2) (1+ e)))))
          ((and (eq c ?.) dotall) (push "\\(?:.\\|\n\\)" out) (setq i (1+ i)))
+         ;; ^/$ are only anchors at the edges of a group or alternative; bracket them.
+         ((eq c ?^) (push "\\(?:^\\)" out) (setq i (1+ i)))
+         ((eq c ?$) (push "\\(?:$\\)" out) (setq i (1+ i)))
          (t (push (string c) out) (setq i (1+ i))))))
     (apply #'concat (nreverse out))))
 (let* ((mode (or (car command-line-args-left) "default"))

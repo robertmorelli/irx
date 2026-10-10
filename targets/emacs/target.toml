@@ -5,12 +5,6 @@
 title = "Emacs Lisp regexps (translated)"
 kind = "shell"   # d8 | perl | shell
 command = "/opt/homebrew/bin/emacs -Q --batch -l {root}/hosts/emacs/host.el {mode}"
-dialect = "perl"   # src/dialects/
+dialect = "emacs"   # src/dialects/
 selfcheck = true
 
-# config overlay (merged over weights.toml)
-[weights]
-lookahead = 0
-neg_lookahead = 0
-lookbehind = 0
-neg_lookbehind = 0
