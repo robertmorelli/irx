@@ -1,0 +1,9 @@
+# irx target: QuickJS
+# Run: tools/irx_target.py quickjs [--duration SECONDS]
+
+[target]
+title = "QuickJS"
+kind = "shell"   # d8 | perl | shell
+command = "/opt/homebrew/bin/qjs --std {driver} {mode}"
+dialect = "es"   # src/dialects/
+selfcheck = true

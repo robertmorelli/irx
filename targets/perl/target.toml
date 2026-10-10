@@ -1,0 +1,9 @@
+# irx target: Perl 5.44 (also blead via vendor/perl5)
+# Run: tools/irx_target.py perl [--duration SECONDS]
+
+[target]
+title = "Perl 5.44 (also blead via vendor/perl5)"
+kind = "perl"   # d8 | perl | shell
+command = "/opt/homebrew/bin/perl"
+dialect = "perl"   # src/dialects/
+selfcheck = true

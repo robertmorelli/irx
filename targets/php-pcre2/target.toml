@@ -1,0 +1,9 @@
+# irx target: PHP 8.5 preg_* (PCRE2 + JIT)
+# Run: tools/irx_target.py php-pcre2 [--duration SECONDS]
+
+[target]
+title = "PHP 8.5 preg_* (PCRE2 + JIT)"
+kind = "shell"   # d8 | perl | shell
+command = "/opt/homebrew/bin/php {root}/hosts/script/php_host.php {mode}"
+dialect = "perl"   # src/dialects/
+selfcheck = true

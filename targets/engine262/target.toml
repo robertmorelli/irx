@@ -1,0 +1,9 @@
+# irx target: engine262
+# Run: tools/irx_target.py engine262 [--duration SECONDS]
+
+[target]
+title = "engine262"
+kind = "shell"   # d8 | perl | shell
+command = "/opt/homebrew/bin/python3 {root}/tools/bridge.py {root}/vendor/node/node_modules/.bin/engine262 {driver} {mode}"
+dialect = "es"   # src/dialects/
+selfcheck = false

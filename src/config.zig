@@ -261,6 +261,8 @@ fn asBool(v: Value) !bool {
 
 fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
     const eq = std.mem.eql;
+    // targets/<name>/target.toml metadata, read by tools/irx_target.py.
+    if (eq(u8, section, "target")) return;
     if (eq(u8, section, "weights")) {
         const c = std.meta.stringToEnum(Construct, key) orelse return error.UnknownWeight;
         const x = try asF(v);

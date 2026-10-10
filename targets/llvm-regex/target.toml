@@ -1,0 +1,19 @@
+# irx target: LLVM Regex (POSIX ERE, translated)
+# Run: tools/irx_target.py llvm-regex [--duration SECONDS]
+
+[target]
+title = "LLVM Regex (POSIX ERE, translated)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/llvm_host {mode}"
+dialect = "perl"   # src/dialects/
+selfcheck = true
+
+# config overlay (merged over weights.toml)
+[weights]
+lookahead = 0
+neg_lookahead = 0
+lookbehind = 0
+neg_lookbehind = 0
+lazy = 0
+backslash_b = 0
+backslash_B = 0

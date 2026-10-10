@@ -1,0 +1,9 @@
+# irx target: .NET 9 Regex (Compiled)
+# Run: tools/irx_target.py dotnet-compiled [--duration SECONDS]
+
+[target]
+title = ".NET 9 Regex (Compiled)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/dotnet/host compiled {mode}"
+dialect = "perl"   # src/dialects/
+selfcheck = true

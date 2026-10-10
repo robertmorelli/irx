@@ -1,0 +1,9 @@
+# irx target: fancy-regex
+# Run: tools/irx_target.py fancy-regex [--duration SECONDS]
+
+[target]
+title = "fancy-regex"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/fancy_host {mode}"
+dialect = "perl"   # src/dialects/
+selfcheck = true

@@ -1,0 +1,9 @@
+# irx target: RE# (resharp)
+# Run: tools/irx_target.py resharp [--duration SECONDS]
+
+[target]
+title = "RE# (resharp)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/resharp_host {mode}"
+dialect = "perl"   # src/dialects/
+selfcheck = true

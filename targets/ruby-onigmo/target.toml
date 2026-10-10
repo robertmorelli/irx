@@ -1,0 +1,9 @@
+# irx target: Ruby Onigmo
+# Run: tools/irx_target.py ruby-onigmo [--duration SECONDS]
+
+[target]
+title = "Ruby Onigmo"
+kind = "shell"   # d8 | perl | shell
+command = "/opt/homebrew/bin/ruby {root}/hosts/script/rb_host.rb {mode}"
+dialect = "perl"   # src/dialects/
+selfcheck = true

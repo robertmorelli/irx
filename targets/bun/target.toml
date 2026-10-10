@@ -1,0 +1,9 @@
+# irx target: JavaScriptCore (Bun)
+# Run: tools/irx_target.py bun [--duration SECONDS]
+
+[target]
+title = "JavaScriptCore (Bun)"
+kind = "shell"   # d8 | perl | shell
+command = "{home}/.bun/bin/bun {driver} {mode}"
+dialect = "es"   # src/dialects/
+selfcheck = true

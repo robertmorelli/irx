@@ -1,0 +1,9 @@
+# irx target: ICU NSRegularExpression
+# Run: tools/irx_target.py icu [--duration SECONDS]
+
+[target]
+title = "ICU NSRegularExpression"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/swift_host icu {mode}"
+dialect = "perl"   # src/dialects/
+selfcheck = true

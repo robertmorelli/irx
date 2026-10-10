@@ -1,0 +1,9 @@
+# irx target: java.util.regex
+# Run: tools/irx_target.py java [--duration SECONDS]
+
+[target]
+title = "java.util.regex"
+kind = "shell"   # d8 | perl | shell
+command = "/usr/bin/java -cp {root}/hosts/bin/java Host {mode}"
+dialect = "perl"   # src/dialects/
+selfcheck = true

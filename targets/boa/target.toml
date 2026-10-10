@@ -1,0 +1,9 @@
+# irx target: Boa (boa_cli)
+# Run: tools/irx_target.py boa [--duration SECONDS]
+
+[target]
+title = "Boa (boa_cli)"
+kind = "shell"   # d8 | perl | shell
+command = "/opt/homebrew/bin/python3 {root}/tools/bridge.py {root}/vendor/boa/bin/boa {driver} {mode}"
+dialect = "es"   # src/dialects/
+selfcheck = true

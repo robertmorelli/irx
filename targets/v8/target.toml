@@ -1,0 +1,9 @@
+# irx target: V8 15.5 (d8)
+# Run: tools/irx_target.py v8 [--duration SECONDS]
+
+[target]
+title = "V8 15.5 (d8)"
+kind = "d8"   # d8 | perl | shell
+command = "/opt/homebrew/bin/d8"
+dialect = "es"   # src/dialects/
+selfcheck = true

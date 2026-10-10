@@ -1,0 +1,9 @@
+# irx target: Oniguruma 6.9 (C library)
+# Run: tools/irx_target.py oniguruma [--duration SECONDS]
+
+[target]
+title = "Oniguruma 6.9 (C library)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/onig_host {mode}"
+dialect = "perl"   # src/dialects/
+selfcheck = true

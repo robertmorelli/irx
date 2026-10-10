@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Summarize an irx campaign directory as a markdown results block.
 
-usage: summarize.py OUTDIR NAME [TITLE]
-Prints <!-- BEGIN NAME 1m results --> ... block: cases, findings by kind, self-check
+usage: summarize.py OUTDIR NAME [TITLE] [LABEL]
+Prints <!-- BEGIN NAME LABEL results --> ... block (LABEL defaults to "1m"): cases, findings by kind, self-check
 mismatches, and the most common minimized shapes (from triage.json).
 """
 import collections, json, os, re, sys
 
 out, name = sys.argv[1], sys.argv[2]
 title = sys.argv[3] if len(sys.argv) > 3 else name
+label = sys.argv[4] if len(sys.argv) > 4 else "1m"
 s = {}
 try:
     s = json.load(open(f"{out}/summary.json"))
@@ -39,7 +40,7 @@ try:
         sc += " | startup problem: " + "; ".join(l.strip() for l in log.splitlines() if "required mode" in l or "not found" in l)[:300]
 except Exception:
     pass
-lines = [f"<!-- BEGIN {name} 1m results -->", f"### {title}: 1-minute smoke campaign", ""]
+lines = [f"<!-- BEGIN {name} {label} results -->", f"### {title}: {label} campaign", ""]
 lines.append(f"* {s.get('cases', 0):,} patterns, {s.get('tables', 0)} tables, {s.get('distinct_findings', 0):,} distinct findings" + (f"; {sc}" if sc else ""))
 if kinds:
     lines.append("* findings by kind: " + ", ".join(f"{v:,} {k}" for k, v in kinds.most_common()))
@@ -47,5 +48,5 @@ if shapes:
     lines += ["", "Most common minimized shapes (kind, flags, A, R, pattern, observed bits):", "", "| n | kind | flags | A | R | pattern | bits |", "|---|---|---|---|---|---|---|"]
     for (k, fl, a, r, p, b), v in shapes.most_common(8):
         lines.append(f"| {v} | {k} | `{fl}` | `{a}` | `{r}` | `{p.replace('|', chr(92) + '|')}` | {b} |")
-lines += ["", "Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.", f"<!-- END {name} 1m results -->"]
+lines += ["", "Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.", f"<!-- END {name} {label} results -->"]
 print("\n".join(lines))

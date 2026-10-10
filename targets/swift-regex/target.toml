@@ -1,0 +1,14 @@
+# irx target: Swift Regex 6.4 (unicodeScalar semantics, simple word boundaries)
+# Run: tools/irx_target.py swift-regex [--duration SECONDS]
+
+[target]
+title = "Swift Regex 6.4 (unicodeScalar semantics, simple word boundaries)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/swift_host swift {mode}"
+dialect = "swift"   # src/dialects/
+selfcheck = true
+
+# config overlay (merged over weights.toml)
+[weights]
+lookbehind = 0
+neg_lookbehind = 0

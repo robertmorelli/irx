@@ -1,0 +1,9 @@
+# irx target: Racket #px
+# Run: tools/irx_target.py racket [--duration SECONDS]
+
+[target]
+title = "Racket #px"
+kind = "shell"   # d8 | perl | shell
+command = "/opt/homebrew/bin/racket {root}/hosts/racket/host.rkt {mode}"
+dialect = "perl"   # src/dialects/
+selfcheck = true

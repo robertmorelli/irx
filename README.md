@@ -40,6 +40,20 @@ bytes and RSS (host and children), findings, pending triage queue, zero-mass
 retries, per-mode executed/skipped/mismatch/restart counts, tier
 first-seen/repeated counts (transitions unverified), and slow cases.
 
+## Layout: dialects, targets, hosts
+
+* `src/dialect.zig` — the **Dialect** component interface; `src/dialects/{es,perl,swift}.zig` implement it
+  (character predicates, case rules, anchors, escape syntax, string/flag/grammar constraints). Selected with
+  `--dialect`. Semantic only, so a future match-range oracle can reuse it.
+* `targets/<name>/target.toml` — one per engine: how to launch it (`kind`, `command`), which dialect models it,
+  whether to self-check, and a config overlay (e.g. no lookbehind). `targets/<name>/README.md` holds that
+  engine's campaign results.
+* `hosts/` — protocol hosts shared by several targets (C, Go, Rust, Java, .NET, Swift, Nim, Racket, Emacs,
+  scripting languages); `hosts/build.sh` builds the native ones into `hosts/bin/`.
+* `tools/irx_target.py NAME | --all [--duration S]` — runs campaigns from target definitions and refreshes the
+  target's README block. Older per-engine branches were folded into `targets/` and archived as tags
+  `archive/<name>`.
+
 ## Output layout
 
 ```
@@ -65,6 +79,7 @@ OUT/summary.json        end-of-run totals
 | `src/rel.zig` | `Rel(N)` for N ∈ {8, 16}: product, closure (Warshall), bounded powers by squaring, lookaround diagonals |
 | `src/ucd.zig`, `src/ucd/` | Vendored Unicode 17.0.0 (CaseFolding, UnicodeData, SpecialCasing) with SHA-256 manifest verified at startup |
 | `src/alphabet.zig` | Flags, UTF-16 → symbol decoding per mode, line terminators, `\s`, word chars, Canonicalize for i / iu / iv |
+| `src/dialect.zig`, `src/dialects/` | Dialect component interface and the ES2024, Perl and Swift Regex implementations |
 | `src/atoms.zig` | Atom specs and ES2024 CharacterSetMatcher semantics (incl. v-mode set ops, MaybeSimpleCaseFolding, folded-universe complements), assertion masks, inventory |
 | `src/ast.zig` | Owned trees, direct relation evaluation, naive backtracking matcher (cross-check), s-expression serialization |
 | `src/table.zig` | Grammar inventory, Robin Hood interner, production set, budgeted semi-naive levels, Vitter Method D combo sampling, usefulness pruning, renumbering, log-space counts, digest |
@@ -258,52 +273,44 @@ reported upstream yet. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.
 
 ## Fuzzer plan: one inverted-pair fuzzer per dialect
 
-Every regex target in `../regex_comparison` has a branch, a host, and a 1-minute smoke campaign
-(`tools/campaign1m.sh`). A host speaks the line protocol (`driver.js`, `driver.pl`, `tools/bridge.py` or a
+Every regex target in `../regex_comparison` has a directory `targets/<name>/` (engine command, dialect,
+config overlay, results) and has had a 1-minute smoke campaign (`tools/irx_target.py`). A host speaks the line protocol (`driver.js`, `driver.pl`, `tools/bridge.py` or a
 program under `hosts/`). The **model** column says which semantics the oracle uses; "Perl model" on a
 non-Perl engine means its own dialect model is not written yet, so smoke-run mismatches there are mostly
 dialect gaps rather than bugs. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are out of scope.
 
-| Target | Branch | Host | Model | Status |
+| Target | Directory | Host | Model | Status |
 |---|---|---|---|---|
-| V8 15.5 (d8) | `main` | `driver.js` | ES2024 (exact) | IRX-V8-1…3 |
-| QuickJS | `quickjs` | `driver.js` (std) | ES2024 | IRX-QJS-1 |
-| XS | `xs` | bridge | ES2024 | IRX-XS-1…3 |
-| Boa | `boa` | bridge | ES2024 | IRX-BOA-1…6 |
-| engine262 | `engine262` | bridge | ES2024 | IRX-E262-1, 2 |
-| Hermes | `hermes` | bridge | ES2024 minus `v` | IRX-HERMES-1, 2 |
-| JavaScriptCore (Bun 1.4.2) | `bun` | `driver.js` (node adapter) | ES2024 | clean (0 self-check mismatches) |
-| V8 14.1 / 15.0 (Node, Deno) | `node`, `deno` | `driver.js` | ES2024 | older V8; excluded from the ledger |
-| Perl 5.44 / blead | `perl` | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1, 2 |
-| PCRE2 10.49 | `pcre2` | `hosts/c/pcre2_host` | Perl | IRX-PCRE2-1 (JIT) |
-| PHP 8.5 `preg_*` | `php-pcre2` | `hosts/script/php_host.php` | Perl | IRX-PCRE2-1 |
-| Swift Regex 6.4 | `swift-regex` | `hosts/swift` (scalar semantics) | Swift (exact) | IRX-SWIFT-1 |
-| .NET 9 interpreter / Compiled / NonBacktracking | `dotnet-interp`, `dotnet-compiled`, `dotnet-nonbacktracking` | `hosts/dotnet` | Perl (needs UTF-16 .NET model) | IRX-DOTNET-1, 2 |
-| ICU (`NSRegularExpression`) | `icu` | `hosts/swift` | Perl (needs ICU model) | smoke run ok |
-| Rust `regex` | `rust-regex` | `hosts/rust` | Perl (needs Rust classes) | 1.2M patterns, 0 findings |
-| fancy-regex | `fancy-regex` | `hosts/rust` | Perl | rejects `(?:)*` (dialect gap) |
-| RE# (`resharp`) | `resharp` | `hosts/rust` | Perl | rejects lazy quantifiers (dialect gap) |
-| RE2 | `re2` | `hosts/c/re2_host` | Perl (needs ASCII `\w`) | dialect gaps |
-| Go `regexp` | `go-regexp` | `hosts/go` | Perl (needs ASCII `\w`) | dialect gaps |
-| Oniguruma 6.9 | `oniguruma` | `hosts/c/onig_host` | Perl | rejects quantified assertions (dialect gap) |
-| Ruby Onigmo | `ruby-onigmo` | `hosts/script/rb_host.rb` | Perl (needs ASCII `\w`, Ruby anchors) | dialect gaps |
-| Python `re` | `python-re` | `hosts/script/py_host.py` | Perl (needs `(?P<…>)`) | dialect gaps |
-| Java `java.util.regex` | `java` | `hosts/java` | Perl | smoke run ok; lookbehind-length rejections to review |
-| nim-regex | `nim-regex` | `hosts/nim` | Perl | dialect gaps (named groups) |
-| Tcl ARE | `tcl` | `hosts/script/tcl_host.tcl` | Perl (Tcl `\b` is backspace) | dialect gaps |
-| Racket `#px` | `racket` | `hosts/racket` | Perl | rejects `(?:)*` (dialect gap) |
-| Emacs Lisp | `emacs` | `hosts/emacs` (translator) | Perl | translator: lazy braces |
-| Vectorscan (Hyperscan) | `vectorscan` | `hosts/c/hs_host` | Perl | smoke run ok |
-| LLVM `Regex` (POSIX ERE) | `llvm-regex` | `hosts/c/llvm_host` (translator) | Perl (byte-oriented engine) | dialect gaps |
+| V8 15.5 (d8) | [`v8`](targets/v8) | `driver.js` | ES2024 (exact) | IRX-V8-1…3 |
+| QuickJS | [`quickjs`](targets/quickjs) | `driver.js` (std) | ES2024 | IRX-QJS-1 |
+| XS | [`xs`](targets/xs) | bridge | ES2024 | IRX-XS-1…3 |
+| Boa | [`boa`](targets/boa) | bridge | ES2024 | IRX-BOA-1…6 |
+| engine262 | [`engine262`](targets/engine262) | bridge | ES2024 | IRX-E262-1, 2 |
+| Hermes | [`hermes`](targets/hermes) | bridge | ES2024 minus `v` | IRX-HERMES-1, 2 |
+| JavaScriptCore (Bun 1.4.2) | [`bun`](targets/bun) | `driver.js` (node adapter) | ES2024 | clean (0 self-check mismatches) |
+| V8 14.1 / 15.0 (Node, Deno) | [`node`](targets/node), [`deno`](targets/deno) | `driver.js` | ES2024 | older V8; excluded from the ledger |
+| Perl 5.44 / blead | [`perl`](targets/perl) | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1, 2 |
+| PCRE2 10.49 | [`pcre2`](targets/pcre2) | `hosts/c/pcre2_host` | Perl | IRX-PCRE2-1 (JIT) |
+| PHP 8.5 `preg_*` | [`php-pcre2`](targets/php-pcre2) | `hosts/script/php_host.php` | Perl | IRX-PCRE2-1 |
+| Swift Regex 6.4 | [`swift-regex`](targets/swift-regex) | `hosts/swift` (scalar semantics) | Swift (exact) | IRX-SWIFT-1 |
+| .NET 9 interpreter / Compiled / NonBacktracking | [`dotnet-interp`](targets/dotnet-interp), [`dotnet-compiled`](targets/dotnet-compiled), [`dotnet-nonbacktracking`](targets/dotnet-nonbacktracking) | `hosts/dotnet` | Perl (needs UTF-16 .NET model) | IRX-DOTNET-1, 2 |
+| ICU (`NSRegularExpression`) | [`icu`](targets/icu) | `hosts/swift` | Perl (needs ICU model) | smoke run ok |
+| Rust `regex` | [`rust-regex`](targets/rust-regex) | `hosts/rust` | Perl (needs Rust classes) | 1.2M patterns, 0 findings |
+| fancy-regex | [`fancy-regex`](targets/fancy-regex) | `hosts/rust` | Perl | rejects `(?:)*` (dialect gap) |
+| RE# (`resharp`) | [`resharp`](targets/resharp) | `hosts/rust` | Perl | rejects lazy quantifiers (dialect gap) |
+| RE2 | [`re2`](targets/re2) | `hosts/c/re2_host` | Perl (needs ASCII `\w`) | dialect gaps |
+| Go `regexp` | [`go-regexp`](targets/go-regexp) | `hosts/go` | Perl (needs ASCII `\w`) | dialect gaps |
+| Oniguruma 6.9 | [`oniguruma`](targets/oniguruma) | `hosts/c/onig_host` | Perl | rejects quantified assertions (dialect gap) |
+| Ruby Onigmo | [`ruby-onigmo`](targets/ruby-onigmo) | `hosts/script/rb_host.rb` | Perl (needs ASCII `\w`, Ruby anchors) | dialect gaps |
+| Python `re` | [`python-re`](targets/python-re) | `hosts/script/py_host.py` | Perl (needs `(?P<…>)`) | dialect gaps |
+| Java `java.util.regex` | [`java`](targets/java) | `hosts/java` | Perl | smoke run ok; lookbehind-length rejections to review |
+| nim-regex | [`nim-regex`](targets/nim-regex) | `hosts/nim` | Perl | dialect gaps (named groups) |
+| Tcl ARE | [`tcl`](targets/tcl) | `hosts/script/tcl_host.tcl` | Perl (Tcl `\b` is backspace) | dialect gaps |
+| Racket `#px` | [`racket`](targets/racket) | `hosts/racket` | Perl | rejects `(?:)*` (dialect gap) |
+| Emacs Lisp | [`emacs`](targets/emacs) | `hosts/emacs` (translator) | Perl | translator: lazy braces |
+| Vectorscan (Hyperscan) | [`vectorscan`](targets/vectorscan) | `hosts/c/hs_host` | Perl | smoke run ok |
+| LLVM `Regex` (POSIX ERE) | [`llvm-regex`](targets/llvm-regex) | `hosts/c/llvm_host` (translator) | Perl (byte-oriented engine) | dialect gaps |
 | Rhombus `rx`, Emacs `rx` | — | — | — | DSL front-ends: need a DSL printer, deferred |
 
 <!-- END shared bug ledger -->
 
-<!-- BEGIN main 1m results -->
-### main: 1-minute smoke campaign
-
-* 411,264 patterns, 6 tables, 56 distinct findings; self-check 1,628,352 probes, 0 mismatches, 0 engine failures
-* findings by kind: 56 timeout (batch)
-
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
-<!-- END main 1m results -->

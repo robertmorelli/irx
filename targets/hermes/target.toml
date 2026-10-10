@@ -1,0 +1,13 @@
+# irx target: Hermes (jsvu)
+# Run: tools/irx_target.py hermes [--duration SECONDS]
+
+[target]
+title = "Hermes (jsvu)"
+kind = "shell"   # d8 | perl | shell
+command = "/opt/homebrew/bin/python3 {root}/tools/bridge.py {root}/vendor/jsvu-home/.jsvu/bin/hermes {driver} {mode}"
+dialect = "es"   # src/dialects/
+selfcheck = false
+
+# config overlay (merged over weights.toml)
+[flags]
+sets = ["", "i", "m", "s", "u", "iu", "im", "is", "ms", "ims", "imu", "isu", "msu", "imsu", "su", "mu"]

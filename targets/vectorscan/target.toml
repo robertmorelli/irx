@@ -1,0 +1,16 @@
+# irx target: Vectorscan (Hyperscan)
+# Run: tools/irx_target.py vectorscan [--duration SECONDS]
+
+[target]
+title = "Vectorscan (Hyperscan)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/hs_host {mode}"
+dialect = "perl"   # src/dialects/
+selfcheck = true
+
+# config overlay (merged over weights.toml)
+[weights]
+lookahead = 0
+neg_lookahead = 0
+lookbehind = 0
+neg_lookbehind = 0

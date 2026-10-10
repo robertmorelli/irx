@@ -1,0 +1,9 @@
+# irx target: .NET 9 Regex (interpreter)
+# Run: tools/irx_target.py dotnet-interp [--duration SECONDS]
+
+[target]
+title = ".NET 9 Regex (interpreter)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/dotnet/host interp {mode}"
+dialect = "perl"   # src/dialects/
+selfcheck = true
