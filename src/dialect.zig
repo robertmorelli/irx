@@ -84,8 +84,9 @@ pub const Dialect = struct {
     /// Grammar restrictions for constructs the engine does not support.
     allow_lookahead: bool = true,
     allow_lookbehind: bool = true,
-    /// `^`, `\\b`, `\\B` usable mid-pattern (resharp compiles them as start-only lookbehinds).
-    allow_lookbehind_assertions: bool = true,
+    /// Assertions the engine accepts anywhere in a pattern (resharp compiles ^ \\b \\B as
+    /// start-only lookbehinds; Vectorscan rejects embedded anchors and UCP \\b).
+    assertions: Assertions = .{},
     /// Lookaheads (and `$` under m) allowed inside unbounded `*`/`+` (resharp: no).
     lookahead_in_star: bool = true,
     /// Extra ASCII metacharacters, printed as code-point escapes (resharp: _ & ~).
@@ -122,7 +123,8 @@ pub const nim = @import("dialects/nim.zig").dialect;
 pub const racket = @import("dialects/racket.zig").dialect;
 pub const tcl = @import("dialects/tcl.zig").dialect;
 pub const emacs = @import("dialects/emacs.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim, &racket, &tcl, &emacs };
+pub const vectorscan = @import("dialects/vectorscan.zig").dialect;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
@@ -144,6 +146,23 @@ pub fn codePointsOnly() bool {
 
 /// Length bounds of a subtree: (min, max) symbols, saturating at `cap`.
 /// Subtree length bounds; `la`: contains a lookahead or `$` (no flags here, so conservative).
+pub const Assertions = packed struct {
+    caret: bool = true,
+    dollar: bool = true,
+    wordb: bool = true,
+    nwordb: bool = true,
+
+    pub fn allows(self: Assertions, kind: anytype) bool {
+        return switch (kind) {
+            .caret => self.caret,
+            .dollar => self.dollar,
+            .wordb => self.wordb,
+            .nwordb => self.nwordb,
+            else => true,
+        };
+    }
+};
+
 pub const Len = struct { min: u32, max: u32, la: bool = false };
 pub const len_cap_default: u32 = 16;
 
@@ -162,7 +181,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
     const d = active;
     switch (n.op) {
         .atom => {
-            if (!d.allow_lookbehind_assertions and (n.atom.kind == .caret or n.atom.kind == .wordb or n.atom.kind == .nwordb)) ok.* = false;
+            if (!d.assertions.allows(n.atom.kind)) ok.* = false;
             return if (n.atom.isConsuming()) .{ .min = 1, .max = 1 } else .{ .min = 0, .max = 0, .la = n.atom.kind == .dollar };
         },
         .concat => {

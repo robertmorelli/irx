@@ -354,7 +354,7 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
     }
 
     for ([_]Kind{ .caret, .dollar, .wordb, .nwordb, .empty }) |kd| {
-        if (!dialect.active.allow_lookbehind_assertions and (kd == .caret or kd == .wordb or kd == .nwordb)) continue;
+        if (!dialect.active.assertions.allows(kd)) continue;
         try out.append(gpa, .{ .kind = kd });
     }
     if (out.items.len > 65536) return error.InventoryTooLarge;

@@ -20,7 +20,7 @@ pub const dialect: D.Dialect = .{
     .strings = .code_points,
     .allow_lazy = false,
     .allow_lookbehind = false,
-    .allow_lookbehind_assertions = false,
+    .assertions = .{ .caret = false, .wordb = false, .nwordb = false },
     .lookahead_in_star = false,
     .extra_meta = "_&~",
     // Named groups become tags and are rejected under quantifiers; plain captures are not.

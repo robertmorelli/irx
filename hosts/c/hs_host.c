@@ -12,7 +12,13 @@ int host_case(const char *flags, const char *a, size_t alen, const char *r, size
     hs_database_t *db; hs_compile_error_t *err;
     int rc = hs_compile(w.buf, f, HS_MODE_BLOCK, NULL, &db, &err);
     free(w.buf);
-    if (rc != HS_SUCCESS) { hs_free_compile_error(err); return 0x04; }
+    if (rc != HS_SUCCESS) {
+        if (getenv("IRX_DEBUG")) fprintf(stderr, "%.*s: %s\n", (int)plen, pat, err->message);
+        /* "Pattern is too large" is a resource limit, not a syntax error: unsupported. */
+        int too_large = strstr(err->message, "too large") != NULL;
+        hs_free_compile_error(err);
+        return too_large ? 0x40 : 0x04;
+    }
     hs_scratch_t *scr = NULL;
     if (hs_alloc_scratch(db, &scr) != HS_SUCCESS) { hs_free_database(db); return 0x08; }
     int bits = 0;

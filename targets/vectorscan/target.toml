@@ -5,12 +5,11 @@
 title = "Vectorscan (Hyperscan)"
 kind = "shell"   # d8 | perl | shell
 command = "{root}/hosts/bin/hs_host {mode}"
-dialect = "perl"   # src/dialects/
+dialect = "vectorscan"   # src/dialects/
 selfcheck = true
 
-# config overlay (merged over weights.toml)
-[weights]
-lookahead = 0
-neg_lookahead = 0
-lookbehind = 0
-neg_lookbehind = 0
+# config overlay (merged over weights.toml): compiling a UTF8|UCP database takes ~70 ms
+# per campaign pattern, so small batches and a long deadline.
+[harness]
+batch_size = 64
+batch_deadline_per512_ms = 160000

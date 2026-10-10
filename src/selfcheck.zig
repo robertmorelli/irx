@@ -188,7 +188,7 @@ pub const Checker = struct {
             try strings.append(self.gpa, s);
         }
         for ([_]atoms.Kind{ .caret, .dollar, .wordb, .nwordb }) |kd| {
-            if (!dialect.active.allow_lookbehind_assertions and kd != .dollar) continue;
+            if (!dialect.active.assertions.allows(kd)) continue;
             for (strings.items) |s| {
                 var syms: [64]u21 = undefined;
                 const n = alpha.decode(s.slice(), flags, &syms) orelse continue;
