@@ -169,6 +169,12 @@ reported upstream yet.
 | IRX-PERL-2 | Perl 5.34.1, 5.44.0, blead 5.45.4 | wrong result | `"a" =~ /\A^\ba*\z/m` → false | true | needs `\A`, `/m` `^`, `\b` and a quantified atom together |
 | IRX-XS-1 | XS (jsvu, Moddable) | rejects valid pattern | `new RegExp("[]", "v")`, `new RegExp("[^]", "v")` → SyntaxError | accepted (ES2024) | empty `ClassContents` is legal in UnicodeSets mode |
 | IRX-BOA-1 | Boa (`boa_cli`, cargo) | rejects valid input (JSON) | `JSON.parse('"\\ud83d"')` → SyntaxError | 1-unit string | lone-surrogate escapes are valid JSON; not a regex bug, found while wiring the harness |
+| IRX-XS-2 | XS (jsvu, Moddable) | wrong result | `/^[S\u{1F600}]$/iv.test("s")` → `false`; `/^[^A]$/iv.test("a")` → `true` | `true`; `false` | `v`-mode classes ignore `i`: neither members nor complements are case-folded (~250 findings) |
+| IRX-XS-3 | XS (jsvu, Moddable) | uncatchable abort (sequence-dependent) | a 512-case batch aborts the script with uncaught `RangeError: buffer overflow` although every case runs inside `try` | per-case result bits | 780 batches; no single case aborts alone, not yet minimized |
+| IRX-E262-1 | engine262 (npm `@engine262/engine262`) | rejects valid pattern | `new RegExp("[\u{17F}--\u{212A}]", "v")` → SyntaxError "Expect a CharacterClassEscape" | accepted | a `\u{…}` escape is not accepted as a `ClassSetOperand` in set operations (~9.7k findings) |
+| IRX-E262-2 | engine262 (npm `@engine262/engine262`) | wrong result | `/^[^[^a]&&\d]$/v.test("ſ")` → `false`; `/^a[^A&&[a-z]]$/v.test("aa")` → `false` | `true`; `true` | negated classes whose contents are a set operation are computed wrongly (~46k findings) |
+| IRX-HERMES-1 | Hermes (jsvu) | wrong result | `/^(?:(?:(?:\W+){1,1})*\s)$/.test("\u2028\n")` → `false` | `true` | |
+| IRX-HERMES-2 | Hermes (jsvu) | exception on tiny input | `/^(?:(?:^a?)+?)$/.test("aa")` → `RangeError: Maximum regex stack depth reached` | `false` | also `(?:a*)+?\B` on `"a"`, `(?:(?:(?:)\|(?:)){2,2}){1,2}` on `"a"`: lazy loops over empty-matchable bodies recurse without bound |
 
 ### Imported from regex_comparison
 
@@ -251,9 +257,9 @@ self-check reaches zero mismatches, and (3) grammar restrictions for unsupported
 | ECMAScript: V8 (d8) | `main` | `driver.js` | ES2024 (exact) | done; 3 bugs |
 | ECMAScript: SpiderMonkey | `main` (`--sm`) | `driver.js` | ES2024 | sanity engine only (shares irregexp) |
 | ECMAScript: QuickJS | `quickjs` | `driver.js` (std) | ES2024 | done; 0 wrong results in 6.6M |
-| ECMAScript: XS | `xs` | bridge | ES2024 | done; IRX-XS-1 |
-| ECMAScript: engine262 | `engine262` | bridge | ES2024 | campaign run |
-| ECMAScript: Hermes | `hermes` | bridge | ES2024 minus `v` | campaign run |
+| ECMAScript: XS | `xs` | bridge | ES2024 | done; IRX-XS-1, IRX-XS-2, IRX-XS-3 |
+| ECMAScript: engine262 | `engine262` | bridge | ES2024 | done; IRX-E262-1, IRX-E262-2 |
+| ECMAScript: Hermes | `hermes` | bridge | ES2024 minus `v` | done; IRX-HERMES-1, IRX-HERMES-2 |
 | ECMAScript: Boa | `boa` | bridge (object-literal batches, IRX-BOA-1) | ES2024 | pending rerun |
 | ECMAScript: JavaScriptCore (`jsc`, Bun) | — | `driver.js` (`--jsc`) | ES2024 | needs a `jsc` binary |
 | ECMAScript: LibJS (Ladybird) | — | `driver.js` | ES2024 | needs a ~1 h Ladybird build |
