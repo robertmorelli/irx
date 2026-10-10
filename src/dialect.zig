@@ -112,7 +112,8 @@ pub const dotnet = @import("dialects/dotnet.zig").dialect;
 pub const dotnet_nb = @import("dialects/dotnet.zig").nonbacktracking;
 pub const icu = @import("dialects/icu.zig").dialect;
 pub const resharp = @import("dialects/resharp.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp };
+pub const nim = @import("dialects/nim.zig").dialect;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;

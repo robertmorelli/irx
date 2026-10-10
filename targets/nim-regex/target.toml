@@ -5,5 +5,5 @@
 title = "nim-regex"
 kind = "shell"   # d8 | perl | shell
 command = "{root}/hosts/bin/nim_host {mode}"
-dialect = "perl"   # src/dialects/
+dialect = "nim"   # src/dialects/
 selfcheck = true

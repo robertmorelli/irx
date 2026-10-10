@@ -98,12 +98,15 @@ pub const Checker = struct {
             return;
         }
         const i: u8 = @intCast(pos);
-        const lead_atom = try anyNode(t);
-        const lead = try t.add(.{ .op = .quant, .quant = .{ .form = .exact, .min = i, .max = i }, .a = lead_atom });
         const x = try t.add(.{ .op = .atom, .atom = at });
+        // No `{0}` prefix at position 0 (nim-regex NIM-6 treats {0} as {1}).
+        const c1 = if (i == 0) x else blk: {
+            const lead_atom = try anyNode(t);
+            const lead = try t.add(.{ .op = .quant, .quant = .{ .form = .exact, .min = i, .max = i }, .a = lead_atom });
+            break :blk try t.add(.{ .op = .concat, .a = lead, .b = x });
+        };
         const tail_atom = try anyNode(t);
         const tail = try t.add(.{ .op = .quant, .quant = .{ .form = .star, .min = 0, .max = ast.inf }, .a = tail_atom });
-        const c1 = try t.add(.{ .op = .concat, .a = lead, .b = x });
         t.root = try t.add(.{ .op = .concat, .a = c1, .b = tail });
     }
 
