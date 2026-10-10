@@ -161,7 +161,8 @@ pub fn reapNonblocking(pid: sys.pid_t) ?ExitInfo {
 // ---------------------------------------------------------------------------
 // Modes
 
-pub const Engine = enum { d8, sm, jsc };
+/// shell: any JS shell given as a command template (`--shell "CMD {driver} {mode}"`).
+pub const Engine = enum { d8, sm, jsc, shell };
 pub const Expect = enum { normal, tierup, linear };
 
 pub const ModeSpec = struct {
@@ -183,6 +184,8 @@ pub const builtin_modes = [_]ModeSpec{
     .{ .name = "fallback0", .flags = &.{ "--enable-experimental-regexp-engine-on-excessive-backtracks", "--regexp-backtracks-before-fallback=0" }, .driver_mode = "fallback0", .optional = true },
     .{ .name = "sm", .engine = .sm, .flags = &.{}, .driver_mode = "sanity", .optional = true },
     .{ .name = "jsc", .engine = .jsc, .flags = &.{}, .driver_mode = "sanity", .optional = true },
+    .{ .name = "shell", .engine = .shell, .flags = &.{}, .driver_mode = "interp" },
+    .{ .name = "shell-repeat", .engine = .shell, .flags = &.{}, .driver_mode = "tierup", .expect = .tierup },
 };
 
 pub fn findMode(name: []const u8) ?*const ModeSpec {
@@ -378,6 +381,16 @@ pub const Child = struct {
                 i.* += 1;
             }
         }.f;
+        if (self.spec.engine == .shell) {
+            // exe holds the command template; {driver} and {mode} are substituted.
+            var it = std.mem.tokenizeScalar(u8, self.opts.exe, ' ');
+            while (it.next()) |tok| {
+                if (std.mem.eql(u8, tok, "{driver}")) try put(buf, zbuf, &n, self.opts.driver_path)
+                else if (std.mem.eql(u8, tok, "{mode}")) try put(buf, zbuf, &n, self.spec.driver_mode)
+                else try put(buf, zbuf, &n, tok);
+            }
+            return buf[0..n];
+        }
         try put(buf, zbuf, &n, self.opts.exe);
         for (self.spec.flags) |f| try put(buf, zbuf, &n, f);
         try put(buf, zbuf, &n, self.opts.driver_path);
@@ -391,6 +404,7 @@ pub const Child = struct {
                 try put(buf, zbuf, &n, "--");
                 try put(buf, zbuf, &n, self.spec.driver_mode);
             },
+            .shell => unreachable,
         }
         return buf[0..n];
     }

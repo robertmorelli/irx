@@ -4,15 +4,26 @@
 //   response: "<batch_seq> <2 hex digits per case>"
 // Bits: 0 test(A), 1 test(R), 2 SyntaxError at construction, 3 other exception,
 //       4/5 second test(A)/test(R) (tierup only), 6 unsupported/skipped (linear only), 7 reserved.
-// Shell adapters: d8 (arguments, version()), SpiderMonkey (scriptArgs), JSC (arguments).
-var __irx_args = typeof scriptArgs !== "undefined" ? scriptArgs : (typeof arguments !== "undefined" ? arguments : []);
+// Shell adapters: d8 (arguments, version()), SpiderMonkey (scriptArgs), JSC (arguments),
+// QuickJS (--std: scriptArgs[0] is the script, std.in.getline), and bridge mode for
+// shells without stdin (tools/bridge.py embeds one batch as __IRX_BATCH/__IRX_MODE).
+var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
+  : (typeof std === "object" && typeof scriptArgs !== "undefined") ? Array.prototype.slice.call(scriptArgs, 1)
+  : typeof scriptArgs !== "undefined" ? scriptArgs : (typeof arguments !== "undefined" ? arguments : []);
 (function () {
   "use strict";
   var args = __irx_args;
   var mode = args.length > 0 ? String(args[0]) : "interp";
+  var bridge = typeof __IRX_BATCH !== "undefined";
   var out = typeof print === "function" ? print : null;
-  var read = typeof readline === "function" ? readline : null;
-  if (!out || !read) throw new Error("driver: shell lacks print/readline");
+  if (out && typeof std === "object" && std.out) {
+    var p0 = out;
+    out = function (s) { p0(s); std.out.flush(); };
+  }
+  var read = bridge ? null
+    : typeof readline === "function" ? readline
+    : (typeof std === "object" && std.in) ? function () { return std.in.getline(); } : null;
+  if (!out || (!read && !bridge)) throw new Error("driver: shell lacks print/readline");
   var ver = "unknown";
   try { if (typeof version === "function") ver = String(version()); } catch (e) {}
 
@@ -48,7 +59,8 @@ var __irx_args = typeof scriptArgs !== "undefined" ? scriptArgs : (typeof argume
     return bits;
   }
 
-  out("ready " + ver + " mode=" + mode);
+  if (bridge) read = (function () { var done = false; return function () { if (done) return null; done = true; return __IRX_BATCH; }; })();
+  else out("ready " + ver + " mode=" + mode);
   for (;;) {
     var line = read();
     if (line === null || line === undefined) break;

@@ -55,6 +55,7 @@ const Options = struct {
     modes: []const u8 = "interp,native,tierup",
     optional_modes: []const u8 = "",
     jsc: ?[]const u8 = null,
+    shell: ?[]const u8 = null,
     sm: ?[]const u8 = null,
     max_cases: u64 = std.math.maxInt(u64),
     duration_s: u64 = 0,
@@ -98,7 +99,7 @@ fn parseArgs(args: []const [:0]const u8) Options {
                 return xs[j.*];
             }
         }.f;
-        if (eq(u8, a, "--d8")) o.d8 = val(args, &i) else if (eq(u8, a, "--config")) o.config_path = val(args, &i) else if (eq(u8, a, "--jobs")) o.jobs = std.fmt.parseInt(u32, val(args, &i), 10) catch usage() else if (eq(u8, a, "--seed")) o.seed = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--out")) o.out = val(args, &i) else if (eq(u8, a, "--modes")) o.modes = val(args, &i) else if (eq(u8, a, "--optional-modes")) o.optional_modes = val(args, &i) else if (eq(u8, a, "--jsc")) o.jsc = val(args, &i) else if (eq(u8, a, "--sm")) o.sm = val(args, &i) else if (eq(u8, a, "--max-cases")) o.max_cases = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--duration")) o.duration_s = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--no-selfcheck")) o.selfcheck = false else if (eq(u8, a, "--quiet")) o.quiet = true else if (eq(u8, a, "-h") or eq(u8, a, "--help")) usage() else {
+        if (eq(u8, a, "--d8")) o.d8 = val(args, &i) else if (eq(u8, a, "--config")) o.config_path = val(args, &i) else if (eq(u8, a, "--jobs")) o.jobs = std.fmt.parseInt(u32, val(args, &i), 10) catch usage() else if (eq(u8, a, "--seed")) o.seed = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--out")) o.out = val(args, &i) else if (eq(u8, a, "--modes")) o.modes = val(args, &i) else if (eq(u8, a, "--optional-modes")) o.optional_modes = val(args, &i) else if (eq(u8, a, "--jsc")) o.jsc = val(args, &i) else if (eq(u8, a, "--shell")) o.shell = val(args, &i) else if (eq(u8, a, "--sm")) o.sm = val(args, &i) else if (eq(u8, a, "--max-cases")) o.max_cases = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--duration")) o.duration_s = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--no-selfcheck")) o.selfcheck = false else if (eq(u8, a, "--quiet")) o.quiet = true else if (eq(u8, a, "-h") or eq(u8, a, "--help")) usage() else {
             sys.stderrPrint("unknown argument: {s}\n", .{a});
             usage();
         }
@@ -171,7 +172,7 @@ fn resolveModes(gpa: Allocator, list: []const u8) ![]*const harness.ModeSpec {
             sys.stderrPrint("unknown mode: {s}\n", .{name});
             std.process.exit(2);
         };
-        if (m.engine != .d8) {
+        if (m.engine == .sm or m.engine == .jsc) {
             sys.stderrPrint("mode {s} is a sanity engine; use --sm/--jsc\n", .{name});
             std.process.exit(2);
         }
@@ -183,12 +184,14 @@ fn resolveModes(gpa: Allocator, list: []const u8) ![]*const harness.ModeSpec {
 fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     ucd.init();
     _ = sys.signal(sys.SIGPIPE, sys.SIG_IGN);
-    const d8 = o.d8 orelse {
-        sys.stderrPrint("--d8 PATH is required\n", .{});
+    const d8 = o.shell orelse o.d8 orelse {
+        sys.stderrPrint("--d8 PATH (or --shell \"CMD {{driver}} {{mode}}\") is required\n", .{});
         usage();
     };
-    if (!sys.fileExists(d8)) {
-        sys.stderrPrint("d8 not found: {s}\n", .{d8});
+    var tok_it = std.mem.tokenizeScalar(u8, d8, ' ');
+    const exe0 = if (o.shell != null) (tok_it.next() orelse "") else d8;
+    if (!sys.fileExists(exe0)) {
+        sys.stderrPrint("engine not found: {s}\n", .{exe0});
         std.process.exit(2);
     }
     const run = try gpa.create(runmod.Run);
@@ -203,7 +206,7 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     var dd: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(driver_js, &dd, .{});
     const driver_hash = try gpa.dupe(u8, &std.fmt.bytesToHex(dd, .lower));
-    const d8_hash = try gpa.dupe(u8, &(sha256File(gpa, d8) catch [_]u8{'0'} ** 64));
+    const d8_hash = try gpa.dupe(u8, &(sha256File(gpa, exe0) catch [_]u8{'0'} ** 64));
     const exe_hash = selfExeHash(gpa);
     const build_id = try std.fmt.allocPrint(gpa, "{s}+zig{s}+{s}+exe:{s}+d8:{s}", .{ tablemod.generator_version, builtin.zig_version_string, @tagName(builtin.mode), exe_hash[0..16], d8_hash[0..16] });
 
@@ -234,7 +237,7 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
 
     var rep: std.ArrayList(u8) = .empty;
     // Probe requested modes (required) and optional modes.
-    const req_modes = try resolveModes(gpa, o.modes);
+    const req_modes = try resolveModes(gpa, if (o.shell != null and std.mem.eql(u8, o.modes, "interp,native,tierup")) "shell,shell-repeat" else o.modes);
     const opt_modes = try resolveModes(gpa, o.optional_modes);
     var active: std.ArrayList(*const harness.ModeSpec) = .empty;
     const child_opts: harness.ChildOptions = .{ .exe = d8, .driver_path = driver_path, .journal_path = null, .cfg = &run.cfg };
@@ -354,7 +357,7 @@ fn runSelfcheck(s: *const Setup) !selfcheck.Result {
     const run = s.run;
     var engines: std.ArrayList(struct { spec: *const harness.ModeSpec, exe: []const u8 }) = .empty;
     defer engines.deinit(s.gpa);
-    try engines.append(s.gpa, .{ .spec = harness.findMode("interp").?, .exe = run.d8_exe });
+    try engines.append(s.gpa, .{ .spec = run.modes[0], .exe = run.d8_exe });
     for (run.sanity_modes) |m| try engines.append(s.gpa, .{ .spec = m, .exe = if (m.engine == .sm) run.sm_exe.? else run.jsc_exe.? });
     var ck: selfcheck.Checker = .{ .run = run, .gpa = s.gpa };
     defer ck.deinit();
@@ -507,7 +510,7 @@ fn cmdFuzz(gpa: Allocator, o: *const Options) !u8 {
 
 fn cmdSelfcheck(gpa: Allocator, o: *const Options) !u8 {
     var opts = o.*;
-    opts.modes = "interp";
+    opts.modes = if (o.shell != null) "shell" else "interp";
     var s = try setup(gpa, &opts, false);
     try writeManifest(&s, 0, 0);
     const r = try runSelfcheck(&s);
