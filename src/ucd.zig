@@ -19,6 +19,7 @@ pub const files = [_]FileHash{
 };
 
 const Pair = struct { from: u21, to: u21 };
+const CatRun = struct { lo: u21, hi: u21, cat: [2]u8 };
 
 const Data = struct {
     /// Simple case folding (statuses C and S), sorted by `from`.
@@ -31,6 +32,8 @@ const Data = struct {
     upper_multi: []u21,
     /// Zs code points.
     zs: []u21,
+    /// General category runs: sorted, non-overlapping.
+    cats: []CatRun,
     /// Canonicalize for /i without u/v, over all code units.
     canon_nu: [65536]u16,
     /// Code units sorted by canon_nu value; class_start indexes into it.
@@ -101,6 +104,8 @@ fn load() !void {
     // UnicodeData: field 0 code, 2 category, 12 simple uppercase.
     var upper: std.ArrayList(Pair) = .empty;
     var zs: std.ArrayList(u21) = .empty;
+    var cats: std.ArrayList(CatRun) = .empty;
+    var range_start: ?u21 = null;
     it = std.mem.splitScalar(u8, unicode_data_txt, '\n');
     while (it.next()) |line| {
         if (line.len == 0) continue;
@@ -113,6 +118,22 @@ fn load() !void {
         if (n < 13) continue;
         const code = try parseHex(fields[0]);
         if (std.mem.eql(u8, fields[2], "Zs")) try zs.append(gpa, code);
+        if (fields[2].len == 2) {
+            const cat: [2]u8 = .{ fields[2][0], fields[2][1] };
+            var lo = code;
+            if (std.mem.endsWith(u8, fields[1], "First>")) {
+                range_start = code;
+            } else {
+                if (std.mem.endsWith(u8, fields[1], "Last>")) {
+                    lo = range_start orelse code;
+                    range_start = null;
+                }
+                const nc = cats.items.len;
+                if (nc > 0 and cats.items[nc - 1].hi + 1 == lo and std.mem.eql(u8, &cats.items[nc - 1].cat, &cat)) {
+                    cats.items[nc - 1].hi = code;
+                } else try cats.append(gpa, .{ .lo = lo, .hi = code, .cat = cat });
+            }
+        }
         if (fields[12].len > 0) try upper.append(gpa, .{ .from = code, .to = try parseHex(fields[12]) });
     }
     std.mem.sort(Pair, upper.items, {}, lessFrom);
@@ -146,6 +167,7 @@ fn load() !void {
     data.upper = upper.items;
     data.upper_multi = multi.items;
     data.zs = zs.items;
+    data.cats = cats.items;
 
     for (0..65536) |c| data.canon_nu[c] = canonNonUnicodeCompute(@intCast(c));
     for (0..65536) |c| data.nu_sorted[c] = @intCast(c);
@@ -195,6 +217,18 @@ pub fn simpleFold(c: u21) u21 {
 
 pub fn canonNonUnicode(ch: u16) u16 {
     return data.canon_nu[ch];
+}
+
+/// Two-letter general category ("Cn" when unassigned).
+pub fn category(c: u21) [2]u8 {
+    var lo: usize = 0;
+    var hi: usize = data.cats.len;
+    while (lo < hi) {
+        const mid = (lo + hi) / 2;
+        const r = data.cats[mid];
+        if (c < r.lo) hi = mid else if (c > r.hi) lo = mid + 1 else return r.cat;
+    }
+    return .{ 'C', 'n' };
 }
 
 pub fn isZs(c: u21) bool {

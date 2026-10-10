@@ -26,6 +26,7 @@ const Budget = @import("budget.zig").Budget;
 
 const Allocator = std.mem.Allocator;
 const driver_js = @embedFile("driver.js");
+const driver_pl = @embedFile("driver.pl");
 
 test {
     _ = @import("rel.zig");
@@ -56,6 +57,9 @@ const Options = struct {
     optional_modes: []const u8 = "",
     jsc: ?[]const u8 = null,
     shell: ?[]const u8 = null,
+    perl: ?[]const u8 = null,
+    /// Semantics model: "js" (ECMAScript) or "perl" (Perl /u; also PCRE2-like hosts).
+    dialect: []const u8 = "js",
     sm: ?[]const u8 = null,
     max_cases: u64 = std.math.maxInt(u64),
     duration_s: u64 = 0,
@@ -99,7 +103,7 @@ fn parseArgs(args: []const [:0]const u8) Options {
                 return xs[j.*];
             }
         }.f;
-        if (eq(u8, a, "--d8")) o.d8 = val(args, &i) else if (eq(u8, a, "--config")) o.config_path = val(args, &i) else if (eq(u8, a, "--jobs")) o.jobs = std.fmt.parseInt(u32, val(args, &i), 10) catch usage() else if (eq(u8, a, "--seed")) o.seed = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--out")) o.out = val(args, &i) else if (eq(u8, a, "--modes")) o.modes = val(args, &i) else if (eq(u8, a, "--optional-modes")) o.optional_modes = val(args, &i) else if (eq(u8, a, "--jsc")) o.jsc = val(args, &i) else if (eq(u8, a, "--shell")) o.shell = val(args, &i) else if (eq(u8, a, "--sm")) o.sm = val(args, &i) else if (eq(u8, a, "--max-cases")) o.max_cases = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--duration")) o.duration_s = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--no-selfcheck")) o.selfcheck = false else if (eq(u8, a, "--quiet")) o.quiet = true else if (eq(u8, a, "-h") or eq(u8, a, "--help")) usage() else {
+        if (eq(u8, a, "--d8")) o.d8 = val(args, &i) else if (eq(u8, a, "--config")) o.config_path = val(args, &i) else if (eq(u8, a, "--jobs")) o.jobs = std.fmt.parseInt(u32, val(args, &i), 10) catch usage() else if (eq(u8, a, "--seed")) o.seed = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--out")) o.out = val(args, &i) else if (eq(u8, a, "--modes")) o.modes = val(args, &i) else if (eq(u8, a, "--optional-modes")) o.optional_modes = val(args, &i) else if (eq(u8, a, "--jsc")) o.jsc = val(args, &i) else if (eq(u8, a, "--shell")) o.shell = val(args, &i) else if (eq(u8, a, "--perl")) o.perl = val(args, &i) else if (eq(u8, a, "--dialect")) o.dialect = val(args, &i) else if (eq(u8, a, "--sm")) o.sm = val(args, &i) else if (eq(u8, a, "--max-cases")) o.max_cases = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--duration")) o.duration_s = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--no-selfcheck")) o.selfcheck = false else if (eq(u8, a, "--quiet")) o.quiet = true else if (eq(u8, a, "-h") or eq(u8, a, "--help")) usage() else {
             sys.stderrPrint("unknown argument: {s}\n", .{a});
             usage();
         }
@@ -184,8 +188,13 @@ fn resolveModes(gpa: Allocator, list: []const u8) ![]*const harness.ModeSpec {
 fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     ucd.init();
     _ = sys.signal(sys.SIGPIPE, sys.SIG_IGN);
-    const d8 = o.shell orelse o.d8 orelse {
-        sys.stderrPrint("--d8 PATH (or --shell \"CMD {{driver}} {{mode}}\") is required\n", .{});
+    const is_perl = o.perl != null or std.mem.eql(u8, o.dialect, "perl");
+    if (is_perl) {
+        sample.dialect = .perl;
+        alpha.perl = true;
+    }
+    const d8 = o.shell orelse o.perl orelse o.d8 orelse {
+        sys.stderrPrint("--d8 PATH, --perl PATH or --shell \"CMD {{driver}} {{mode}}\" is required\n", .{});
         usage();
     };
     var tok_it = std.mem.tokenizeScalar(u8, d8, ' ');
@@ -199,13 +208,44 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     var cfg_text: []const u8 = "";
     loadConfig(gpa, o, &cfg, &cfg_text);
     alpha.active_pool = cfg.poolSlice();
+    if ((o.perl != null or std.mem.eql(u8, o.dialect, "perl")) and cfg.n_pool == 0) {
+        // Perl-style /i uses full case folding: ß -> "ss", İ -> "i̇" would let one
+        // pattern atom match two characters, which the span model does not allow.
+        var n: u8 = 0;
+        for (alpha.default_pool) |c| if (c != 0xDF and c != 0x130) {
+            cfg.pool[n] = c;
+            n += 1;
+        };
+        cfg.n_pool = n;
+        alpha.active_pool = cfg.poolSlice();
+    }
 
     try sys.mkdirp(o.out);
     var pb: [4096]u8 = undefined;
-    const driver_path = try gpa.dupe(u8, try std.fmt.bufPrint(&pb, "{s}/driver.js", .{o.out}));
-    try sys.writeFile(driver_path, driver_js);
+    const use_pl = o.perl != null;
+    const driver_src = if (use_pl) driver_pl else driver_js;
+    const driver_path = try gpa.dupe(u8, try std.fmt.bufPrint(&pb, "{s}/{s}", .{ o.out, if (use_pl) "driver.pl" else "driver.js" }));
+    try sys.writeFile(driver_path, driver_src);
     var dd: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(driver_js, &dd, .{});
+    std.crypto.hash.sha2.Sha256.hash(driver_src, &dd, .{});
+    if (is_perl) {
+        // Perl strings are code points and the driver always uses /u, so every
+        // flag set gets u; v-mode set syntax does not exist in Perl. Dedupe.
+        var n: u8 = 0;
+        for (cfg.flagSets()) |f0| {
+            var f = f0;
+            f.v = false;
+            f.u = true;
+            const dup = for (cfg.flag_sets[0..n]) |g| {
+                if (g.bits() == f.bits()) break true;
+            } else false;
+            if (!dup) {
+                cfg.flag_sets[n] = f;
+                n += 1;
+            }
+        }
+        cfg.n_flag_sets = n;
+    }
     const driver_hash = try gpa.dupe(u8, &std.fmt.bytesToHex(dd, .lower));
     const d8_hash = try gpa.dupe(u8, &(sha256File(gpa, exe0) catch [_]u8{'0'} ** 64));
     const exe_hash = selfExeHash(gpa);
@@ -238,7 +278,8 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
 
     var rep: std.ArrayList(u8) = .empty;
     // Probe requested modes (required) and optional modes.
-    const req_modes = try resolveModes(gpa, if (o.shell != null and std.mem.eql(u8, o.modes, "interp,native,tierup")) "shell,shell-repeat" else o.modes);
+    const default_modes = std.mem.eql(u8, o.modes, "interp,native,tierup");
+    const req_modes = try resolveModes(gpa, if (o.shell != null and default_modes) "shell,shell-repeat" else if (o.perl != null and default_modes) "perl,perl-repeat" else o.modes);
     const opt_modes = try resolveModes(gpa, o.optional_modes);
     var active: std.ArrayList(*const harness.ModeSpec) = .empty;
     const child_opts: harness.ChildOptions = .{ .exe = d8, .driver_path = driver_path, .journal_path = null, .cfg = &run.cfg };
@@ -511,7 +552,7 @@ fn cmdFuzz(gpa: Allocator, o: *const Options) !u8 {
 
 fn cmdSelfcheck(gpa: Allocator, o: *const Options) !u8 {
     var opts = o.*;
-    opts.modes = if (o.shell != null) "shell" else "interp";
+    opts.modes = if (o.shell != null) "shell" else if (o.perl != null) "perl" else "interp";
     var s = try setup(gpa, &opts, false);
     try writeManifest(&s, 0, 0);
     const r = try runSelfcheck(&s);
@@ -770,12 +811,13 @@ fn cmdTriage(gpa: Allocator, o: *const Options) !u8 {
         const cp = try std.fmt.allocPrint(gpa, "{s}/config.toml", .{o.out});
         if (sys.fileExists(cp)) opts.config_path = cp;
     }
-    opts.modes = "interp";
+    opts.modes = if (o.shell != null) "shell" else if (o.perl != null) "perl" else "interp";
     const s = try setup(gpa, &opts, true);
     const run = s.run;
-    // Make every mode available to triage (findings name their own mode).
+    // Make every mode of the target engine available (findings name their own mode).
+    const want: harness.Engine = if (o.shell != null) .shell else if (o.perl != null) .perl else .d8;
     var all: std.ArrayList(*const harness.ModeSpec) = .empty;
-    for (&harness.builtin_modes) |*m| if (m.engine == .d8) try all.append(gpa, m);
+    for (&harness.builtin_modes) |*m| if (m.engine == want) try all.append(gpa, m);
     run.modes = all.items;
     var b: [4096]u8 = undefined;
     const fdir = try std.fmt.bufPrint(&b, "{s}/findings", .{o.out});

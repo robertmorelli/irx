@@ -32,7 +32,7 @@ pub const Triage = struct {
 
     fn exeFor(self: *Triage, m: *const harness.ModeSpec) []const u8 {
         return switch (m.engine) {
-            .d8, .shell => self.run.d8_exe,
+            .d8, .shell, .perl => self.run.d8_exe,
             .sm => self.run.sm_exe orelse "",
             .jsc => self.run.jsc_exe orelse "",
         };
@@ -418,7 +418,10 @@ pub const Triage = struct {
         var options: [6]Flags = undefined;
         var no: usize = 0;
         inline for (.{ "i", "m", "s", "u", "v" }) |name| {
-            if (@field(f, name)) {
+            // Perl strings are code points and the driver always applies /u:
+            // dropping u would switch the model to UTF-16 positions.
+            const keep = alpha.perl and comptime std.mem.eql(u8, name, "u");
+            if (!keep and @field(f, name)) {
                 var g = f;
                 @field(g, name) = false;
                 options[no] = g;

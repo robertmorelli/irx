@@ -1,0 +1,6 @@
+[submodule "vendor/perl5"]
+	path = vendor/perl5
+	url = https://github.com/Perl/perl5.git
+	branch = blead
+	shallow = true
+	ignore = dirty

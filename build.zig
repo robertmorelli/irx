@@ -12,6 +12,7 @@ pub fn build(b: *std.Build) void {
     });
     // driver.js is embedded so the hash recorded in manifests is the one actually run.
     root.addAnonymousImport("driver.js", .{ .root_source_file = b.path("driver.js") });
+    root.addAnonymousImport("driver.pl", .{ .root_source_file = b.path("driver.pl") });
 
     const exe = b.addExecutable(.{ .name = "irx", .root_module = root });
     b.installArtifact(exe);

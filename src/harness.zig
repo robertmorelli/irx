@@ -167,7 +167,7 @@ pub fn reapNonblocking(pid: sys.pid_t) ?ExitInfo {
 // Modes
 
 /// shell: any JS shell given as a command template (`--shell "CMD {driver} {mode}"`).
-pub const Engine = enum { d8, sm, jsc, shell };
+pub const Engine = enum { d8, sm, jsc, shell, perl };
 pub const Expect = enum { normal, tierup, linear };
 
 pub const ModeSpec = struct {
@@ -191,6 +191,8 @@ pub const builtin_modes = [_]ModeSpec{
     .{ .name = "jsc", .engine = .jsc, .flags = &.{}, .driver_mode = "sanity", .optional = true },
     .{ .name = "shell", .engine = .shell, .flags = &.{}, .driver_mode = "interp" },
     .{ .name = "shell-repeat", .engine = .shell, .flags = &.{}, .driver_mode = "tierup", .expect = .tierup },
+    .{ .name = "perl", .engine = .perl, .flags = &.{}, .driver_mode = "perl" },
+    .{ .name = "perl-repeat", .engine = .perl, .flags = &.{}, .driver_mode = "repeat", .expect = .tierup },
 };
 
 pub fn findMode(name: []const u8) ?*const ModeSpec {
@@ -404,7 +406,7 @@ pub const Child = struct {
                 try put(buf, zbuf, &n, "--");
                 try put(buf, zbuf, &n, self.spec.driver_mode);
             },
-            .sm => try put(buf, zbuf, &n, self.spec.driver_mode),
+            .sm, .perl => try put(buf, zbuf, &n, self.spec.driver_mode),
             .jsc => {
                 try put(buf, zbuf, &n, "--");
                 try put(buf, zbuf, &n, self.spec.driver_mode);
@@ -878,7 +880,9 @@ pub fn probeMode(gpa: Allocator, spec: *const ModeSpec, opts: ChildOptions) Prob
     req.appendSlice(gpa, "[1,[") catch return .{ .ok = false, .reason = "alloc" };
     encodeCase(&req, gpa, .{ .flags = "", .a = &.{'a'}, .r = &.{'b'}, .pattern = "a" }) catch return .{ .ok = false, .reason = "alloc" };
     req.appendSlice(gpa, ",") catch return .{ .ok = false, .reason = "alloc" };
-    encodeCase(&req, gpa, .{ .flags = "u", .a = &.{ 0xD83D, 0xDE00 }, .r = &.{0xD83D}, .pattern = "\\u{1F600}" }) catch return .{ .ok = false, .reason = "alloc" };
+    const astral_pat = if (spec.engine == .perl) "\\x{1F600}" else "\\u{1F600}";
+    const astral_r: []const u16 = if (spec.engine == .perl) &.{'a'} else &.{0xD83D};
+    encodeCase(&req, gpa, .{ .flags = "u", .a = &.{ 0xD83D, 0xDE00 }, .r = astral_r, .pattern = astral_pat }) catch return .{ .ok = false, .reason = "alloc" };
     req.appendSlice(gpa, "]]\n") catch return .{ .ok = false, .reason = "alloc" };
     var bits: [2]u8 = undefined;
     var b: Batch = .{ .seq = 1, .ncases = 2, .req = req.items, .bits = &bits };

@@ -65,18 +65,26 @@ pub const Checker = struct {
         try self.probes.append(self.gpa, .{ .flags = flags, .atom = at, .pos = pos, .a = a, .r = r, .exp_a = ea, .exp_r = er, .what = what });
     }
 
+    /// "Any character": [^] in JS; (?:\s|\S) in Perl, where [^] is not empty-class syntax.
+    fn anyNode(t: *ast.Ast) !u8 {
+        if (!alpha.perl) return t.add(.{ .op = .atom, .atom = .{ .kind = .cls, .neg = true, .n = 0 } });
+        const s = try t.add(.{ .op = .atom, .atom = .{ .kind = .esc, .sub = @intFromEnum(atoms.Esc.s) } });
+        const S = try t.add(.{ .op = .atom, .atom = .{ .kind = .esc, .sub = @intFromEnum(atoms.Esc.S) } });
+        const alt = try t.add(.{ .op = .alt, .a = s, .b = S });
+        return t.add(.{ .op = .group_nc, .a = alt });
+    }
+
     fn makeTree(t: *ast.Ast, at: atoms.AtomSpec, pos: i16) !void {
         t.len = 0;
         if (pos < 0) {
             t.root = try t.add(.{ .op = .atom, .atom = at });
             return;
         }
-        const any: atoms.AtomSpec = .{ .kind = .cls, .neg = true, .n = 0 };
         const i: u8 = @intCast(pos);
-        const lead_atom = try t.add(.{ .op = .atom, .atom = any });
+        const lead_atom = try anyNode(t);
         const lead = try t.add(.{ .op = .quant, .quant = .{ .form = .exact, .min = i, .max = i }, .a = lead_atom });
         const x = try t.add(.{ .op = .atom, .atom = at });
-        const tail_atom = try t.add(.{ .op = .atom, .atom = any });
+        const tail_atom = try anyNode(t);
         const tail = try t.add(.{ .op = .quant, .quant = .{ .form = .star, .min = 0, .max = ast.inf }, .a = tail_atom });
         const c1 = try t.add(.{ .op = .concat, .a = lead, .b = x });
         t.root = try t.add(.{ .op = .concat, .a = c1, .b = tail });
@@ -100,11 +108,12 @@ pub const Checker = struct {
             try subjects.append(self.gpa, x);
         }
         // Lone surrogates as their own symbols (u/v); halves of the astral char.
-        for ([_]u16{ 0xD83D, 0xDE00 }) |h| {
+        // (Not representable in Perl strings decoded from JSON.)
+        if (!alpha.perl) for ([_]u16{ 0xD83D, 0xDE00 }) |h| {
             var x: finding.Subject = .{};
             subjectUnits(&.{h}, &x);
             try subjects.append(self.gpa, x);
-        }
+        };
         const empty: finding.Subject = .{};
 
         // Consuming atoms against every subject; R is the empty string.

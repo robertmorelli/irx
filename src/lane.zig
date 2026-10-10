@@ -58,7 +58,7 @@ pub const Lane = struct {
 
     fn exeFor(run: *Run, m: *const harness.ModeSpec) []const u8 {
         return switch (m.engine) {
-            .d8, .shell => run.d8_exe,
+            .d8, .shell, .perl => run.d8_exe,
             .sm => run.sm_exe orelse "",
             .jsc => run.jsc_exe orelse "",
         };

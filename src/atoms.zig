@@ -123,7 +123,7 @@ fn has(n: *const SetNode, flags: Flags, x: u21) bool {
     return switch (n.kind) {
         .list => std.mem.indexOfScalar(u21, n.syms, x) != null,
         .range => x >= n.lo and x <= n.hi,
-        .digit => alpha.isDigit(x),
+        .digit => if (alpha.perl) alpha.perlDigit(x) else alpha.isDigit(x),
         .space => alpha.isSpace(x),
         .word => alpha.isWordChar(x, flags),
         .dotset => alpha.inAllCharacters(x, flags) and (flags.s or !alpha.isLineTerminator(x)),
@@ -227,8 +227,11 @@ pub fn assertionMask(spec: *const AtomSpec, flags: Flags, w: []const u21) u32 {
     const n = w.len;
     for (0..n + 1) |i| {
         const ok = switch (spec.kind) {
-            .caret => i == 0 or (flags.m and alpha.isLineTerminator(w[i - 1])),
-            .dollar => i == n or (flags.m and alpha.isLineTerminator(w[i])),
+            // Perl: /m ^ never matches after a trailing newline; $ without /m
+            // also matches before a final newline.
+            .caret => i == 0 or (flags.m and alpha.isLineTerminator(w[i - 1]) and !(alpha.perl and i == n)),
+            .dollar => i == n or (flags.m and alpha.isLineTerminator(w[i])) or
+                (alpha.perl and !flags.m and i + 1 == n and w[i] == '\n'),
             .wordb, .nwordb => blk: {
                 const ii: isize = @intCast(i);
                 const b = isWordAt(w, ii - 1, flags) != isWordAt(w, ii, flags);
