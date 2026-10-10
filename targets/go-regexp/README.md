@@ -24,3 +24,17 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END go-regexp 1m results -->
+
+<!-- BEGIN go-regexp 10m results -->
+### Go regexp: 10m campaign
+
+* 19,402,048 patterns, 196 tables, 0 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END go-regexp 10m results -->
+
+<!-- BEGIN go-regexp 10m triage -->
+### go-regexp: 10-minute campaign triage
+
+* Clean: 19.4 M cases, 0 findings, self-check 0 mismatches.
+<!-- END go-regexp 10m triage -->
