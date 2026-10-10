@@ -263,7 +263,7 @@ pub fn assertionMask(spec: *const AtomSpec, flags0: Flags, w: []const u21) u32 {
             // Perl: /m ^ never matches after a trailing newline; $ without /m
             // also matches before a final newline.
             .caret => if (flags.m and dl.caret_m_never_at_end and i == n) false else i == 0 or (flags.m and alpha.isLineTerminator(w[i - 1]) and (dl.caret_after_trailing_newline or i != n) and
-                !(dl.crlf_atomic and w[i - 1] == '\r' and i < n and w[i] == '\n')),
+                !(dl.crlf_atomic and !dl.caret_splits_crlf and w[i - 1] == '\r' and i < n and w[i] == '\n')),
             .dollar => i == n or
                 (flags.m and alpha.isLineTerminator(w[i]) and !(dl.crlf_atomic and w[i] == '\n' and i > 0 and w[i - 1] == '\r')) or
                 (dl.dollar_before_final_terminator and !flags.m and

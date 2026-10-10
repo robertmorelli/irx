@@ -61,6 +61,8 @@ pub const Dialect = struct {
     dollar_before_final_terminator: bool = false,
     /// "\\r\\n" is one line terminator: no ^/$ between \\r and \\n (Java, ICU).
     crlf_atomic: bool = false,
+    /// With crlf_atomic, `^` may still match between \\r and \\n (ICU); only `$` treats CRLF as one.
+    caret_splits_crlf: bool = false,
     escape: Escape = .es,
     any_char: AnyChar = .empty_negated_class,
     strings: Strings = .es,
@@ -102,7 +104,8 @@ pub const ruby = @import("dialects/ruby.zig").dialect;
 pub const oniguruma = @import("dialects/ruby.zig").oniguruma;
 pub const dotnet = @import("dialects/dotnet.zig").dialect;
 pub const dotnet_nb = @import("dialects/dotnet.zig").nonbacktracking;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb };
+pub const icu = @import("dialects/icu.zig").dialect;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
