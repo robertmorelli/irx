@@ -7,7 +7,41 @@
 // Shell adapters: d8 (arguments, version()), SpiderMonkey (scriptArgs), JSC (arguments),
 // QuickJS (--std: scriptArgs[0] is the script, std.in.getline), and bridge mode for
 // shells without stdin (tools/bridge.py embeds one batch as __IRX_BATCH/__IRX_MODE).
+// Node/Bun (process + fs) and Deno: synchronous line I/O (async pipes would never flush
+// inside the blocking loop).
+var __irx_rt = (function () {
+  var enc = typeof TextEncoder !== "undefined" ? new TextEncoder() : null, dec = typeof TextDecoder !== "undefined" ? new TextDecoder() : null;
+  function lineReader(readChunk) {
+    var buf = "", eof = false;
+    return function () {
+      for (;;) {
+        var nl = buf.indexOf("\n");
+        if (nl >= 0) { var l = buf.slice(0, nl); buf = buf.slice(nl + 1); return l; }
+        if (eof) { if (buf.length) { var r = buf; buf = ""; return r; } return null; }
+        var chunk = readChunk();
+        if (chunk === null) eof = true; else buf += chunk;
+      }
+    };
+  }
+  if (typeof Deno === "object" && Deno.stdin) {
+    var b = new Uint8Array(1 << 16);
+    return { args: Deno.args, out: function (s) { Deno.stdout.writeSync(enc.encode(s + "\n")); },
+             read: lineReader(function () { var n = Deno.stdin.readSync(b); return n === null || n === 0 ? null : dec.decode(b.subarray(0, n), { stream: true }); }) };
+  }
+  if (typeof process === "object" && process.versions && typeof require === "function") {
+    var fs = require("fs"), nb = Buffer.alloc(1 << 16);
+    return { args: process.argv.slice(2), out: function (s) { fs.writeSync(1, s + "\n"); },
+             read: lineReader(function () {
+               for (;;) {
+                 try { var n = fs.readSync(0, nb, 0, nb.length, null); return n === 0 ? null : nb.toString("utf8", 0, n); }
+                 catch (e) { if (e.code === "EAGAIN") continue; if (e.code === "EOF") return null; throw e; }
+               }
+             }) };
+  }
+  return null;
+})();
 var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
+  : __irx_rt ? __irx_rt.args
   : (typeof std === "object" && typeof scriptArgs !== "undefined") ? Array.prototype.slice.call(scriptArgs, 1)
   : typeof scriptArgs !== "undefined" ? scriptArgs : (typeof arguments !== "undefined" ? arguments : []);
 (function () {
@@ -15,18 +49,20 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
   var args = __irx_args;
   var mode = args.length > 0 ? String(args[0]) : "interp";
   var bridge = typeof __IRX_BATCH !== "undefined";
-  var out = typeof print === "function" ? print
+  var out = __irx_rt ? __irx_rt.out : typeof print === "function" ? print
     : (typeof console === "object" && typeof console.log === "function") ? function (s) { console.log(s); } : null;
   if (out && typeof std === "object" && std.out) {
     var p0 = out;
     out = function (s) { p0(s); std.out.flush(); };
   }
   var read = bridge ? null
+    : __irx_rt ? __irx_rt.read
     : typeof readline === "function" ? readline
     : (typeof std === "object" && std.in) ? function () { return std.in.getline(); } : null;
   if (!out || (!read && !bridge)) throw new Error("driver: shell lacks print/readline");
   var ver = "unknown";
   try { if (typeof version === "function") ver = String(version()); } catch (e) {}
+  if (__irx_rt) ver = typeof Deno === "object" ? "deno-" + Deno.version.v8 : typeof Bun === "object" ? "bun-" + Bun.version : "node-" + process.versions.v8;
 
   var tierup = mode === "tierup";
   var linear = mode === "linear";

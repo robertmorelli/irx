@@ -4,3 +4,5 @@ findings/
 vendor/
 hosts/bin/
 hosts/rust/target/
+hosts/dotnet/obj/
+hosts/racket/compiled/
