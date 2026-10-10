@@ -5,5 +5,5 @@
 title = "Oniguruma 6.9 (C library)"
 kind = "shell"   # d8 | perl | shell
 command = "{root}/hosts/bin/onig_host {mode}"
-dialect = "perl"   # src/dialects/
+dialect = "oniguruma"   # src/dialects/
 selfcheck = true

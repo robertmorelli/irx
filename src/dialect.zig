@@ -51,6 +51,10 @@ pub const Dialect = struct {
     matchAtom: ?*const fn (*const atoms.AtomSpec, Flags, u21) bool = null,
     /// `^` under multiline also matches after a newline that ends the string.
     caret_after_trailing_newline: bool = true,
+    /// `^`/`$` are always line anchors, regardless of the m flag (Ruby).
+    anchors_always_multiline: bool = false,
+    /// Word set used by \\b/\\B when it differs from \\w (null = isWord).
+    isBoundaryWord: ?*const fn (u21, Flags) bool = null,
     /// `^` under multiline never matches at the end of input (Java: not even in "").
     caret_m_never_at_end: bool = false,
     /// `$` without multiline also matches before a final line terminator (Perl, Java).
@@ -69,6 +73,8 @@ pub const Dialect = struct {
     /// \W \D \S negate after case folding (no case variant is in the positive
     /// set) instead of complementing before folding as ECMAScript does.
     negated_escapes_invert: bool = false,
+    /// \\w \\d \\s and their negations are plain property tests, unaffected by i.
+    escapes_ignore_case: bool = false,
     /// Grammar restrictions for constructs the engine does not support.
     allow_lookahead: bool = true,
     allow_lookbehind: bool = true,
@@ -92,7 +98,9 @@ pub const re2 = @import("dialects/re2.zig").dialect;
 pub const go = @import("dialects/re2.zig").go;
 pub const python = @import("dialects/python.zig").dialect;
 pub const java = @import("dialects/java.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java };
+pub const ruby = @import("dialects/ruby.zig").dialect;
+pub const oniguruma = @import("dialects/ruby.zig").oniguruma;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;

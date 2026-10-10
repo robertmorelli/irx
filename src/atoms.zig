@@ -238,6 +238,7 @@ pub fn matches(spec: *const AtomSpec, flags: Flags, c: u21) bool {
 
 /// The generic CharacterSetMatcher (with the dialect's fold), for overrides to fall back on.
 pub fn matchesGeneric(spec: *const AtomSpec, flags: Flags, c: u21) bool {
+    if (spec.kind == .esc and dialect.active.escapes_ignore_case) return matchesCaseless(spec, flags, c);
     var ar: SetArena = .{};
     const cs = compile(spec, flags, &ar);
     const found = alpha.existsEquivalent(c, flags, HasCtx{ .n = cs.root, .flags = flags }, hasCtx);
@@ -246,12 +247,15 @@ pub fn matchesGeneric(spec: *const AtomSpec, flags: Flags, c: u21) bool {
 
 fn isWordAt(w: []const u21, i: isize, flags: Flags) bool {
     if (i < 0 or i >= @as(isize, @intCast(w.len))) return false;
+    if (dialect.active.isBoundaryWord) |bw| return bw(w[@intCast(i)], flags);
     return alpha.isWordChar(w[@intCast(i)], flags);
 }
 
 /// Bitmask over positions 0..n where the assertion holds.
-pub fn assertionMask(spec: *const AtomSpec, flags: Flags, w: []const u21) u32 {
+pub fn assertionMask(spec: *const AtomSpec, flags0: Flags, w: []const u21) u32 {
     const dl = dialect.active;
+    var flags = flags0;
+    if (dl.anchors_always_multiline) flags.m = true;
     var mask: u32 = 0;
     const n = w.len;
     for (0..n + 1) |i| {

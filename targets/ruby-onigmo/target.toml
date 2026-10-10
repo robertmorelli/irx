@@ -5,5 +5,5 @@
 title = "Ruby Onigmo"
 kind = "shell"   # d8 | perl | shell
 command = "/opt/homebrew/bin/ruby {root}/hosts/script/rb_host.rb {mode}"
-dialect = "perl"   # src/dialects/
+dialect = "ruby"   # src/dialects/
 selfcheck = true
