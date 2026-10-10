@@ -80,49 +80,6 @@ pub const all_flag_sets: [24]Flags = blk: {
 
 pub const astral_char: u21 = 0x1F600;
 
-/// Perl dialect (set once at startup): Perl regex semantics under /u on code
-/// point strings instead of ECMAScript semantics.
-pub var perl: bool = false;
-
-/// Swift Regex dialect, Unicode-scalar semantics with simple word boundaries.
-pub var swift: bool = false;
-
-pub fn swiftLineTerminator(c: u21) bool {
-    return (c >= 0x0A and c <= 0x0D) or c == 0x85 or c == 0x2028 or c == 0x2029;
-}
-
-/// Swift \\w (scalar semantics): alphabetic characters (letters, Nl), '_' and
-/// ASCII digits; not other decimal digits (e.g. U+0663), No, or combining marks.
-pub fn swiftWord(c: u21) bool {
-    if (c == '_' or (c >= '0' and c <= '9')) return true;
-    const k = ucd.category(c);
-    return k[0] == 'L' or (k[0] == 'N' and k[1] == 'l');
-}
-
-/// Swift \\d: any numeric character (Nd, Nl, No).
-pub fn swiftDigit(c: u21) bool {
-    return ucd.category(c)[0] == 'N';
-}
-
-/// Perl \d under /u: Unicode decimal digits (Nd).
-pub fn perlDigit(c: u21) bool {
-    const k = ucd.category(c);
-    return k[0] == 'N' and k[1] == 'd';
-}
-
-/// Perl \w under /u: \p{Word} ~ letters, marks, Nd, Nl, Pc, join controls.
-pub fn perlWord(c: u21) bool {
-    if (c == 0x200C or c == 0x200D) return true;
-    const k = ucd.category(c);
-    return k[0] == 'L' or k[0] == 'M' or (k[0] == 'N' and (k[1] == 'd' or k[1] == 'l')) or (k[0] == 'P' and k[1] == 'c');
-}
-
-/// Perl \s: White_Space (includes VT and NEL, excludes U+FEFF).
-pub fn perlSpace(c: u21) bool {
-    return (c >= 0x09 and c <= 0x0D) or c == 0x20 or c == 0x85 or c == 0xA0 or c == 0x1680 or (c >= 0x2000 and c <= 0x200A) or
-        c == 0x2028 or c == 0x2029 or c == 0x202F or c == 0x205F or c == 0x3000;
-}
-
 /// Default pool, as code points. Order is the canonical printing/mask order.
 /// Original 15-symbol pool.
 pub const base_pool = [_]u21{ 'a', 'b', 'k', 's', 'A', 'K', 'S', '0', '_', ' ', '\n', 0x017F, 0x212A, 0x2028, astral_char };
@@ -198,9 +155,20 @@ pub fn decode(units: []const u16, flags: Flags, out: []u21) ?usize {
     return n;
 }
 
+const dialect = @import("dialect.zig");
+
+/// Dialect-dispatched character predicates (see dialect.zig).
 pub fn isLineTerminator(c: u21) bool {
-    if (swift) return swiftLineTerminator(c);
-    if (perl) return c == '\n';
+    return dialect.active.isLineTerminator(c);
+}
+pub fn isSpace(c: u21) bool {
+    return dialect.active.isSpace(c);
+}
+pub fn isWordChar(c: u21, flags: Flags) bool {
+    return dialect.active.isWord(c, flags);
+}
+
+pub fn esLineTerminator(c: u21) bool {
     return c == '\n' or c == '\r' or c == 0x2028 or c == 0x2029;
 }
 
@@ -213,16 +181,13 @@ pub fn isBasicWord(c: u21) bool {
 }
 
 /// ECMAScript WhiteSpace ∪ LineTerminator (the \s set).
-pub fn isSpace(c: u21) bool {
-    if (perl or swift) return perlSpace(c);
-    return c == 0x09 or c == 0x0B or c == 0x0C or c == 0xFEFF or ucd.isZs(c) or isLineTerminator(c);
+pub fn esSpace(c: u21) bool {
+    return c == 0x09 or c == 0x0B or c == 0x0C or c == 0xFEFF or ucd.isZs(c) or esLineTerminator(c);
 }
 
 /// WordCharacters(rer): basic word chars, plus (iu/iv) everything whose
 /// Canonicalize is a basic word char.
-pub fn isWordChar(c: u21, flags: Flags) bool {
-    if (swift) return swiftWord(c);
-    if (perl) return perlWord(c);
+pub fn esWordChar(c: u21, flags: Flags) bool {
     if (isBasicWord(c)) return true;
     if (flags.i and flags.unicode()) return isBasicWord(ucd.simpleFold(c));
     // Without u/v, Canonicalize never maps non-ASCII to ASCII, so no extras.

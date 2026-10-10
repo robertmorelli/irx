@@ -16,6 +16,7 @@ const harness = @import("harness.zig");
 const finding = @import("finding.zig");
 const tablemod = @import("table.zig");
 const sample = @import("sample.zig");
+const dialect = @import("dialect.zig");
 const rngmod = @import("rng.zig");
 const ast = @import("ast.zig");
 const runmod = @import("run.zig");
@@ -58,7 +59,7 @@ const Options = struct {
     jsc: ?[]const u8 = null,
     shell: ?[]const u8 = null,
     perl: ?[]const u8 = null,
-    /// Semantics model: "js" (ECMAScript) or "perl" (Perl /u; also PCRE2-like hosts).
+    /// Semantics model (src/dialects/): "es" (alias "js"), "perl", "swift".
     dialect: []const u8 = "js",
     sm: ?[]const u8 = null,
     max_cases: u64 = std.math.maxInt(u64),
@@ -188,16 +189,11 @@ fn resolveModes(gpa: Allocator, list: []const u8) ![]*const harness.ModeSpec {
 fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     ucd.init();
     _ = sys.signal(sys.SIGPIPE, sys.SIG_IGN);
-    const is_swift = std.mem.eql(u8, o.dialect, "swift");
-    const is_perl = o.perl != null or std.mem.eql(u8, o.dialect, "perl");
-    if (is_perl) {
-        sample.dialect = .perl;
-        alpha.perl = true;
-    }
-    if (is_swift) {
-        sample.dialect = .perl; // \x{H} escapes
-        alpha.swift = true;
-    }
+    dialect.active = dialect.byName(if (o.perl != null and std.mem.eql(u8, o.dialect, "js")) "perl" else o.dialect) orelse {
+        sys.stderrPrint("unknown dialect: {s} (known: es, perl, swift)\n", .{o.dialect});
+        std.process.exit(2);
+    };
+    const dl = dialect.active;
     const d8 = o.shell orelse o.perl orelse o.d8 orelse {
         sys.stderrPrint("--d8 PATH, --perl PATH or --shell \"CMD {{driver}} {{mode}}\" is required\n", .{});
         usage();
@@ -213,11 +209,9 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     var cfg_text: []const u8 = "";
     loadConfig(gpa, o, &cfg, &cfg_text);
     alpha.active_pool = cfg.poolSlice();
-    if ((o.perl != null or std.mem.eql(u8, o.dialect, "perl")) and cfg.n_pool == 0) {
-        // Perl-style /i uses full case folding: ß -> "ss", İ -> "i̇" would let one
-        // pattern atom match two characters, which the span model does not allow.
+    if (dl.pool_exclude.len > 0 and cfg.n_pool == 0) {
         var n: u8 = 0;
-        for (alpha.default_pool) |c| if (c != 0xDF and c != 0x130) {
+        for (alpha.default_pool) |c| if (std.mem.indexOfScalar(u21, dl.pool_exclude, c) == null) {
             cfg.pool[n] = c;
             n += 1;
         };
@@ -233,8 +227,8 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     try sys.writeFile(driver_path, driver_src);
     var dd: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(driver_src, &dd, .{});
-    if (is_perl or is_swift) {
-        // Perl strings are code points and the driver always uses /u, so every
+    if (dl.code_points_only) {
+        // Strings are code points and the driver always uses /u, so every
         // flag set gets u; v-mode set syntax does not exist in Perl. Dedupe.
         var n: u8 = 0;
         for (cfg.flagSets()) |f0| {

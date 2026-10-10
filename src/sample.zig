@@ -197,9 +197,7 @@ pub const PrintError = error{ OutOfMemory, PatternTooLong };
 
 const Prec = enum(u8) { alt = 0, concat = 1, quant_body = 2 };
 
-/// Target regex dialect (set once at startup). Perl has no \uXXXX escapes.
-pub const Dialect = enum { js, perl };
-pub var dialect: Dialect = .js;
+const dialect = @import("dialect.zig");
 
 pub const Printer = struct {
     flags: Flags,
@@ -312,7 +310,7 @@ pub const Printer = struct {
     }
 
     fn escapedCodePoint(self: *Printer, c: u21) PrintError!void {
-        if (dialect == .perl) {
+        if (dialect.active.escape == .x_brace) {
             try self.fmt("\\x{{{X}}}", .{c});
         } else if (self.flags.unicode()) {
             try self.fmt("\\u{{{X}}}", .{c});

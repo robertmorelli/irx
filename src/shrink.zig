@@ -420,7 +420,7 @@ pub const Triage = struct {
         inline for (.{ "i", "m", "s", "u", "v" }) |name| {
             // Perl strings are code points and the driver always applies /u:
             // dropping u would switch the model to UTF-16 positions.
-            const keep = alpha.perl and comptime std.mem.eql(u8, name, "u");
+            const keep = @import("dialect.zig").active.code_points_only and comptime std.mem.eql(u8, name, "u");
             if (!keep and @field(f, name)) {
                 var g = f;
                 @field(g, name) = false;

@@ -137,7 +137,7 @@ pub const Grammar = struct {
             .allow_diagonal_lookarounds = cfg.allow_diagonal_lookarounds,
             .quant_w = &.{},
             .op_w = undefined,
-            .lookbehind_len_cap = if (alpha.perl) 16 else 0,
+            .lookbehind_len_cap = @import("dialect.zig").active.lookbehind_len_cap,
         };
         try g.indexWeights(gpa);
         return g;

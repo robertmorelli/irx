@@ -10,6 +10,7 @@ const alpha = @import("alphabet.zig");
 const relmod = @import("rel.zig");
 const Flags = alpha.Flags;
 const ucd = @import("ucd.zig");
+const dialect = @import("dialect.zig");
 
 pub const Kind = enum(u8) { lit, dot, esc, range, cls, vset, caret, dollar, wordb, nwordb, empty };
 pub const Esc = enum(u8) { d, D, w, W, s, S };
@@ -123,7 +124,7 @@ fn has(n: *const SetNode, flags: Flags, x: u21) bool {
     return switch (n.kind) {
         .list => std.mem.indexOfScalar(u21, n.syms, x) != null,
         .range => x >= n.lo and x <= n.hi,
-        .digit => if (alpha.swift) alpha.swiftDigit(x) else if (alpha.perl) alpha.perlDigit(x) else alpha.isDigit(x),
+        .digit => dialect.active.isDigit(x),
         .space => alpha.isSpace(x),
         .word => alpha.isWordChar(x, flags),
         .dotset => alpha.inAllCharacters(x, flags) and (flags.s or !alpha.isLineTerminator(x)),
@@ -208,49 +209,17 @@ fn compile(spec: *const AtomSpec, flags: Flags, ar: *SetArena) Compiled {
     }
 }
 
-fn asciiLower(c: u21) u21 {
-    return if (c >= 'A' and c <= 'Z') c + 32 else c;
-}
-
-/// Swift Regex (scalar semantics) case-insensitive member test. ASCII members
-/// match only ASCII subjects (ASCII case-insensitively); other members match
-/// when single-scalar lowercase mappings agree.
-fn swiftMember(m: u21, c: u21) bool {
-    if (m < 0x80) return c < 0x80 and asciiLower(c) == asciiLower(m);
-    return ucd.lower1(c) == ucd.lower1(m);
-}
-
-fn swiftMatches(spec: *const AtomSpec, flags: Flags, c: u21) bool {
-    switch (spec.kind) {
-        .lit => return if (flags.i) ucd.lower1(c) == ucd.lower1(spec.syms[0]) else c == spec.syms[0],
-        .cls, .range => {
-            var hit = false;
-            if (spec.kind == .cls) {
-                for (spec.syms[0..spec.n]) |m| hit = hit or (if (flags.i) swiftMember(m, c) else m == c);
-            } else {
-                const lo = spec.syms[0];
-                const hi = spec.syms[1];
-                hit = c >= lo and c <= hi;
-                if (!hit and flags.i and lo < 0x80 and hi < 0x80 and c < 0x80) {
-                    const l = asciiLower(c);
-                    const u: u21 = if (l >= 'a' and l <= 'z') l - 32 else l;
-                    hit = (l >= lo and l <= hi) or (u >= lo and u <= hi);
-                }
-            }
-            return hit != spec.neg;
-        },
-        else => {
-            // Escapes and '.': property tests, unaffected by case-insensitivity.
-            var ar: SetArena = .{};
-            const cs = compile(spec, flags, &ar);
-            return has(cs.root, flags, c) != cs.invert;
-        },
-    }
+/// Set membership without case-insensitive equivalence (for dialects whose
+/// escapes and '.' are plain property tests).
+pub fn matchesCaseless(spec: *const AtomSpec, flags: Flags, c: u21) bool {
+    var ar: SetArena = .{};
+    const cs = compile(spec, flags, &ar);
+    return has(cs.root, flags, c) != cs.invert;
 }
 
 /// CharacterSetMatcher for one symbol.
 pub fn matches(spec: *const AtomSpec, flags: Flags, c: u21) bool {
-    if (alpha.swift) return swiftMatches(spec, flags, c);
+    if (dialect.active.matchAtom) |m| return m(spec, flags, c);
     var ar: SetArena = .{};
     const cs = compile(spec, flags, &ar);
     const found = alpha.existsEquivalent(c, flags, HasCtx{ .n = cs.root, .flags = flags }, hasCtx);
@@ -270,9 +239,9 @@ pub fn assertionMask(spec: *const AtomSpec, flags: Flags, w: []const u21) u32 {
         const ok = switch (spec.kind) {
             // Perl: /m ^ never matches after a trailing newline; $ without /m
             // also matches before a final newline.
-            .caret => i == 0 or (flags.m and alpha.isLineTerminator(w[i - 1]) and !(alpha.perl and i == n)),
+            .caret => i == 0 or (flags.m and alpha.isLineTerminator(w[i - 1]) and (dialect.active.caret_after_trailing_newline or i != n)),
             .dollar => i == n or (flags.m and alpha.isLineTerminator(w[i])) or
-                (alpha.perl and !flags.m and i + 1 == n and w[i] == '\n'),
+                (dialect.active.dollar_before_final_newline and !flags.m and i + 1 == n and w[i] == '\n'),
             .wordb, .nwordb => blk: {
                 const ii: isize = @intCast(i);
                 const b = isWordAt(w, ii - 1, flags) != isWordAt(w, ii, flags);
