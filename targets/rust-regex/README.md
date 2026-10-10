@@ -11,3 +11,12 @@ Bugs found here are listed in the [bug ledger](../../README.md#bug-ledger).
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END rust-regex 1m results -->
+
+<!-- BEGIN rust-regex 30s results -->
+### Rust regex: 30s campaign
+
+* 573,216 patterns, 7 tables, 0 distinct findings; self-check 281,792 probes, 216 mismatches, 0 engine failures
+* findings by kind: 186 selfcheck_mismatch (selfcheck)
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END rust-regex 30s results -->
