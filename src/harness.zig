@@ -888,7 +888,7 @@ pub fn probeMode(gpa: Allocator, spec: *const ModeSpec, opts: ChildOptions) Prob
     req.appendSlice(gpa, "[1,[") catch return .{ .ok = false, .reason = "alloc" };
     encodeCase(&req, gpa, .{ .flags = "", .a = &.{'a'}, .r = &.{'b'}, .pattern = "a" }) catch return .{ .ok = false, .reason = "alloc" };
     req.appendSlice(gpa, ",") catch return .{ .ok = false, .reason = "alloc" };
-    const perl_syntax = spec.engine == .perl or @import("alphabet.zig").perl;
+    const perl_syntax = spec.engine == .perl or @import("alphabet.zig").perl or @import("alphabet.zig").swift;
     const astral_pat = if (perl_syntax) "\\x{1F600}" else "\\u{1F600}";
     const astral_r: []const u16 = if (perl_syntax) &.{'a'} else &.{0xD83D};
     encodeCase(&req, gpa, .{ .flags = "u", .a = &.{ 0xD83D, 0xDE00 }, .r = astral_r, .pattern = astral_pat }) catch return .{ .ok = false, .reason = "alloc" };

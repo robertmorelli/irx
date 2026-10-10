@@ -33,7 +33,7 @@ TARGETS=(
   "dotnet-interp|--shell $H/dotnet/host@interp@{mode} --dialect perl|"
   "dotnet-compiled|--shell $H/dotnet/host@compiled@{mode} --dialect perl|"
   "dotnet-nonbacktracking|--shell $H/dotnet/host@nonbacktracking@{mode} --dialect perl|$NOLOOK"
-  "swift-regex|--shell $H/swift_host@swift@{mode} --dialect perl|$NOLB"
+  "swift-regex|--shell $H/swift_host@swift@{mode} --dialect swift|$NOLB"
   "icu|--shell $H/swift_host@icu@{mode} --dialect perl|"
   "nim-regex|--shell $H/nim_host@{mode} --dialect perl|"
   "racket|--shell /opt/homebrew/bin/racket@$R/hosts/racket/host.rkt@{mode} --dialect perl|"

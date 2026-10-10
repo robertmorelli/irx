@@ -188,10 +188,15 @@ fn resolveModes(gpa: Allocator, list: []const u8) ![]*const harness.ModeSpec {
 fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     ucd.init();
     _ = sys.signal(sys.SIGPIPE, sys.SIG_IGN);
+    const is_swift = std.mem.eql(u8, o.dialect, "swift");
     const is_perl = o.perl != null or std.mem.eql(u8, o.dialect, "perl");
     if (is_perl) {
         sample.dialect = .perl;
         alpha.perl = true;
+    }
+    if (is_swift) {
+        sample.dialect = .perl; // \x{H} escapes
+        alpha.swift = true;
     }
     const d8 = o.shell orelse o.perl orelse o.d8 orelse {
         sys.stderrPrint("--d8 PATH, --perl PATH or --shell \"CMD {{driver}} {{mode}}\" is required\n", .{});
@@ -228,7 +233,7 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     try sys.writeFile(driver_path, driver_src);
     var dd: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(driver_src, &dd, .{});
-    if (is_perl) {
+    if (is_perl or is_swift) {
         // Perl strings are code points and the driver always uses /u, so every
         // flag set gets u; v-mode set syntax does not exist in Perl. Dedupe.
         var n: u8 = 0;

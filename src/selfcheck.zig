@@ -67,7 +67,7 @@ pub const Checker = struct {
 
     /// "Any character": [^] in JS; (?:\s|\S) in Perl, where [^] is not empty-class syntax.
     fn anyNode(t: *ast.Ast) !u8 {
-        if (!alpha.perl) return t.add(.{ .op = .atom, .atom = .{ .kind = .cls, .neg = true, .n = 0 } });
+        if (!alpha.perl and !alpha.swift) return t.add(.{ .op = .atom, .atom = .{ .kind = .cls, .neg = true, .n = 0 } });
         const s = try t.add(.{ .op = .atom, .atom = .{ .kind = .esc, .sub = @intFromEnum(atoms.Esc.s) } });
         const S = try t.add(.{ .op = .atom, .atom = .{ .kind = .esc, .sub = @intFromEnum(atoms.Esc.S) } });
         const alt = try t.add(.{ .op = .alt, .a = s, .b = S });
@@ -109,7 +109,7 @@ pub const Checker = struct {
         }
         // Lone surrogates as their own symbols (u/v); halves of the astral char.
         // (Not representable in Perl strings decoded from JSON.)
-        if (!alpha.perl) for ([_]u16{ 0xD83D, 0xDE00 }) |h| {
+        if (!alpha.perl and !alpha.swift) for ([_]u16{ 0xD83D, 0xDE00 }) |h| {
             var x: finding.Subject = .{};
             subjectUnits(&.{h}, &x);
             try subjects.append(self.gpa, x);

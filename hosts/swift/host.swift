@@ -4,15 +4,48 @@ setvbuf(stdout, nil, _IOLBF, 0)
 let engine = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "swift"
 let mode = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : "default"
 let rep = (mode == "repeat" || mode == "tierup") ? 2 : 1
-print("ready \(engine == "icu" ? "icu-nsregex" : "swift-regex") mode=\(mode)")
+print("ready \(engine == "icu" ? "icu-nsregex" : "swift-regex-scalar") mode=\(mode)")
 func hasLone(_ s: String) -> Bool { s.unicodeScalars.contains { $0.value == 0xFFFF } }
+/// Minimal parser for the irx request line (Foundation's JSON decoding drops U+FEFF).
+func parseRequest(_ line: String) -> (String, [[String]])? {
+    let u = Array(line.utf16); var i = 0
+    func str() -> String? {
+        guard u[i] == 0x22 else { return nil }; i += 1
+        var scalars = String.UnicodeScalarView()
+        while i < u.count && u[i] != 0x22 {
+            var c = UInt32(u[i])
+            if c == 0x5C {
+                i += 1; let e = u[i]
+                switch e {
+                case 0x6E: c = 0x0A; case 0x72: c = 0x0D; case 0x74: c = 0x09; case 0x62: c = 0x08; case 0x66: c = 0x0C
+                case 0x75:
+                    c = UInt32(String(decoding: u[(i + 1)...(i + 4)], as: UTF16.self), radix: 16)!; i += 4
+                    if (0xD800...0xDBFF).contains(c), i + 6 < u.count, u[i + 1] == 0x5C, u[i + 2] == 0x75,
+                       let d = UInt32(String(decoding: u[(i + 3)...(i + 6)], as: UTF16.self), radix: 16), (0xDC00...0xDFFF).contains(d) {
+                        c = 0x10000 + ((c - 0xD800) << 10) + (d - 0xDC00); i += 6
+                    } else if (0xD800...0xDFFF).contains(c) { c = 0xFFFF }
+                default: c = UInt32(e)
+                }
+            }
+            scalars.append(Unicode.Scalar(c)!); i += 1
+        }
+        i += 1; return String(scalars)
+    }
+    guard u.first == 0x5B, let comma = u.firstIndex(of: 0x2C) else { return nil }
+    let seq = String(decoding: u[1..<comma], as: UTF16.self); i = comma + 2
+    var cases: [[String]] = []
+    while i < u.count && u[i] != 0x5D {
+        if u[i] == 0x2C { i += 1; continue }
+        i += 1; var f: [String] = []
+        for k in 0..<4 { guard let s = str() else { return nil }; f.append(s); if k < 3 { i += 1 } }
+        i += 1; cases.append(f)
+    }
+    return (seq, cases)
+}
 while let line = readLine(strippingNewline: true) {
     if line.isEmpty { continue }
-    // JSONSerialization replaces lone surrogates with U+FFFD; treat those as unsupported.
-    let clean = line.replacingOccurrences(of: #"\\u[dD][89abAB][0-9a-fA-F]{2}(?!\\u[dD][c-fC-F])|(?<![0-9a-fA-F]{2})\\u[dD][c-fC-F][0-9a-fA-F]{2}"#, with: #"\uFFFF"#, options: .regularExpression)
-    guard let msg = try? JSONSerialization.jsonObject(with: Data(clean.utf8)) as? [Any],
-          let cases = msg[1] as? [[String]] else { FileHandle.standardError.write("bad request\n".data(using: .utf8)!); exit(1) }
-    var out = "\(msg[0]) "
+    guard let (seq, cases) = parseRequest(line) else { FileHandle.standardError.write("bad request\n".data(using: .utf8)!); exit(1) }
+    var out = "\(seq) "
     for c in cases {
         let f = c[0], a = c[1], r = c[2], p = c[3]
         if hasLone(a) || hasLone(r) || hasLone(p) { out += "40"; continue }
@@ -30,7 +63,9 @@ while let line = readLine(strippingNewline: true) {
                 }
             }
         } else {
+            // Unicode-scalar semantics and simple word boundaries: the modes irx models.
             guard var re = try? Regex(src) else { out += "04"; continue }
+            re = re.matchingSemantics(.unicodeScalar).wordBoundaryKind(.simple)
             if f.contains("i") { re = re.ignoresCase() }
             if f.contains("m") { re = re.anchorsMatchLineEndings() }
             if f.contains("s") { re = re.dotMatchesNewlines() }

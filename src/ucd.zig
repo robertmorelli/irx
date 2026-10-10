@@ -30,6 +30,10 @@ const Data = struct {
     upper: []Pair,
     /// Unconditional multi-code-point uppercase mappings (SpecialCasing), length > 1.
     upper_multi: []u21,
+    /// Simple lowercase mapping (UnicodeData field 13), sorted by `from`.
+    lower: []Pair,
+    /// Unconditional multi-code-point lowercase mappings (SpecialCasing).
+    lower_multi: []u21,
     /// Zs code points.
     zs: []u21,
     /// General category runs: sorted, non-overlapping.
@@ -103,6 +107,7 @@ fn load() !void {
 
     // UnicodeData: field 0 code, 2 category, 12 simple uppercase.
     var upper: std.ArrayList(Pair) = .empty;
+    var lower: std.ArrayList(Pair) = .empty;
     var zs: std.ArrayList(u21) = .empty;
     var cats: std.ArrayList(CatRun) = .empty;
     var range_start: ?u21 = null;
@@ -135,13 +140,16 @@ fn load() !void {
             }
         }
         if (fields[12].len > 0) try upper.append(gpa, .{ .from = code, .to = try parseHex(fields[12]) });
+        if (n > 13 and fields[13].len > 0) try lower.append(gpa, .{ .from = code, .to = try parseHex(fields[13]) });
     }
     std.mem.sort(Pair, upper.items, {}, lessFrom);
+    std.mem.sort(Pair, lower.items, {}, lessFrom);
 
     // SpecialCasing: code; lower; title; upper; (condition;)? # comment
     // Only unconditional entries whose uppercase has more than one code point
     // matter: they make Canonicalize (non-unicode) return the input unchanged.
     var multi: std.ArrayList(u21) = .empty;
+    var lmulti: std.ArrayList(u21) = .empty;
     it = std.mem.splitScalar(u8, special_casing_txt, '\n');
     while (it.next()) |raw| {
         const line = if (std.mem.indexOfScalar(u8, raw, '#')) |h| raw[0..h] else raw;
@@ -159,6 +167,10 @@ fn load() !void {
         var u = std.mem.tokenizeScalar(u8, fields[3], ' ');
         while (u.next()) |_| ucount += 1;
         if (ucount != 1) try multi.append(gpa, code);
+        var lcount: usize = 0;
+        var lw = std.mem.tokenizeScalar(u8, fields[1], ' ');
+        while (lw.next()) |_| lcount += 1;
+        if (lcount != 1) try lmulti.append(gpa, code);
     }
     std.mem.sort(u21, multi.items, {}, std.sort.asc(u21));
 
@@ -166,6 +178,9 @@ fn load() !void {
     data.scf_inv = inv;
     data.upper = upper.items;
     data.upper_multi = multi.items;
+    std.mem.sort(u21, lmulti.items, {}, std.sort.asc(u21));
+    data.lower = lower.items;
+    data.lower_multi = lmulti.items;
     data.zs = zs.items;
     data.cats = cats.items;
 
@@ -208,6 +223,16 @@ fn canonNonUnicodeCompute(ch: u16) u16 {
     if (u > 0xFFFF) return ch; // would be two code units
     if (ch >= 128 and u < 128) return ch;
     return @intCast(u);
+}
+
+/// Full lowercase mapping when it is a single code point; otherwise c (Swift-style).
+pub fn lower1(c: u21) u21 {
+    if (std.sort.binarySearch(u21, data.lower_multi, c, struct {
+        fn cmp(k: u21, x: u21) std.math.Order {
+            return std.math.order(k, x);
+        }
+    }.cmp) != null) return c;
+    return lookup(data.lower, c) orelse c;
 }
 
 /// Simple case folding (C + S); identity when absent.
