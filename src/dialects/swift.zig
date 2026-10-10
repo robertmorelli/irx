@@ -67,5 +67,5 @@ pub const dialect: D.Dialect = .{
     .matchAtom = matchAtom,
     .escape = .x_brace,
     .any_char = .space_or_nonspace,
-    .code_points_only = true,
+    .strings = .code_points,
 };

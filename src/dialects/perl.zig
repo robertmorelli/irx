@@ -36,7 +36,7 @@ pub const dialect: D.Dialect = .{
     .dollar_before_final_newline = true,
     .escape = .x_brace,
     .any_char = .space_or_nonspace,
-    .code_points_only = true,
+    .strings = .code_points,
     // /i uses full case folding: ß -> "ss", İ -> "i̇" would let one atom match two characters.
     .pool_exclude = &.{ 0xDF, 0x130 },
     // Perl rejects unbounded lookbehind ("Lookbehind longer than 255").

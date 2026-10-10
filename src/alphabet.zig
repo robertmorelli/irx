@@ -196,6 +196,7 @@ pub fn esWordChar(c: u21, flags: Flags) bool {
 
 pub fn canonicalize(c: u21, flags: Flags) u21 {
     if (!flags.i) return c;
+    if (dialect.active.fold) |f| return f(c);
     if (flags.unicode()) return ucd.simpleFold(c);
     if (c > 0xFFFF) return c;
     return ucd.canonNonUnicode(@intCast(c));
@@ -212,6 +213,7 @@ pub fn inAllCharacters(c: u21, flags: Flags) bool {
 /// Without i this is just pred(c).
 pub fn existsEquivalent(c: u21, flags: Flags, ctx: anytype, comptime pred: fn (@TypeOf(ctx), u21) bool) bool {
     if (!flags.i) return pred(ctx, c);
+    if (dialect.active.fold) |f| return ucd.forEachFoldEquivalent(f, c, ctx, pred);
     return ucd.forEachEquivalent(c, flags.unicode(), ctx, pred);
 }
 

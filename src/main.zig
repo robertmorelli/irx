@@ -227,14 +227,14 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     try sys.writeFile(driver_path, driver_src);
     var dd: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(driver_src, &dd, .{});
-    if (dl.code_points_only) {
-        // Strings are code points and the driver always uses /u, so every
+    if (dl.strings != .es) {
+        // Strings are code points (force u) or UTF-16 code units (force no u) and the driver always uses /u, so every
         // flag set gets u; v-mode set syntax does not exist in Perl. Dedupe.
         var n: u8 = 0;
         for (cfg.flagSets()) |f0| {
             var f = f0;
             f.v = false;
-            f.u = true;
+            f.u = dl.strings == .code_points;
             const dup = for (cfg.flag_sets[0..n]) |g| {
                 if (g.bits() == f.bits()) break true;
             } else false;

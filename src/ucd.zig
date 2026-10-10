@@ -293,6 +293,54 @@ pub fn forEachEquivalent(c: u21, unicode: bool, ctx: anytype, comptime f: fn (@T
     }
 }
 
+// ---------------------------------------------------------------------------
+// Equivalence classes for an arbitrary fold function (dialect case rules).
+
+const FoldIndex = struct { f: *const fn (u21) u21, pairs: []Pair };
+var fold_indexes: [8]?FoldIndex = [_]?FoldIndex{null} ** 8;
+var fold_mutex: sys.Mutex = .{};
+
+/// Pairs (from = s, to = f(s)) for every s with f(s) != s, sorted by (to, from).
+fn foldIndex(f: *const fn (u21) u21) []const Pair {
+    fold_mutex.lock();
+    defer fold_mutex.unlock();
+    for (&fold_indexes) |*slot| {
+        if (slot.*) |fi| {
+            if (fi.f == f) return fi.pairs;
+        } else {
+            var list: std.ArrayList(Pair) = .empty;
+            var c: u21 = 0;
+            while (c <= 0x10FFFF) : (c += 1) {
+                if (c >= 0xD800 and c <= 0xDFFF) continue;
+                const t = f(c);
+                if (t != c) list.append(std.heap.page_allocator, .{ .from = c, .to = t }) catch @panic("oom");
+            }
+            std.mem.sort(Pair, list.items, {}, lessTo);
+            slot.* = .{ .f = f, .pairs = list.items };
+            return list.items;
+        }
+    }
+    @panic("too many fold functions");
+}
+
+/// Visits every s with f(s) == f(c) (c itself included).
+pub fn forEachFoldEquivalent(f: *const fn (u21) u21, c: u21, ctx: anytype, comptime pred: fn (@TypeOf(ctx), u21) bool) bool {
+    const key = f(c);
+    if (pred(ctx, c)) return true;
+    if (key != c and f(key) == key and pred(ctx, key)) return true;
+    const pairs = foldIndex(f);
+    var lo: usize = 0;
+    var hi: usize = pairs.len;
+    while (lo < hi) {
+        const mid = (lo + hi) / 2;
+        if (pairs[mid].to < key) lo = mid + 1 else hi = mid;
+    }
+    while (lo < pairs.len and pairs[lo].to == key) : (lo += 1) {
+        if (pairs[lo].from != c and pred(ctx, pairs[lo].from)) return true;
+    }
+    return false;
+}
+
 const testing = std.testing;
 
 test "pinned data loads and hashes match" {

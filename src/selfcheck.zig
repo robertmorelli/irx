@@ -57,6 +57,8 @@ pub const Checker = struct {
     result: Result = .{},
     report: std.ArrayList(u8) = .empty,
     max_persist: u64 = 200,
+    /// selfcheck/mismatches.tsv: every mismatch (flags, kind, pattern, A, model, engine).
+    tsv: ?c_int = null,
 
     fn addProbe(self: *Checker, flags: Flags, at: atoms.AtomSpec, pos: i16, a: finding.Subject, r: finding.Subject, what: []const u8) !void {
         var tree: ast.Ast = .{};
@@ -110,7 +112,7 @@ pub const Checker = struct {
         }
         // Lone surrogates as their own symbols (u/v); halves of the astral char.
         // (Not representable in Perl strings decoded from JSON.)
-        if (!dialect.active.code_points_only) for ([_]u16{ 0xD83D, 0xDE00 }) |h| {
+        if (!dialect.noLoneSurrogates()) for ([_]u16{ 0xD83D, 0xDE00 }) |h| {
             var x: finding.Subject = .{};
             subjectUnits(&.{h}, &x);
             try subjects.append(self.gpa, x);
@@ -223,6 +225,16 @@ pub const Checker = struct {
                 pats.clearRetainingCapacity();
                 try makeTree(&tree, p.atom, p.pos);
                 try sample.printAlloc(self.gpa, &tree, p.flags, &pats);
+                if (self.tsv) |tf| {
+                    var row: std.ArrayList(u8) = .empty;
+                    defer row.deinit(self.gpa);
+                    try row.print(self.gpa, "{s}\t{s}\t", .{ finding.flagStr(p.flags), p.what });
+                    try harness.jsonAscii(&row, self.gpa, pats.items);
+                    try row.append(self.gpa, '\t');
+                    try harness.jsonString(&row, self.gpa, p.a.slice());
+                    try row.print(self.gpa, "\t{x:0>2}\t{x:0>2}\n", .{ want, got });
+                    sys.appendFile(tf, row.items) catch {};
+                }
                 if (mism <= 50) {
                     try self.report.print(self.gpa, "MISMATCH engine={s} flags=\"{s}\" kind={s} pattern=", .{ spec.name, finding.flagStr(p.flags), p.what });
                     try harness.jsonAscii(&self.report, self.gpa, pats.items);
@@ -250,6 +262,11 @@ pub const Checker = struct {
     /// Build probes for every configured flag set and run them on interp and
     /// any independent engines.
     pub fn runAll(self: *Checker, engines: []const struct { spec: *const harness.ModeSpec, exe: []const u8 }) !Result {
+        var tp: [4096]u8 = undefined;
+        self.tsv = sys.openAppend(try std.fmt.bufPrint(&tp, "{s}/selfcheck/mismatches.tsv", .{self.run.out_dir})) catch null;
+        defer if (self.tsv) |tf| {
+            _ = sys.close(tf);
+        };
         for (self.run.cfg.flagSets()) |f| try self.buildProbes(f);
         try self.report.print(self.gpa, "selfcheck: {d} probes over {d} flag sets\n", .{ self.probes.items.len, self.run.cfg.n_flag_sets });
         for (engines) |e| try self.runOn(e.spec, e.exe);

@@ -22,6 +22,19 @@ pub const Escape = enum {
     x_brace,
 };
 
+/// How subjects are decoded into symbols.
+pub const Strings = enum {
+    /// ECMAScript: code units without u/v, code points with u/v (both allowed).
+    es,
+    /// Code points only: every flag set gets `u`, no lone surrogates, no `v`.
+    code_points,
+    /// UTF-16 code units only (.NET): no `u`/`v`; astral characters are two symbols.
+    utf16_units,
+};
+
+/// Named-group spelling.
+pub const NamedGroup = enum { angle, p_angle, plain_capture };
+
 /// How the self-check spells "any single character".
 pub const AnyChar = enum { empty_negated_class, space_or_nonspace };
 
@@ -42,9 +55,19 @@ pub const Dialect = struct {
     dollar_before_final_newline: bool = false,
     escape: Escape = .es,
     any_char: AnyChar = .empty_negated_class,
-    /// Strings are code points only: every flag set gets `u`, no lone surrogates,
-    /// no `v` set syntax.
-    code_points_only: bool = false,
+    strings: Strings = .es,
+    /// Case-insensitive key: c matches s iff fold(c) == fold(s) (set members
+    /// included). null = ECMAScript Canonicalize.
+    fold: ?*const fn (u21) u21 = null,
+    named_group: NamedGroup = .angle,
+    word_boundary: []const u8 = "\\b",
+    nonword_boundary: []const u8 = "\\B",
+    /// Grammar restrictions for constructs the engine does not support.
+    allow_lookahead: bool = true,
+    allow_lookbehind: bool = true,
+    allow_lazy: bool = true,
+    /// Quantifiers over bodies that can only match the empty string, e.g. (?:)* or (?:\\b)*.
+    allow_empty_quant: bool = true,
     /// Pool characters to drop (e.g. multi-character case folds).
     pool_exclude: []const u21 = &.{},
     /// Lookbehind bodies must have a provably bounded length (< cap); 0 = no limit.
@@ -67,4 +90,14 @@ pub fn byName(name: []const u8) ?*const Dialect {
 
 pub fn isEs() bool {
     return active == &es;
+}
+
+/// Strings decode to code points only (no lone surrogates on the wire).
+pub fn codePointsOnly() bool {
+    return active.strings == .code_points;
+}
+
+/// Subjects never contain lone surrogates for this dialect.
+pub fn noLoneSurrogates() bool {
+    return active.strings != .es;
 }

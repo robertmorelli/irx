@@ -13,6 +13,7 @@ const config = @import("config.zig");
 const budget_mod = @import("budget.zig");
 const rngmod = @import("rng.zig");
 const sys = @import("sys.zig");
+const dialect_mod = @import("dialect.zig");
 
 const Flags = alpha.Flags;
 const AtomSpec = atoms.AtomSpec;
@@ -58,6 +59,10 @@ pub const Grammar = struct {
     /// >0 (Perl): track max match length saturating at this cap and only
     /// apply lookbehind to bodies shorter than it.
     lookbehind_len_cap: u16 = 0,
+    /// Saturating max-length tracking cap in the pair key (0 = no tracking).
+    len_cap: u16 = 0,
+    /// Forbid quantifiers over bodies whose max length is 0.
+    no_empty_quant: bool = false,
 
     pub fn init(gpa: Allocator, cfg: *const config.Config, flags: Flags) !Grammar {
         const W = &cfg.weights;
@@ -110,6 +115,7 @@ pub const Grammar = struct {
             };
             var w = W.get(c) / @as(f64, @floatFromInt(form_count[@intFromEnum(q.form)]));
             if (q.lazy) w *= W.get(.lazy);
+            if (q.lazy and !dialect_mod.active.allow_lazy) continue;
             if (w > 0) try un.append(gpa, .{ .op = .quant, .arg = @intCast(i), .w = w });
         }
         const others = [_]struct { op: Op, c: config.Construct }{
@@ -121,7 +127,12 @@ pub const Grammar = struct {
             .{ .op = .group_nc, .c = .nc_group },
             .{ .op = .group_named, .c = .named_group },
         };
-        for (others) |o| if (W.get(o.c) > 0) try un.append(gpa, .{ .op = o.op, .arg = 0, .w = W.get(o.c) });
+        const dl = dialect_mod.active;
+        for (others) |o| {
+            if ((o.op == .look_ahead or o.op == .neg_look_ahead) and !dl.allow_lookahead) continue;
+            if ((o.op == .look_behind or o.op == .neg_look_behind) and !dl.allow_lookbehind) continue;
+            if (W.get(o.c) > 0) try un.append(gpa, .{ .op = o.op, .arg = 0, .w = W.get(o.c) });
+        }
 
         var bin: std.ArrayList(BinaryEntry) = .empty;
         if (W.get(.concat) > 0) try bin.append(gpa, .{ .op = .concat, .w = W.get(.concat) });
@@ -137,7 +148,9 @@ pub const Grammar = struct {
             .allow_diagonal_lookarounds = cfg.allow_diagonal_lookarounds,
             .quant_w = &.{},
             .op_w = undefined,
-            .lookbehind_len_cap = @import("dialect.zig").active.lookbehind_len_cap,
+            .lookbehind_len_cap = dialect_mod.active.lookbehind_len_cap,
+            .len_cap = if (dialect_mod.active.lookbehind_len_cap > 0) dialect_mod.active.lookbehind_len_cap else if (!dialect_mod.active.allow_empty_quant) 2 else 0,
+            .no_empty_quant = !dialect_mod.active.allow_empty_quant,
         };
         try g.indexWeights(gpa);
         return g;
@@ -175,6 +188,8 @@ pub const Grammar = struct {
     pub fn hashInto(self: *const Grammar, h: *std.crypto.hash.sha2.Sha256) void {
         h.update(&[_]u8{self.flags.bits()});
         h.update(std.mem.asBytes(&self.lookbehind_len_cap));
+        h.update(std.mem.asBytes(&self.len_cap));
+        h.update(&[_]u8{@intFromBool(self.no_empty_quant)});
         for (self.atoms, self.atom_w) |a, w| {
             h.update(std.mem.asBytes(&a.kind));
             h.update(&[_]u8{ a.sub, @intFromBool(a.neg), a.n });
@@ -837,18 +852,19 @@ fn Builder(comptime R: type) type {
                 },
             }
             var aux: u32 = 0;
-            if (self.g.lookbehind_len_cap > 0) {
-                const cap = self.g.lookbehind_len_cap;
+            if (self.g.len_cap > 0) {
+                const cap = self.g.len_cap;
                 const ya = ky.aux;
                 switch (u.op) {
                     .quant => {
+                        if (self.g.no_empty_quant and ya == 0) return;
                         const q = self.g.quants[u.arg];
                         aux = if (q.max == ast.inf) cap else @min(cap, ya * @as(u32, q.max));
                     },
                     .look_ahead, .neg_look_ahead => aux = 0,
                     .look_behind, .neg_look_behind => {
-                        // Perl only accepts bounded lookbehind bodies.
-                        if (ya >= cap) return;
+                        // Bounded lookbehind bodies only (e.g. Perl's 255 limit).
+                        if (self.g.lookbehind_len_cap > 0 and ya >= cap) return;
                         aux = 0;
                     },
                     else => aux = ya,
@@ -861,7 +877,7 @@ fn Builder(comptime R: type) type {
         fn applyBinary(self: *Self, op: Op, y: u32, z: u32) void {
             const ky = self.keys.items[y];
             const kz = self.keys.items[z];
-            const cap = self.g.lookbehind_len_cap;
+            const cap = self.g.len_cap;
             const aux: u32 = if (cap == 0) 0 else if (op == .concat) @min(cap, ky.aux + kz.aux) else @max(ky.aux, kz.aux);
             const key = if (op == .concat)
                 keyAux(relA(ky).mul(relA(kz)), relR(ky).mul(relR(kz)), aux)
@@ -928,7 +944,7 @@ fn Builder(comptime R: type) type {
             self.setQuota(1);
             for (self.g.atoms, 0..) |*a, i| {
                 if (self.g.atom_w[i] <= 0) continue;
-                const key = keyAux(atoms.relation(R, a, self.g.flags, wa), atoms.relation(R, a, self.g.flags, wr), if (self.g.lookbehind_len_cap > 0 and a.isConsuming()) 1 else 0);
+                const key = keyAux(atoms.relation(R, a, self.g.flags, wa), atoms.relation(R, a, self.g.flags, wr), if (self.g.len_cap > 0 and a.isConsuming()) 1 else 0);
                 self.record(.atom, @intCast(i), none, none, &key);
                 tab.stats.atoms += 1;
                 if (self.stopped) break;

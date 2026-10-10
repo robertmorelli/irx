@@ -301,7 +301,11 @@ pub const Printer = struct {
                 try self.putc(')');
             },
             .group_named => {
-                try self.fmt("(?<g{d}>", .{self.group_counter});
+                switch (dialect.active.named_group) {
+                    .angle => try self.fmt("(?<g{d}>", .{self.group_counter}),
+                    .p_angle => try self.fmt("(?P<g{d}>", .{self.group_counter}),
+                    .plain_capture => try self.putc('('),
+                }
                 self.group_counter += 1;
                 try self.node(t, n.a, .alt);
                 try self.putc(')');
@@ -410,8 +414,8 @@ pub const Printer = struct {
             },
             .caret => try self.putc('^'),
             .dollar => try self.putc('$'),
-            .wordb => try self.put("\\b"),
-            .nwordb => try self.put("\\B"),
+            .wordb => try self.put(dialect.active.word_boundary),
+            .nwordb => try self.put(dialect.active.nonword_boundary),
             .empty => try self.put("(?:)"),
         }
     }
