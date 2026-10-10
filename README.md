@@ -156,7 +156,8 @@ edit-distance-5 campaign (`[strings] max_edit_distance = 5`).
 Two sources: bugs found by this inverted-pair fuzzer (irx), and bugs found earlier by differential fuzzing in
 the sibling repo [`../regex_comparison`](../regex_comparison/bugs/BUGS.md) (imported 2026-10-09; IDs link to
 that repo's write-ups, which hold full repros and upstream-search notes). None of the irx findings has been
-reported upstream yet.
+reported upstream yet. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.0) are fuzzed on the
+`node`/`deno` branches but excluded from this ledger: d8 15.5 is the up-to-date V8 target.
 
 ### Found by irx
 
@@ -169,11 +170,16 @@ reported upstream yet.
 | IRX-PERL-2 | Perl 5.34.1, 5.44.0, blead 5.45.4 | wrong result | `"a" =~ /\A^\ba*\z/m` → false | true | needs `\A`, `/m` `^`, `\b` and a quantified atom together |
 | IRX-XS-1 | XS (jsvu, Moddable) | rejects valid pattern | `new RegExp("[]", "v")`, `new RegExp("[^]", "v")` → SyntaxError | accepted (ES2024) | empty `ClassContents` is legal in UnicodeSets mode |
 | IRX-BOA-1 | Boa (`boa_cli`, cargo) | rejects valid input (JSON) | `JSON.parse('"\\ud83d"')` → SyntaxError | 1-unit string | lone-surrogate escapes are valid JSON; not a regex bug, found while wiring the harness |
-| IRX-BOA-2 | Boa (`boa_cli`, cargo) | wrong result | `/^[\uD83D\uDE00]$/.test("\ud83d")` → `false` | `true` | without `u`, an escaped surrogate pair in a class is merged into one code point |
+| IRX-BOA-2 | Boa (`boa_cli`, cargo) | wrong result | `/^[\uD83D\uDE00]$/.test("\ud83d")` → `false` | `true` | without `u`, an escaped high surrogate followed by another escape in a class is mishandled (also `[\uD83D\u03A3]`) |
 | IRX-BOA-3 | Boa (`boa_cli`, cargo) | wrong result | `/^s$/i.test("ſ")` → `true` | `false` | non-`u` `i` uses Unicode simple folding instead of `toUpperCase` canonicalization; `\w`/`i` also matches ſ and K |
 | IRX-BOA-4 | Boa (`boa_cli`, cargo) | wrong result | `/^(?:\D\b)$/iv.test("\u212a")` → `false` | `true` | `\b` ignores the extra `iu`/`iv` word characters (ſ, K) |
 | IRX-BOA-5 | Boa (`boa_cli`, cargo) | wrong result | `/^(?:(?:\s(?:(?:){0,1}\|a))+)+$/.test("\u2028a")` → `false` | `true` | an empty group quantified `{0,1}` as an alternative breaks nested loops; `(?:\|a)` is fine |
 | IRX-BOA-6 | Boa (`boa_cli`, cargo) | wrong result | `/^[s[^a]]$/iv.test("a")` → `true` | `false` | nested complements in `v` classes are not case-folded under `i` |
+| IRX-QJS-1 | QuickJS (Homebrew `qjs`) | rejects valid pattern | `new RegExp("-", "v")`, `new RegExp("a-b", "v")` → SyntaxError | accepted | `-` outside a class is an ordinary character in UnicodeSets mode (d8, XS accept) |
+| IRX-PCRE2-1 | PCRE2 10.49 **JIT** (also PHP 8.5 `preg_*`, JIT on by default) | wrong result | `/(?<!(?:\|a)$)a/` on `"a"` → no match | match | interpreter correct; needs a negative lookbehind holding an alternation with an empty branch followed by `$`/`\z` (`(?<!(?:\|a)x)a` is fine) |
+| IRX-SWIFT-1 | Swift Regex (Swift 6.4), `.unicodeScalar` semantics + `.simple` word boundaries | wrong result | `/\w\b\w/` matches `"a0"`; `/0\b/` misses `"0"` | no; yes | `\b` treats digits as non-word although `\w` matches them; grapheme semantics is correct |
+| IRX-DOTNET-1 | .NET 9.0.4 Regex interpreter | crash (exception) | `Regex.IsMatch("aa", @"\A(?:(?=(?:)+?a)a)\z")` → `IndexOutOfRangeException` | `false` | only .NET 9.0.4 installed; not rechecked on .NET 10/11 |
+| IRX-DOTNET-2 | .NET 9.0.4 `RegexOptions.Compiled` | crash at construction | `new Regex(@"\A(?:a(?<=(?:)??))\z", RegexOptions.Compiled)` → `ArgumentException: Bad label content in ILGenerator` | compiles, matches `"a"` | RegexCompiler emits invalid IL; interpreter fine; not rechecked on .NET 10/11 |
 | IRX-XS-2 | XS (jsvu, Moddable) | wrong result | `/^[S\u{1F600}]$/iv.test("s")` → `false`; `/^[^A]$/iv.test("a")` → `true` | `true`; `false` | `v`-mode classes ignore `i`: neither members nor complements are case-folded (~250 findings) |
 | IRX-XS-3 | XS (jsvu, Moddable) | uncatchable abort (sequence-dependent) | a 512-case batch aborts the script with uncaught `RangeError: buffer overflow` although every case runs inside `try` | per-case result bits | 780 batches; no single case aborts alone, not yet minimized |
 | IRX-E262-1 | engine262 (npm `@engine262/engine262`) | rejects valid pattern | `new RegExp("[\u{17F}--\u{212A}]", "v")` → SyntaxError "Expect a CharacterClassEscape" | accepted | a `\u{…}` escape is not accepted as a `ClassSetOperand` in set operations (~9.7k findings) |
@@ -252,42 +258,52 @@ reported upstream yet.
 
 ## Fuzzer plan: one inverted-pair fuzzer per dialect
 
-irx needs, per dialect: (1) a host speaking the line protocol (`driver.js`, `driver.pl`, `tools/bridge.py`, or a
-native host under `vendor/hosts/`), (2) a semantics model for its atoms, assertions and flags whose
-self-check reaches zero mismatches, and (3) grammar restrictions for unsupported syntax. Structural matchers
-(CSS selectors, DOM, FileCheck, macros, ISel) are out of scope for now.
+Every regex target in `../regex_comparison` has a branch, a host, and a 1-minute smoke campaign
+(`tools/campaign1m.sh`). A host speaks the line protocol (`driver.js`, `driver.pl`, `tools/bridge.py` or a
+program under `hosts/`). The **model** column says which semantics the oracle uses; "Perl model" on a
+non-Perl engine means its own dialect model is not written yet, so smoke-run mismatches there are mostly
+dialect gaps rather than bugs. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are out of scope.
 
-| Dialect / engine | Branch | Host | Semantics model | Status |
+| Target | Branch | Host | Model | Status |
 |---|---|---|---|---|
-| ECMAScript: V8 (d8) | `main` | `driver.js` | ES2024 (exact) | done; 3 bugs |
-| ECMAScript: SpiderMonkey | `main` (`--sm`) | `driver.js` | ES2024 | sanity engine only (shares irregexp) |
-| ECMAScript: QuickJS | `quickjs` | `driver.js` (std) | ES2024 | done; 0 wrong results in 6.6M |
-| ECMAScript: XS | `xs` | bridge | ES2024 | done; IRX-XS-1, IRX-XS-2, IRX-XS-3 |
-| ECMAScript: engine262 | `engine262` | bridge | ES2024 | done; IRX-E262-1, IRX-E262-2 |
-| ECMAScript: Hermes | `hermes` | bridge | ES2024 minus `v` | done; IRX-HERMES-1, IRX-HERMES-2 |
-| ECMAScript: Boa | `boa` | bridge (object-literal batches, IRX-BOA-1) | ES2024 | done; IRX-BOA-1…6 |
-| ECMAScript: JavaScriptCore (`jsc`, Bun) | — | `driver.js` (`--jsc`) | ES2024 | needs a `jsc` binary |
-| ECMAScript: LibJS (Ladybird) | — | `driver.js` | ES2024 | needs a ~1 h Ladybird build |
-| Perl | `perl` | `driver.pl` | Perl `/u` (done) | done; 2 bugs |
-| PCRE2 (also PHP `preg_*`) | `pcre2` | `vendor/hosts/c/pcre2_host` (+JIT via `IRX_PCRE2_JIT`) | Perl-like; reuse Perl mode, check PCRE2 differences | host built |
-| Oniguruma / Onigmo (Ruby) | `oniguruma` | `vendor/hosts/c/onig_host` | Ruby: `^`/`$` always line anchors, `/m` = dotall | host built |
-| RE2 | `re2` | `vendor/hosts/c/re2_host` | RE2: no lookaround/backrefs, ASCII `\b`/`\w` | host built |
-| Go `regexp` | `go-regexp` | `vendor/hosts/go/go_host` | RE2 syntax, Go flags | host built |
-| Rust `regex` | `rust-regex` | `vendor/hosts/rust` (`regex_host`) | Unicode-by-default `\w`/`\b`, no lookaround | host built |
-| fancy-regex (Rust) | `fancy-regex` | `vendor/hosts/rust` (`fancy_host`) | Rust classes + backtracking lookaround | host built |
-| Python `re` | planned | python host | Python: `\Z`, Unicode str classes, fixed-width lookbehind | planned |
-| Java `java.util.regex` | planned | Java host | UTF-16, Java classes, bounded lookbehind | planned |
-| .NET (interpreter / Compiled / NonBacktracking) | planned | C# host, 3 modes | .NET classes, `RegexOptions` | planned |
-| ICU (`NSRegularExpression`) | planned | Swift/ObjC host | ICU / UTS #18 | planned |
-| Swift Regex | planned | Swift host | grapheme-aware semantics (largest model change) | planned |
-| Hyperscan / Vectorscan | planned | C host | PCRE subset, automata, match-anywhere semantics | planned |
-| RE# (`resharp`) | planned | Rust host | extended (intersection/complement) syntax | planned |
-| nim-regex | planned | Nim host | PCRE-like subset | planned |
-| Tcl ARE | planned | Tcl host | POSIX-leftmost-longest hybrid (needs span model) | planned |
-| Emacs Lisp regexps / `rx` | planned | elisp host | Emacs syntax, syntax-table `\w` | planned |
-| Racket `#rx` / `#px` (and Rhombus `rx`) | planned | Racket host | byte vs char regexps | planned |
-| LLVM `Regex` (POSIX ERE) | planned | C++ host | POSIX ERE, leftmost-longest (needs span model) | planned |
+| V8 15.5 (d8) | `main` | `driver.js` | ES2024 (exact) | IRX-V8-1…3 |
+| QuickJS | `quickjs` | `driver.js` (std) | ES2024 | IRX-QJS-1 |
+| XS | `xs` | bridge | ES2024 | IRX-XS-1…3 |
+| Boa | `boa` | bridge | ES2024 | IRX-BOA-1…6 |
+| engine262 | `engine262` | bridge | ES2024 | IRX-E262-1, 2 |
+| Hermes | `hermes` | bridge | ES2024 minus `v` | IRX-HERMES-1, 2 |
+| JavaScriptCore (Bun 1.4.2) | `bun` | `driver.js` (node adapter) | ES2024 | clean (0 self-check mismatches) |
+| V8 14.1 / 15.0 (Node, Deno) | `node`, `deno` | `driver.js` | ES2024 | older V8; excluded from the ledger |
+| Perl 5.44 / blead | `perl` | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1, 2 |
+| PCRE2 10.49 | `pcre2` | `hosts/c/pcre2_host` | Perl | IRX-PCRE2-1 (JIT) |
+| PHP 8.5 `preg_*` | `php-pcre2` | `hosts/script/php_host.php` | Perl | IRX-PCRE2-1 |
+| Swift Regex 6.4 | `swift-regex` | `hosts/swift` (scalar semantics) | Swift (exact) | IRX-SWIFT-1 |
+| .NET 9 interpreter / Compiled / NonBacktracking | `dotnet-interp`, `dotnet-compiled`, `dotnet-nonbacktracking` | `hosts/dotnet` | Perl (needs UTF-16 .NET model) | IRX-DOTNET-1, 2 |
+| ICU (`NSRegularExpression`) | `icu` | `hosts/swift` | Perl (needs ICU model) | smoke run ok |
+| Rust `regex` | `rust-regex` | `hosts/rust` | Perl (needs Rust classes) | 1.2M patterns, 0 findings |
+| fancy-regex | `fancy-regex` | `hosts/rust` | Perl | rejects `(?:)*` (dialect gap) |
+| RE# (`resharp`) | `resharp` | `hosts/rust` | Perl | rejects lazy quantifiers (dialect gap) |
+| RE2 | `re2` | `hosts/c/re2_host` | Perl (needs ASCII `\w`) | dialect gaps |
+| Go `regexp` | `go-regexp` | `hosts/go` | Perl (needs ASCII `\w`) | dialect gaps |
+| Oniguruma 6.9 | `oniguruma` | `hosts/c/onig_host` | Perl | rejects quantified assertions (dialect gap) |
+| Ruby Onigmo | `ruby-onigmo` | `hosts/script/rb_host.rb` | Perl (needs ASCII `\w`, Ruby anchors) | dialect gaps |
+| Python `re` | `python-re` | `hosts/script/py_host.py` | Perl (needs `(?P<…>)`) | dialect gaps |
+| Java `java.util.regex` | `java` | `hosts/java` | Perl | smoke run ok; lookbehind-length rejections to review |
+| nim-regex | `nim-regex` | `hosts/nim` | Perl | dialect gaps (named groups) |
+| Tcl ARE | `tcl` | `hosts/script/tcl_host.tcl` | Perl (Tcl `\b` is backspace) | dialect gaps |
+| Racket `#px` | `racket` | `hosts/racket` | Perl | rejects `(?:)*` (dialect gap) |
+| Emacs Lisp | `emacs` | `hosts/emacs` (translator) | Perl | translator: lazy braces |
+| Vectorscan (Hyperscan) | `vectorscan` | `hosts/c/hs_host` | Perl | smoke run ok |
+| LLVM `Regex` (POSIX ERE) | `llvm-regex` | `hosts/c/llvm_host` (translator) | Perl (byte-oriented engine) | dialect gaps |
+| Rhombus `rx`, Emacs `rx` | — | — | — | DSL front-ends: need a DSL printer, deferred |
 
-Booleans (full match) are enough for every backtracking dialect. Leftmost-longest dialects (Tcl ARE, POSIX)
-still fit, because full-match booleans don't depend on match priority.
 <!-- END shared bug ledger -->
+
+<!-- BEGIN main 1m results -->
+### main: 1-minute smoke campaign
+
+* 411,264 patterns, 6 tables, 56 distinct findings; self-check 1,628,352 probes, 0 mismatches, 0 engine failures
+* findings by kind: 56 timeout (batch)
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END main 1m results -->
