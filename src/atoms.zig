@@ -127,7 +127,8 @@ fn has(n: *const SetNode, flags: Flags, x: u21) bool {
         .digit => dialect.active.isDigit(x),
         .space => alpha.isSpace(x),
         .word => alpha.isWordChar(x, flags),
-        .dotset => alpha.inAllCharacters(x, flags) and (flags.s or !alpha.isLineTerminator(x)),
+        .dotset => alpha.inAllCharacters(x, flags) and
+            (if (dialect.active.dot_all_unless_m) !flags.m or x != '\n' else flags.s or !alpha.isLineTerminator(x)),
         .all => alpha.inAllCharacters(x, flags),
         // CharacterComplement(rer, S): AllCharacters(rer) minus S.
         .comp => alpha.inAllCharacters(x, flags) and !has(n.a.?, flags, x),

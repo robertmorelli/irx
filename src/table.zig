@@ -67,6 +67,8 @@ pub const Grammar = struct {
     lookbehind_fixed: bool = false,
     /// Forbid lookaheads (and `$` under m) inside unbounded quantifiers; tracked as aux bit 31.
     no_la_in_star: bool = false,
+    /// Only the `?` form may quantify a nullable body (min length 0).
+    nullable_opt_only: bool = false,
 
     pub fn init(gpa: Allocator, cfg: *const config.Config, flags: Flags) !Grammar {
         const W = &cfg.weights;
@@ -153,10 +155,11 @@ pub const Grammar = struct {
             .quant_w = &.{},
             .op_w = undefined,
             .lookbehind_len_cap = dialect_mod.active.lookbehind_len_cap,
-            .len_cap = if (dialect_mod.active.lookbehind_len_cap > 0) dialect_mod.active.lookbehind_len_cap else if (dialect_mod.active.lookbehind_fixed or !dialect_mod.active.allow_empty_quant) @intCast(dialect_mod.len_cap_default) else 0,
+            .len_cap = if (dialect_mod.active.lookbehind_len_cap > 0) dialect_mod.active.lookbehind_len_cap else if (dialect_mod.active.lookbehind_fixed or !dialect_mod.active.allow_empty_quant or dialect_mod.active.nullable_quant_opt_only) @intCast(dialect_mod.len_cap_default) else 0,
             .lookbehind_fixed = dialect_mod.active.lookbehind_fixed,
             .no_empty_quant = !dialect_mod.active.allow_empty_quant,
             .no_la_in_star = !dialect_mod.active.lookahead_in_star,
+            .nullable_opt_only = dialect_mod.active.nullable_quant_opt_only,
         };
         try g.indexWeights(gpa);
         return g;
@@ -195,7 +198,7 @@ pub const Grammar = struct {
         h.update(&[_]u8{self.flags.bits()});
         h.update(std.mem.asBytes(&self.lookbehind_len_cap));
         h.update(std.mem.asBytes(&self.len_cap));
-        h.update(&[_]u8{ @intFromBool(self.no_empty_quant), @intFromBool(self.lookbehind_fixed), @intFromBool(self.no_la_in_star) });
+        h.update(&[_]u8{ @intFromBool(self.no_empty_quant), @intFromBool(self.lookbehind_fixed), @intFromBool(self.no_la_in_star), @intFromBool(self.nullable_opt_only) });
         for (self.atoms, self.atom_w) |a, w| {
             h.update(std.mem.asBytes(&a.kind));
             h.update(&[_]u8{ a.sub, @intFromBool(a.neg), a.n });
@@ -872,6 +875,7 @@ fn Builder(comptime R: type) type {
                         if (self.g.no_empty_quant and ymax == 0) return;
                         const q = self.g.quants[u.arg];
                         if (self.g.no_la_in_star and la != 0 and q.max == ast.inf) return;
+                        if (self.g.nullable_opt_only and ymin == 0 and q.form != .opt) return;
                         const mx: u32 = if (q.max == ast.inf) cap else @min(cap, ymax * @as(u32, q.max));
                         const mn: u32 = @min(cap, ymin * @as(u32, q.min));
                         aux = mx | (mn << 16) | la;

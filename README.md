@@ -201,6 +201,7 @@ reported upstream yet. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.
 | IRX-E262-2 | engine262 (npm `@engine262/engine262`) | wrong result | `/^[^[^a]&&\d]$/v.test("ſ")` → `false`; `/^a[^A&&[a-z]]$/v.test("aa")` → `false` | `true`; `true` | negated classes whose contents are a set operation are computed wrongly (~46k findings) |
 | IRX-HERMES-1 | Hermes (jsvu) | wrong result | `/^(?:(?:(?:\W+){1,1})*\s)$/.test("\u2028\n")` → `false` | `true` | |
 | IRX-HERMES-2 | Hermes (jsvu) | exception on tiny input | `/^(?:(?:^a?)+?)$/.test("aa")` → `RangeError: Maximum regex stack depth reached` | `false` | also `(?:a*)+?\B` on `"a"`, `(?:(?:(?:)\|(?:)){2,2}){1,2}` on `"a"`: lazy loops over empty-matchable bodies recurse without bound |
+| IRX-RACKET-1 | Racket 9.3 CS (`regexp`/`pregexp`/`byte-pregexp`) | crash at construction | `(pregexp "(?:)(?:)")` → `exn:fail` "invalid memory reference. Some debugging context lost" | compiles; matches `""` | two or more adjacent empty non-capturing groups (also `a\|(?:)(?:)`, `^(?:(?:)(?:))$`); `()()`, `(?:(?:))`, `(?:)a(?:)` are fine, and a `#rx` literal `x(?:)(?:)y` works. The message is Chez Scheme's memory-fault handler |
 
 ### Imported from regex_comparison
 

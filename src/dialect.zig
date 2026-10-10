@@ -77,6 +77,8 @@ pub const Dialect = struct {
     negated_escapes_invert: bool = false,
     /// \\w \\d \\s and their negations are plain property tests, unaffected by i.
     escapes_ignore_case: bool = false,
+    /// `.` matches everything unless m, and excludes \\n under m (Racket multi mode).
+    dot_all_unless_m: bool = false,
     /// Grammar restrictions for constructs the engine does not support.
     allow_lookahead: bool = true,
     allow_lookbehind: bool = true,
@@ -89,6 +91,8 @@ pub const Dialect = struct {
     allow_lazy: bool = true,
     /// Quantifiers over bodies that can only match the empty string, e.g. (?:)* or (?:\\b)*.
     allow_empty_quant: bool = true,
+    /// Only `?` may quantify a body that can match empty (Racket).
+    nullable_quant_opt_only: bool = false,
     /// Pool characters to drop (e.g. multi-character case folds).
     pool_exclude: []const u21 = &.{},
     /// Lookbehind bodies must have a provably bounded length (< cap); 0 = no limit.
@@ -113,7 +117,8 @@ pub const dotnet_nb = @import("dialects/dotnet.zig").nonbacktracking;
 pub const icu = @import("dialects/icu.zig").dialect;
 pub const resharp = @import("dialects/resharp.zig").dialect;
 pub const nim = @import("dialects/nim.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim };
+pub const racket = @import("dialects/racket.zig").dialect;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim, &racket };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
@@ -171,6 +176,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             const q = n.quant;
             if (q.lazy and !d.allow_lazy) ok.* = false;
             if (!d.allow_empty_quant and c.max == 0) ok.* = false;
+            if (d.nullable_quant_opt_only and c.min == 0 and q.form != .opt) ok.* = false;
             if (!d.lookahead_in_star and c.la and q.max == ast.inf) ok.* = false;
             return .{ .min = @min(cap, c.min * q.min), .max = if (q.max == ast.inf) cap else @min(cap, c.max * q.max), .la = c.la };
         },
