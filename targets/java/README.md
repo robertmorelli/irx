@@ -24,3 +24,37 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END java 1m results -->
+
+<!-- BEGIN java 10m results -->
+### java.util.regex: 10m campaign
+
+* 4,499,840 patterns, 46 tables, 36,550 distinct findings; self-check 339,984 probes, 212 mismatches, 0 engine failures
+* findings by kind: 30,029 syntax_error, 5,073 wrong_result, 1,448 timeout (batch), 200 selfcheck_mismatch (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 81 | syntax_error | `u` | `""` | `"a"` | `(?<=(?:(?:)\|(?:))*)` | 04 |
+| 40 | syntax_error | `u` | `""` | `"a"` | `(?<=(?:(?:)\|(?:))+)` | 04 |
+| 37 | syntax_error | `u` | `"a"` | `""` | `a(?<=(?:(?:)\|(?:))*)` | 04 |
+| 35 | syntax_error | `u` | `"a"` | `""` | `(?<=(?:(?:)\|(?:))*)a` | 04 |
+| 34 | syntax_error | `u` | `""` | `"a"` | `(?<=(?:(?:)?)*)` | 04 |
+| 28 | syntax_error | `u` | `""` | `"a"` | `(?<=(?:(?:)\|(?:)){1,1})` | 04 |
+| 22 | syntax_error | `u` | `"a"` | `""` | `a\|(?<!(?:(?:)\|(?:))*)` | 04 |
+| 21 | syntax_error | `u` | `""` | `"a"` | `(?<=(?:aa)*)` | 04 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END java 10m results -->
+
+<!-- BEGIN java 10m triage -->
+### java: 10-minute campaign triage
+
+* New: **IRX-JAVA-2** (a counted group with a zero-width iteration: `(?:a|^){2}` misses `"a"`; most of the 5,073
+  wrong results) and **IRX-JAVA-3** (`(?<=a*a*)` never matches).
+* The 30,029 syntax errors are a **model gap**: Java rejects lookbehinds without an "obvious maximum length"
+  (`(?<=(?:aa)*)`, `(?<=(?:(?:)|(?:))*)`) but accepts `(?<=a*)`. The `java` dialect should reject unbounded
+  quantifiers over groups inside lookbehind.
+* Self-check mismatches: the known IRX-JAVA-1 ß/ẞ asymmetry.
+* 1,448 timeouts: backtracking blowups, not investigated.
+<!-- END java 10m triage -->
