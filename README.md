@@ -42,7 +42,7 @@ first-seen/repeated counts (transitions unverified), and slow cases.
 
 ## Layout: dialects, targets, hosts
 
-* `src/dialect.zig` — the **Dialect** component interface; `src/dialects/{es,perl,swift}.zig` implement it
+* `src/dialect.zig` — the **Dialect** component interface; `src/dialects/*.zig` implement it, one model per engine family (es, perl, swift, rust/fancy, re2/go, python, java, ruby/oniguruma, dotnet, icu, resharp, nim, racket, tcl, emacs, vectorscan, llvm)
   (character predicates, case rules, anchors, escape syntax, string/flag/grammar constraints). Selected with
   `--dialect`. Semantic only, so a future match-range oracle can reuse it.
 * `targets/<name>/target.toml` — one per engine: how to launch it (`kind`, `command`), which dialect models it,
@@ -79,7 +79,7 @@ OUT/summary.json        end-of-run totals
 | `src/rel.zig` | `Rel(N)` for N ∈ {8, 16}: product, closure (Warshall), bounded powers by squaring, lookaround diagonals |
 | `src/ucd.zig`, `src/ucd/` | Vendored Unicode 17.0.0 (CaseFolding, UnicodeData, SpecialCasing) with SHA-256 manifest verified at startup |
 | `src/alphabet.zig` | Flags, UTF-16 → symbol decoding per mode, line terminators, `\s`, word chars, Canonicalize for i / iu / iv |
-| `src/dialect.zig`, `src/dialects/` | Dialect component interface and the ES2024, Perl and Swift Regex implementations |
+| `src/dialect.zig`, `src/dialects/` | Dialect component interface and one exact model per target engine (`tools/probe.py` asks a host ad-hoc questions while writing one; `tools/gen_emacs_tables.py` regenerates the Emacs tables) |
 | `src/atoms.zig` | Atom specs and ES2024 CharacterSetMatcher semantics (incl. v-mode set ops, MaybeSimpleCaseFolding, folded-universe complements), assertion masks, inventory |
 | `src/ast.zig` | Owned trees, direct relation evaluation, naive backtracking matcher (cross-check), s-expression serialization |
 | `src/table.zig` | Grammar inventory, Robin Hood interner, production set, budgeted semi-naive levels, Vitter Method D combo sampling, usefulness pruning, renumbering, log-space counts, digest |
@@ -293,26 +293,26 @@ dialect gaps rather than bugs. Structural matchers (CSS, DOM, FileCheck, macros,
 | JavaScriptCore (Bun 1.4.2) | [`bun`](targets/bun) | `driver.js` (node adapter) | ES2024 | clean (0 self-check mismatches) |
 | V8 14.1 / 15.0 (Node, Deno) | [`node`](targets/node), [`deno`](targets/deno) | `driver.js` | ES2024 | older V8; excluded from the ledger |
 | Perl 5.44 / blead | [`perl`](targets/perl) | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1, 2 |
-| PCRE2 10.49 | [`pcre2`](targets/pcre2) | `hosts/c/pcre2_host` | Perl | IRX-PCRE2-1 (JIT) |
-| PHP 8.5 `preg_*` | [`php-pcre2`](targets/php-pcre2) | `hosts/script/php_host.php` | Perl | IRX-PCRE2-1 |
+| PCRE2 10.49 | [`pcre2`](targets/pcre2) | `hosts/c/pcre2_host` | Perl (exact) | IRX-PCRE2-1 (JIT) |
+| PHP 8.5 `preg_*` | [`php-pcre2`](targets/php-pcre2) | `hosts/script/php_host.php` | Perl (exact) | IRX-PCRE2-1 |
 | Swift Regex 6.4 | [`swift-regex`](targets/swift-regex) | `hosts/swift` (scalar semantics) | Swift (exact) | IRX-SWIFT-1 |
-| .NET 9 interpreter / Compiled / NonBacktracking | [`dotnet-interp`](targets/dotnet-interp), [`dotnet-compiled`](targets/dotnet-compiled), [`dotnet-nonbacktracking`](targets/dotnet-nonbacktracking) | `hosts/dotnet` | Perl (needs UTF-16 .NET model) | IRX-DOTNET-1, 2 |
-| ICU (`NSRegularExpression`) | [`icu`](targets/icu) | `hosts/swift` | Perl (needs ICU model) | smoke run ok |
-| Rust `regex` | [`rust-regex`](targets/rust-regex) | `hosts/rust` | Perl (needs Rust classes) | 1.2M patterns, 0 findings |
-| fancy-regex | [`fancy-regex`](targets/fancy-regex) | `hosts/rust` | Perl | rejects `(?:)*` (dialect gap) |
-| RE# (`resharp`) | [`resharp`](targets/resharp) | `hosts/rust` | Perl | rejects lazy quantifiers (dialect gap) |
-| RE2 | [`re2`](targets/re2) | `hosts/c/re2_host` | Perl (needs ASCII `\w`) | dialect gaps |
-| Go `regexp` | [`go-regexp`](targets/go-regexp) | `hosts/go` | Perl (needs ASCII `\w`) | dialect gaps |
-| Oniguruma 6.9 | [`oniguruma`](targets/oniguruma) | `hosts/c/onig_host` | Perl | rejects quantified assertions (dialect gap) |
-| Ruby Onigmo | [`ruby-onigmo`](targets/ruby-onigmo) | `hosts/script/rb_host.rb` | Perl (needs ASCII `\w`, Ruby anchors) | dialect gaps |
-| Python `re` | [`python-re`](targets/python-re) | `hosts/script/py_host.py` | Perl (needs `(?P<…>)`) | dialect gaps |
-| Java `java.util.regex` | [`java`](targets/java) | `hosts/java` | Perl | smoke run ok; lookbehind-length rejections to review |
-| nim-regex | [`nim-regex`](targets/nim-regex) | `hosts/nim` | Perl | dialect gaps (named groups) |
-| Tcl ARE | [`tcl`](targets/tcl) | `hosts/script/tcl_host.tcl` | Perl (Tcl `\b` is backspace) | dialect gaps |
-| Racket `#px` | [`racket`](targets/racket) | `hosts/racket` | Perl | rejects `(?:)*` (dialect gap) |
-| Emacs Lisp | [`emacs`](targets/emacs) | `hosts/emacs` (translator) | Perl | translator: lazy braces |
-| Vectorscan (Hyperscan) | [`vectorscan`](targets/vectorscan) | `hosts/c/hs_host` | Perl | smoke run ok |
-| LLVM `Regex` (POSIX ERE) | [`llvm-regex`](targets/llvm-regex) | `hosts/c/llvm_host` (translator) | Perl (byte-oriented engine) | dialect gaps |
+| .NET 9 interpreter / Compiled / NonBacktracking | [`dotnet-interp`](targets/dotnet-interp), [`dotnet-compiled`](targets/dotnet-compiled), [`dotnet-nonbacktracking`](targets/dotnet-nonbacktracking) | `hosts/dotnet` | `dotnet` / `dotnet-nonbacktracking`: UTF-16 units, `\w` = L\|Mn\|Nd\|Pc (exact) | IRX-DOTNET-1, 2 |
+| ICU (`NSRegularExpression`) | [`icu`](targets/icu) | `hosts/swift` | `icu`: UTS #18 classes, Unicode line ends, CRLF `$` (exact) | 0 self-check mismatches |
+| Rust `regex` | [`rust-regex`](targets/rust-regex) | `hosts/rust` | `rust` (exact) | 0 self-check mismatches; 1.2M patterns, 0 findings |
+| fancy-regex | [`fancy-regex`](targets/fancy-regex) | `hosts/rust` | `fancy`: fixed-length lookbehind, no empty-body quantifiers (exact) | 0 self-check mismatches |
+| RE# (`resharp`) | [`resharp`](targets/resharp) | `hosts/rust` | `resharp`: UnicodeMode::Full; no lazy, lookbehind, mid-pattern `^`/`\b`, lookahead under `*` (exact) | 0 self-check mismatches; named groups under quantifiers rejected |
+| RE2 | [`re2`](targets/re2) | `hosts/c/re2_host` | `re2`: ASCII classes (exact) | 0 self-check mismatches |
+| Go `regexp` | [`go-regexp`](targets/go-regexp) | `hosts/go` | `go`: ASCII classes (exact) | 0 self-check mismatches |
+| Oniguruma 6.9 | [`oniguruma`](targets/oniguruma) | `hosts/c/onig_host` | `oniguruma`: Unicode classes, Ruby anchors (exact) | 0 self-check mismatches |
+| Ruby Onigmo | [`ruby-onigmo`](targets/ruby-onigmo) | `hosts/script/rb_host.rb` | `ruby`: ASCII `\w`, Unicode `\b`, always-on line anchors (exact) | 0 self-check mismatches |
+| Python `re` | [`python-re`](targets/python-re) | `hosts/script/py_host.py` | `python`: isalnum `\w`, sre case groups, `(?P<…>)` (exact) | 0 self-check mismatches |
+| Java `java.util.regex` | [`java`](targets/java) | `hosts/java` | `java`: Java line ends, `lower(upper())` fold, range rule (exact) | 212 self-check mismatches, all the ß/ẞ asymmetry |
+| nim-regex | [`nim-regex`](targets/nim-regex) | `hosts/nim` | `nim`: `(?P<…>)`, end-only `$`, case partners in ranges (exact) | NIM-1, NIM-6 rediscovered |
+| Tcl ARE | [`tcl`](targets/tcl) | `hosts/script/tcl_host.tcl` | `tcl`: `\y`, L\|Nd\|Pc words, `-linestop` negations, {p, upper, lower} nocase (exact) | 0 self-check mismatches |
+| Racket `#px` | [`racket`](targets/racket) | `hosts/racket` | `racket`: ASCII classes, multi-mode `.`, asymmetric fold, `?`-only nullable quantifiers (exact) | IRX-RACKET-1; RACKET-1, 2 rediscovered |
+| Emacs Lisp | [`emacs`](targets/emacs) | `hosts/emacs` (translator) | `emacs`: dumped syntax/script/case tables, edge and script-change `\b` (exact) | 0 self-check mismatches |
+| Vectorscan (Hyperscan) | [`vectorscan`](targets/vectorscan) | `hosts/c/hs_host` | `vectorscan`: UCP classes, no anchors or `\b` (exact) | 0 self-check mismatches; ~70 ms per compile |
+| LLVM `Regex` (POSIX ERE) | [`llvm-regex`](targets/llvm-regex) | `hosts/c/llvm_host` (translator) | `llvm`: ASCII-only model of a byte engine (exact) | IRX-LLVM-1, 2 |
 | Rhombus `rx`, Emacs `rx` | — | — | — | DSL front-ends: need a DSL printer, deferred |
 
 <!-- END shared bug ledger -->
