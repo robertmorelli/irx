@@ -685,6 +685,12 @@ pub const Child = struct {
                 return;
             };
             const l = self.line.items[0..nl];
+            if (std.mem.trim(u8, l, " \r").len == 0) { // blank lines (e.g. Emacs prompts) are ignored
+                const rest0 = self.line.items.len - nl - 1;
+                std.mem.copyForwards(u8, self.line.items[0..rest0], self.line.items[nl + 1 ..]);
+                self.line.shrinkRetainingCapacity(rest0);
+                continue;
+            }
             if (self.queue.items.len == 0) return self.fail(.protocol, "unsolicited output: {s}", .{l[0..@min(l.len, 120)]});
             const b = self.queue.items[0];
             if (b.sent < b.req.len) return self.fail(.protocol, "response before request fully sent", .{});
@@ -882,8 +888,9 @@ pub fn probeMode(gpa: Allocator, spec: *const ModeSpec, opts: ChildOptions) Prob
     req.appendSlice(gpa, "[1,[") catch return .{ .ok = false, .reason = "alloc" };
     encodeCase(&req, gpa, .{ .flags = "", .a = &.{'a'}, .r = &.{'b'}, .pattern = "a" }) catch return .{ .ok = false, .reason = "alloc" };
     req.appendSlice(gpa, ",") catch return .{ .ok = false, .reason = "alloc" };
-    const astral_pat = if (spec.engine == .perl) "\\x{1F600}" else "\\u{1F600}";
-    const astral_r: []const u16 = if (spec.engine == .perl) &.{'a'} else &.{0xD83D};
+    const perl_syntax = spec.engine == .perl or @import("alphabet.zig").perl;
+    const astral_pat = if (perl_syntax) "\\x{1F600}" else "\\u{1F600}";
+    const astral_r: []const u16 = if (perl_syntax) &.{'a'} else &.{0xD83D};
     encodeCase(&req, gpa, .{ .flags = "u", .a = &.{ 0xD83D, 0xDE00 }, .r = astral_r, .pattern = astral_pat }) catch return .{ .ok = false, .reason = "alloc" };
     req.appendSlice(gpa, "]]\n") catch return .{ .ok = false, .reason = "alloc" };
     var bits: [2]u8 = undefined;

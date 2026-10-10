@@ -39,7 +39,7 @@ TARGETS=(
   "racket|--shell /opt/homebrew/bin/racket@$R/hosts/racket/host.rkt@{mode} --dialect perl|"
   "emacs|--shell /opt/homebrew/bin/emacs@-Q@--batch@-l@$R/hosts/emacs/host.el@{mode} --dialect perl|$NOLOOK"
   "node|--shell /usr/local/bin/node@{driver}@{mode}|"
-  "bun|--shell /opt/homebrew/bin/bun@{driver}@{mode}|"
+  "bun|--shell /Users/robertmorelli/.bun/bin/bun@{driver}@{mode}|"
   "deno|--shell /opt/homebrew/bin/deno@run@-q@{driver}@{mode}|"
   "vectorscan|--shell $H/hs_host@{mode} --dialect perl|$NOLOOK"
   "llvm-regex|--shell $H/llvm_host@{mode} --dialect perl|$NOERE"
