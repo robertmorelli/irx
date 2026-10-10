@@ -190,6 +190,8 @@ reported upstream yet. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.
 | IRX-BOA-4 | Boa (`boa_cli`, cargo) | wrong result | `/^(?:\D\b)$/iv.test("\u212a")` → `false` | `true` | `\b` ignores the extra `iu`/`iv` word characters (ſ, K) |
 | IRX-BOA-5 | Boa (`boa_cli`, cargo) | wrong result | `/^(?:(?:\s(?:(?:){0,1}\|a))+)+$/.test("\u2028a")` → `false` | `true` | an empty group quantified `{0,1}` as an alternative breaks nested loops; `(?:\|a)` is fine |
 | IRX-BOA-6 | Boa (`boa_cli`, cargo) | wrong result | `/^[s[^a]]$/iv.test("a")` → `true` | `false` | nested complements in `v` classes are not case-folded under `i` |
+| IRX-BOA-7 | Boa (`boa_cli`, cargo) | wrong result | `/(?:(?:a+)+){2}/.test("aa")` → `false` | `true` | a counted repeat of a group whose body is a quantified quantifier; `(?:(?:a+){1}){2}` and `(?:(?:a{2,3}){2}){2}` on `"a"×8` fail too, `(?:a+){2}` and `(?:(?:a+)*){2}` are fine |
+| IRX-BOA-8 | Boa (`boa_cli`, cargo) | hang | `/(?:(?:a\|)*)*b/.test("a")` never returns | `false` | a nullable alternative inside two nested stars loops forever once the match fails; also `(?:(?:a\|(?:)?)*)*b`. Accounts for most Boa batch timeouts |
 | IRX-QJS-1 | QuickJS (Homebrew `qjs`) | rejects valid pattern | `new RegExp("-", "v")`, `new RegExp("a-b", "v")` → SyntaxError | accepted | `-` outside a class is an ordinary character in UnicodeSets mode (d8, XS accept) |
 | IRX-PCRE2-1 | PCRE2 10.49 **JIT** (also PHP 8.5 `preg_*`, JIT on by default) | wrong result | `/(?<!(?:\|a)$)a/` on `"a"` → no match | match | interpreter correct; needs a negative lookbehind holding an alternation with an empty branch followed by `$`/`\z` (`(?<!(?:\|a)x)a` is fine) |
 | IRX-SWIFT-1 | Swift Regex (Swift 6.4), `.unicodeScalar` semantics + `.simple` word boundaries | wrong result | `/\w\b\w/` matches `"a0"`; `/0\b/` misses `"0"` | no; yes | `\b` treats digits as non-word although `\w` matches them; grapheme semantics is correct |
@@ -288,7 +290,7 @@ dialect gaps rather than bugs. Structural matchers (CSS, DOM, FileCheck, macros,
 | V8 15.5 (d8) | [`v8`](targets/v8) | `driver.js` | ES2024 (exact) | IRX-V8-1…3 |
 | QuickJS | [`quickjs`](targets/quickjs) | `driver.js` (std) | ES2024 | IRX-QJS-1 |
 | XS | [`xs`](targets/xs) | bridge | ES2024 | IRX-XS-1…3 |
-| Boa | [`boa`](targets/boa) | bridge | ES2024 | IRX-BOA-1…6 |
+| Boa | [`boa`](targets/boa) | bridge | ES2024 | IRX-BOA-1…8 |
 | engine262 | [`engine262`](targets/engine262) | bridge | ES2024 | IRX-E262-1, 2 |
 | Hermes | [`hermes`](targets/hermes) | bridge | ES2024 minus `v` | IRX-HERMES-1, 2 |
 | JavaScriptCore (Bun 1.4.2) | [`bun`](targets/bun) | `driver.js` (node adapter) | ES2024 | clean (0 self-check mismatches) |
