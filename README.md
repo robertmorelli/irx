@@ -207,6 +207,8 @@ reported upstream yet. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.
 | IRX-E262-2 | engine262 (npm `@engine262/engine262`) | wrong result | `/^[^[^a]&&\d]$/v.test("ſ")` → `false`; `/^a[^A&&[a-z]]$/v.test("aa")` → `false` | `true`; `true` | negated classes whose contents are a set operation are computed wrongly (~46k findings) |
 | IRX-HERMES-1 | Hermes (jsvu) | wrong result | `/^(?:(?:(?:\W+){1,1})*\s)$/.test("\u2028\n")` → `false` | `true` | |
 | IRX-HERMES-2 | Hermes (jsvu) | exception on tiny input | `/^(?:(?:^a?)+?)$/.test("aa")` → `RangeError: Maximum regex stack depth reached` | `false` | also `(?:a*)+?\B` on `"a"`, `(?:(?:(?:)\|(?:)){2,2}){1,2}` on `"a"`: lazy loops over empty-matchable bodies recurse without bound |
+| IRX-HERMES-3 | Hermes (jsvu) | wrong result | `/(?:(?:a+){1}){2}/.test("aa")` → `false`; `/^(?:(?:a{2,}){2}){2}$/.test("a".repeat(8))` → `false` | `true` | a counted repeat of a group whose body is a counted repeat of a greedy loop; `(?:(?:aa+)(?:aa+)){2}` is fine. Same shape as IRX-BOA-7 |
+| IRX-HERMES-4 | Hermes (jsvu) | wrong result | `/a(?<=x\|^a)/.test("a")` → `false` | `true` | `^` inside an alternative of a lookbehind; `a(?<=^a)` and `a(?<=x\|a)` are fine |
 | IRX-RACKET-1 | Racket 9.3 CS (`regexp`/`pregexp`/`byte-pregexp`) | crash at construction | `(pregexp "(?:)(?:)")` → `exn:fail` "invalid memory reference. Some debugging context lost" | compiles; matches `""` | two or more adjacent empty non-capturing groups (also `a\|(?:)(?:)`, `^(?:(?:)(?:))$`); `()()`, `(?:(?:))`, `(?:)a(?:)` are fine, and a `#rx` literal `x(?:)(?:)y` works. The message is Chez Scheme's memory-fault handler |
 | IRX-LLVM-1 | LLVM 23.1.2 `llvm::Regex` (BSD/Spencer ERE) | wrong result (not leftmost) | `Regex("(()|a)b").match("ab", &m)` reports `[1,2)`; `(()|a)$` on `"a"` reports `[1,1)` | `[0,2)`; `[0,1)` | a match starting at 0 exists but is skipped when the first alternative can be empty (also `(x*|a)$`); `(a|())$` is fine. With REG_NEWLINE it turns full-match checks into misses |
 | IRX-LLVM-2 | LLVM 23.1.2 `llvm::Regex` (BSD/Spencer ERE) | wrong result | `Regex("(^){2}x").match("x")` → false; `(^){2}` misses `""` | true | an exact count on a group holding an anchor never matches (`(^){2}`, `($){2}`); `(^)(^)`, `(^){1,2}`, `(^)+` and `(()){2}` are fine |
@@ -297,7 +299,7 @@ dialect gaps rather than bugs. Structural matchers (CSS, DOM, FileCheck, macros,
 | XS | [`xs`](targets/xs) | bridge | ES2024 | IRX-XS-1…3 |
 | Boa | [`boa`](targets/boa) | bridge | ES2024 | IRX-BOA-1…8 |
 | engine262 | [`engine262`](targets/engine262) | bridge | ES2024 | IRX-E262-1, 2 |
-| Hermes | [`hermes`](targets/hermes) | bridge | ES2024 minus `v` | IRX-HERMES-1, 2 |
+| Hermes | [`hermes`](targets/hermes) | bridge | ES2024 minus `v` | IRX-HERMES-1…4 |
 | JavaScriptCore (Bun 1.4.2) | [`bun`](targets/bun) | `driver.js` (node adapter) | ES2024 | clean (0 self-check mismatches) |
 | V8 14.1 / 15.0 (Node, Deno) | [`node`](targets/node), [`deno`](targets/deno) | `driver.js` | ES2024 | older V8; excluded from the ledger |
 | Perl 5.44 / blead | [`perl`](targets/perl) | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1, 2 |

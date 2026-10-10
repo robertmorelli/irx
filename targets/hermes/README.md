@@ -25,3 +25,35 @@ Counts are distinct findings; one bug produces many distinct regexes. Shapes wer
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END hermes 1m results -->
+
+<!-- BEGIN hermes 10m results -->
+### Hermes (jsvu): 10m campaign
+
+* 611,776 patterns, 8 tables, 2,236 distinct findings
+* findings by kind: 2,175 timeout (batch), 55 exception, 6 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 2 | exception | `` | `""` | `"a"` | `(?:a?)*?^` | 08 |
+| 2 | exception | `` | `"a"` | `""` | `(?:(?:a?)+)*a` | 08 |
+| 2 | exception | `` | `"a"` | `""` | `(?:(?:a\|(?:))?)*a` | 08 |
+| 2 | exception | `` | `"a"` | `"."` | `(?:[\u00E0.]\|(?:))*?a` | 08 |
+| 2 | exception | `` | `"a"` | `""` | `(?:(?:a\|(?:))?){0,2}a` | 08 |
+| 2 | exception | `` | `"a"` | `" "` | `(?:[^A.]\|(?:))*?a` | 08 |
+| 2 | exception | `` | `""` | `"aa"` | `(?:^(?:a\|(?:)))*?` | 08 |
+| 2 | exception | `` | `"a"` | `""` | `(?:(?:a\|(?:))*){0,}a` | 08 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END hermes 10m results -->
+
+<!-- BEGIN hermes 10m triage -->
+### hermes: 10-minute campaign triage
+
+* New: **IRX-HERMES-3** (`(?:(?:a+){1}){2}` misses `"aa"`) and **IRX-HERMES-4** (`a(?<=x|^a)` misses `"a"`),
+  from the 6 wrong results.
+* The 55 exceptions are IRX-HERMES-2 (`Maximum regex stack depth reached` on tiny inputs such as `(?:a|(?:))*?`).
+* The 2,175 timeouts are genuine: timing one batch case by case found 5 cases over 5 s and 7 more over 2 s, all
+  on an 8-character subject with nested nullable loops. Same family as IRX-HERMES-2.
+<!-- END hermes 10m triage -->
