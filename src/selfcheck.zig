@@ -60,6 +60,11 @@ pub const Checker = struct {
     /// selfcheck/mismatches.tsv: every mismatch (flags, kind, pattern, A, model, engine).
     tsv: ?c_int = null,
 
+    fn isAscii(s: []const u16) bool {
+        for (s) |u| if (u >= 0x80) return false;
+        return true;
+    }
+
     fn hasLoneSurrogate(s: []const u16) bool {
         var i: usize = 0;
         while (i < s.len) : (i += 1) {
@@ -75,6 +80,7 @@ pub const Checker = struct {
 
     fn addProbe(self: *Checker, flags: Flags, at: atoms.AtomSpec, pos: i16, a: finding.Subject, r: finding.Subject, what: []const u8) !void {
         if (dialect.noLoneSurrogates() and (hasLoneSurrogate(a.slice()) or hasLoneSurrogate(r.slice()))) return;
+        if (dialect.active.ascii_only and (!isAscii(a.slice()) or !isAscii(r.slice()))) return;
         var tree: ast.Ast = .{};
         try makeTree(&tree, at, pos);
         const ea = ast.oracle(&tree, flags, a.slice()) orelse return;

@@ -209,9 +209,9 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     var cfg_text: []const u8 = "";
     loadConfig(gpa, o, &cfg, &cfg_text);
     alpha.active_pool = cfg.poolSlice();
-    if (dl.pool_exclude.len > 0 and cfg.n_pool == 0) {
+    if ((dl.pool_exclude.len > 0 or dl.ascii_only) and cfg.n_pool == 0) {
         var n: u8 = 0;
-        for (alpha.default_pool) |c| if (std.mem.indexOfScalar(u21, dl.pool_exclude, c) == null) {
+        for (alpha.default_pool) |c| if (std.mem.indexOfScalar(u21, dl.pool_exclude, c) == null and (!dl.ascii_only or c < 0x80)) {
             cfg.pool[n] = c;
             n += 1;
         };

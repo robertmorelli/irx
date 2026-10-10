@@ -1,6 +1,7 @@
 // irx host: llvm::Regex (POSIX ERE, byte-oriented). Perl-dialect input is translated:
 // (?: and (?<gN> -> (, \x{H} -> raw UTF-8, \d -> [0-9], \s -> [[:space:]], \w -> [[:alnum:]_].
 // Lazy quantifiers, lookarounds and \b have no ERE form (translation error -> compile error bit).
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Regex.h"
 #include <string>
@@ -48,7 +49,10 @@ int host_case(const char *flags, const char *a, size_t alen, const char *r, size
     llvm::Regex::RegexFlags f = llvm::Regex::NoFlags;
     if (strchr(flags, 'i')) f = (llvm::Regex::RegexFlags)(f | llvm::Regex::IgnoreCase);
     if (strchr(flags, 'm')) f = (llvm::Regex::RegexFlags)(f | llvm::Regex::Newline);
-    std::string full = "^(" + ere + ")$";
+    // Under REG_NEWLINE ^/$ are line anchors, so the wrapper can't force a full match there;
+    // instead match unanchored and require the (leftmost-longest) match to span the subject.
+    bool m = strchr(flags, 'm') != nullptr;
+    std::string full = m ? "(" + ere + ")" : "^(" + ere + ")$";
     llvm::Regex re(llvm::StringRef(full), f);
     std::string err;
     if (!re.isValid(err)) return 0x04;
@@ -56,6 +60,11 @@ int host_case(const char *flags, const char *a, size_t alen, const char *r, size
     const char *subj[2] = {a, r}; size_t lens[2] = {alen, rlen};
     for (int rep = 0; rep < (repeat ? 2 : 1); rep++)
         for (int k = 0; k < 2; k++)
-            if (re.match(llvm::StringRef(subj[k], lens[k]))) bits |= (1 << k) << (rep * 4);
+        {
+            llvm::SmallVector<llvm::StringRef, 2> ms;
+            llvm::StringRef sr(subj[k], lens[k]);
+            bool hit = m ? (re.match(sr, &ms) && ms[0].data() == sr.data() && ms[0].size() == sr.size()) : re.match(sr);
+            if (hit) bits |= (1 << k) << (rep * 4);
+        }
     return bits;
 }

@@ -202,6 +202,8 @@ reported upstream yet. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.
 | IRX-HERMES-1 | Hermes (jsvu) | wrong result | `/^(?:(?:(?:\W+){1,1})*\s)$/.test("\u2028\n")` → `false` | `true` | |
 | IRX-HERMES-2 | Hermes (jsvu) | exception on tiny input | `/^(?:(?:^a?)+?)$/.test("aa")` → `RangeError: Maximum regex stack depth reached` | `false` | also `(?:a*)+?\B` on `"a"`, `(?:(?:(?:)\|(?:)){2,2}){1,2}` on `"a"`: lazy loops over empty-matchable bodies recurse without bound |
 | IRX-RACKET-1 | Racket 9.3 CS (`regexp`/`pregexp`/`byte-pregexp`) | crash at construction | `(pregexp "(?:)(?:)")` → `exn:fail` "invalid memory reference. Some debugging context lost" | compiles; matches `""` | two or more adjacent empty non-capturing groups (also `a\|(?:)(?:)`, `^(?:(?:)(?:))$`); `()()`, `(?:(?:))`, `(?:)a(?:)` are fine, and a `#rx` literal `x(?:)(?:)y` works. The message is Chez Scheme's memory-fault handler |
+| IRX-LLVM-1 | LLVM 23.1.2 `llvm::Regex` (BSD/Spencer ERE) | wrong result (not leftmost) | `Regex("(()|a)b").match("ab", &m)` reports `[1,2)`; `(()|a)$` on `"a"` reports `[1,1)` | `[0,2)`; `[0,1)` | a match starting at 0 exists but is skipped when the first alternative can be empty (also `(x*|a)$`); `(a|())$` is fine. With REG_NEWLINE it turns full-match checks into misses |
+| IRX-LLVM-2 | LLVM 23.1.2 `llvm::Regex` (BSD/Spencer ERE) | wrong result | `Regex("(^){2}x").match("x")` → false; `(^){2}` misses `""` | true | an exact count on a group holding an anchor never matches (`(^){2}`, `($){2}`); `(^)(^)`, `(^){1,2}`, `(^)+` and `(()){2}` are fine |
 
 ### Imported from regex_comparison
 

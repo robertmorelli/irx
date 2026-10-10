@@ -98,6 +98,9 @@ pub const Dialect = struct {
     nullable_quant_opt_only: bool = false,
     /// Pool characters to drop (e.g. multi-character case folds).
     pool_exclude: []const u21 = &.{},
+    /// Byte-oriented engine modelled on ASCII only: non-ASCII leaves the pool and the
+    /// self-check skips non-ASCII subjects (LLVM Regex).
+    ascii_only: bool = false,
     /// Lookbehind bodies must have a provably bounded length (< cap); 0 = no limit.
     lookbehind_len_cap: u16 = 0,
     /// Lookbehind bodies must have a fixed length (min == max); implies a cap.
@@ -124,7 +127,8 @@ pub const racket = @import("dialects/racket.zig").dialect;
 pub const tcl = @import("dialects/tcl.zig").dialect;
 pub const emacs = @import("dialects/emacs.zig").dialect;
 pub const vectorscan = @import("dialects/vectorscan.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan };
+pub const llvm = @import("dialects/llvm.zig").dialect;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
