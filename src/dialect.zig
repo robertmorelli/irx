@@ -51,8 +51,12 @@ pub const Dialect = struct {
     matchAtom: ?*const fn (*const atoms.AtomSpec, Flags, u21) bool = null,
     /// `^` under multiline also matches after a newline that ends the string.
     caret_after_trailing_newline: bool = true,
-    /// `$` without multiline also matches before a final newline (Perl).
-    dollar_before_final_newline: bool = false,
+    /// `^` under multiline never matches at the end of input (Java: not even in "").
+    caret_m_never_at_end: bool = false,
+    /// `$` without multiline also matches before a final line terminator (Perl, Java).
+    dollar_before_final_terminator: bool = false,
+    /// "\\r\\n" is one line terminator: no ^/$ between \\r and \\n (Java, ICU).
+    crlf_atomic: bool = false,
     escape: Escape = .es,
     any_char: AnyChar = .empty_negated_class,
     strings: Strings = .es,
@@ -87,7 +91,8 @@ pub const fancy = @import("dialects/rust.zig").fancy;
 pub const re2 = @import("dialects/re2.zig").dialect;
 pub const go = @import("dialects/re2.zig").go;
 pub const python = @import("dialects/python.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python };
+pub const java = @import("dialects/java.zig").dialect;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;

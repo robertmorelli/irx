@@ -230,9 +230,14 @@ pub fn matchesCaseless(spec: *const AtomSpec, flags: Flags, c: u21) bool {
     return has(cs.root, flags, c) != cs.invert;
 }
 
-/// CharacterSetMatcher for one symbol.
+/// CharacterSetMatcher for one symbol (dialect override first).
 pub fn matches(spec: *const AtomSpec, flags: Flags, c: u21) bool {
     if (dialect.active.matchAtom) |m| return m(spec, flags, c);
+    return matchesGeneric(spec, flags, c);
+}
+
+/// The generic CharacterSetMatcher (with the dialect's fold), for overrides to fall back on.
+pub fn matchesGeneric(spec: *const AtomSpec, flags: Flags, c: u21) bool {
     var ar: SetArena = .{};
     const cs = compile(spec, flags, &ar);
     const found = alpha.existsEquivalent(c, flags, HasCtx{ .n = cs.root, .flags = flags }, hasCtx);
@@ -246,15 +251,20 @@ fn isWordAt(w: []const u21, i: isize, flags: Flags) bool {
 
 /// Bitmask over positions 0..n where the assertion holds.
 pub fn assertionMask(spec: *const AtomSpec, flags: Flags, w: []const u21) u32 {
+    const dl = dialect.active;
     var mask: u32 = 0;
     const n = w.len;
     for (0..n + 1) |i| {
         const ok = switch (spec.kind) {
             // Perl: /m ^ never matches after a trailing newline; $ without /m
             // also matches before a final newline.
-            .caret => i == 0 or (flags.m and alpha.isLineTerminator(w[i - 1]) and (dialect.active.caret_after_trailing_newline or i != n)),
-            .dollar => i == n or (flags.m and alpha.isLineTerminator(w[i])) or
-                (dialect.active.dollar_before_final_newline and !flags.m and i + 1 == n and w[i] == '\n'),
+            .caret => if (flags.m and dl.caret_m_never_at_end and i == n) false else i == 0 or (flags.m and alpha.isLineTerminator(w[i - 1]) and (dl.caret_after_trailing_newline or i != n) and
+                !(dl.crlf_atomic and w[i - 1] == '\r' and i < n and w[i] == '\n')),
+            .dollar => i == n or
+                (flags.m and alpha.isLineTerminator(w[i]) and !(dl.crlf_atomic and w[i] == '\n' and i > 0 and w[i - 1] == '\r')) or
+                (dl.dollar_before_final_terminator and !flags.m and
+                    ((i + 1 == n and alpha.isLineTerminator(w[i]) and !(dl.crlf_atomic and w[i] == '\n' and i > 0 and w[i - 1] == '\r')) or
+                    (dl.crlf_atomic and i + 2 == n and w[i] == '\r' and w[i + 1] == '\n'))),
             .wordb, .nwordb => blk: {
                 const ii: isize = @intCast(i);
                 const b = isWordAt(w, ii - 1, flags) != isWordAt(w, ii, flags);

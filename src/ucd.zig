@@ -225,6 +225,11 @@ fn canonNonUnicodeCompute(ch: u16) u16 {
     return @intCast(u);
 }
 
+/// Simple uppercase mapping (UnicodeData field 12); identity when absent.
+pub fn simpleUpper(c: u21) u21 {
+    return lookup(data.upper, c) orelse c;
+}
+
 /// Simple lowercase mapping (UnicodeData field 13); identity when absent.
 pub fn simpleLower(c: u21) u21 {
     return lookup(data.lower, c) orelse c;
