@@ -24,6 +24,7 @@ extern "c" fn posix_spawnattr_destroy(attr: *SpawnBuf) c_int;
 extern "c" fn posix_spawnattr_setflags(attr: *SpawnBuf, flags: c_short) c_int;
 extern "c" fn posix_spawnattr_setsigdefault(attr: *SpawnBuf, set: *const SigSet) c_int;
 extern "c" fn posix_spawnattr_setsigmask(attr: *SpawnBuf, set: *const SigSet) c_int;
+extern "c" fn posix_spawnattr_setpgroup(attr: *SpawnBuf, pgroup: sys.pid_t) c_int;
 extern "c" fn sigemptyset(set: *SigSet) c_int;
 extern "c" fn sigaddset(set: *SigSet, sig: c_int) c_int;
 extern "c" var environ: [*:null]const ?[*:0]const u8;
@@ -35,6 +36,7 @@ extern "c" fn posix_spawnattr_setexceptionports_np(attr: *SpawnBuf, mask: u32, p
 
 const POSIX_SPAWN_SETSIGDEF: c_short = 0x04;
 const POSIX_SPAWN_SETSIGMASK: c_short = 0x08;
+const POSIX_SPAWN_SETPGROUP: c_short = 0x02;
 const POSIX_SPAWN_CLOEXEC_DEFAULT: c_short = 0x4000;
 const EXC_MASK_CRASH: u32 = 1 << 10;
 const EXC_MASK_CORPSE_NOTIFY: u32 = 1 << 13;
@@ -92,7 +94,10 @@ pub fn spawnPiped(argv: []const [*:0]const u8, suppress_crash_reports: bool) !Sp
     var mask: SigSet = .{};
     _ = sigemptyset(&mask);
     _ = posix_spawnattr_setsigmask(&attr, &mask);
-    var flags: c_short = POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK;
+    // Each child leads its own process group so a kill also takes down any
+    // grandchildren (e.g. the shell a bridge launched).
+    _ = posix_spawnattr_setpgroup(&attr, 0);
+    var flags: c_short = POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETPGROUP;
     if (is_darwin) flags |= POSIX_SPAWN_CLOEXEC_DEFAULT;
     _ = posix_spawnattr_setflags(&attr, flags);
 
@@ -501,11 +506,13 @@ pub const Child = struct {
 
     /// Kill and reap, closing descriptors. Idempotent.
     pub fn kill(self: *Child) void {
+        if (self.pid > 0) _ = sys.kill(-self.pid, sys.SIGKILL); // stragglers in the group
         if (self.alive) {
             if (!self.reaped) {
                 if (reapNonblocking(self.pid)) |e| {
                     self.exit = e;
                 } else {
+                    _ = sys.kill(-self.pid, sys.SIGKILL); // whole process group
                     _ = sys.kill(self.pid, sys.SIGKILL);
                     self.exit = reapBlocking(self.pid);
                 }

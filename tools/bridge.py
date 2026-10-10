@@ -11,9 +11,16 @@ limit so a hang cannot outlive the harness's deadline by much.
 import json, os, resource, signal, subprocess, sys, tempfile
 
 CPU_LIMIT_S = 20
+WALL_LIMIT_S = float(os.environ.get("IRX_BRIDGE_WALL_S", "30"))
+MEM_LIMIT = 4 << 30  # best effort; macOS may not enforce RLIMIT_DATA/AS
 
 def limit():
     resource.setrlimit(resource.RLIMIT_CPU, (CPU_LIMIT_S, CPU_LIMIT_S + 1))
+    for r in (resource.RLIMIT_DATA, resource.RLIMIT_AS):
+        try:
+            resource.setrlimit(r, (MEM_LIMIT, MEM_LIMIT))
+        except (ValueError, OSError):
+            pass
 
 def main():
     shell, driver, mode, extra = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4:]
@@ -30,7 +37,14 @@ def main():
                 f.write("var __IRX_BATCH = " + json.dumps(line) + ";\n")
                 f.write("var __IRX_MODE = " + json.dumps(mode) + ";\n")
                 f.write(core)
-            p = subprocess.run([shell, *extra, path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=limit)
+            # The shell stays in the bridge's process group, so the harness's
+            # group kill on timeout reaches it; the wall limit is a backstop.
+            try:
+                p = subprocess.run([shell, *extra, path], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   preexec_fn=limit, timeout=WALL_LIMIT_S)
+            except subprocess.TimeoutExpired:
+                sys.stderr.write("bridge: shell exceeded wall limit\n")
+                sys.exit(1)
             sys.stderr.buffer.write(p.stderr[-65536:])
             if p.returncode < 0:  # killed by a signal: crash with the same signal
                 sys.stderr.flush()

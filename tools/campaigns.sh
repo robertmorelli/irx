@@ -9,9 +9,14 @@ HERMES_FLAGS='\n[flags]\nsets = ["", "i", "m", "s", "u", "iu", "im", "is", "ms",
 run() { # name shellcmd selfcheck extra_toml
   local name=$1 cmd=$2 sc=$3 extra=$4
   if [ -f "findings/$name/summary.json" ]; then echo "$name: already done, skipping"; return; fi
-  git checkout -q main && git checkout -q -B "$name" main
+  git checkout -q main
+  if git rev-parse -q --verify "$name" >/dev/null; then  # keep existing branch commits (e.g. README notes)
+    git checkout -q "$name" && git merge -q --no-edit main
+  else
+    git checkout -q -b "$name" main
+  fi
   cp weights.toml campaign.toml; printf "%b" "$extra" >> campaign.toml
-  git add campaign.toml && git commit -q -m "$name: campaign config
+  git add campaign.toml && git diff --cached --quiet || git commit -q -m "$name: campaign config
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01KiiJG3o6tboGYXptjMZw65"
