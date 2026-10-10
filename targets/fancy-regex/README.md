@@ -24,3 +24,34 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END fancy-regex 1m results -->
+
+<!-- BEGIN fancy-regex 10m results -->
+### fancy-regex: 10m campaign
+
+* 4,577,312 patterns, 47 tables, 6,835 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 6,834 exception, 1 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 2 | exception | `u` | `"a"` | `"aaaaaaaaa-éK\nAσKσKΣk "` | `a(?=(?:\b\|[^A0]\|.)*)` | 08 |
+| 2 | exception | `u` | `""` | `"aaaaaéK\nAσKσKΣk "` | `(?:(?:(?:(?:(?!(?:))\|a\|a)*)?)+)+` | 08 |
+| 2 | exception | `u` | `""` | `"aaaaaaaaaaaaaaaaaAσKσKΣk "` | `(?:(?:a\|(?:)\|(?!(?:))){0,2}){0,}` | 08 |
+| 2 | exception | `u` | `"a"` | `"aaaaaAσKσKΣk "` | `(?:a(?=(?:(?:\B\|a){0,2})*))+` | 08 |
+| 2 | exception | `u` | `""` | `"aaaaaaa\nAσKσKΣk "` | `(?:(?:\B\|a\|(?:)){0,2})+` | 08 |
+| 2 | exception | `su` | `""` | `"aaaaaaaaK\nAσKσKΣk "` | `(?:(?:\B\|.)*){0,}a\|(?:)` | 08 |
+| 2 | exception | `u` | `""` | `"a.a😀ſ-😀Kı-éK\nAσKσKΣk "` | `(?:(?:\S\|\b){0,2})*` | 08 |
+| 2 | exception | `u` | `""` | `"a.a😀a😀aı-éK\nAσKσKΣk "` | `(?:(?:\b\|\S){0,2})*` | 08 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END fancy-regex 10m results -->
+
+<!-- BEGIN fancy-regex 10m triage -->
+### fancy-regex: 10-minute campaign triage
+
+* No wrong results; self-check clean; 4.6 M cases.
+* All 6,834 exceptions are `is_match` returning `Err` on long subjects with nested nullable or overlapping
+  alternatives (`a(?=(?:\b|[^A0]|.)*)` on a 20-char subject): exponential backtracking hitting fancy-regex's
+  backtrack limit (1,000,000 steps by default), a documented resource limit rather than a bug.
+<!-- END fancy-regex 10m triage -->
