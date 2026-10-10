@@ -216,7 +216,9 @@ pub const Bits = struct {
 pub fn validBits(expect: Expect, b: u8) bool {
     if (b & Bits.reserved != 0) return false;
     if (expect != .tierup and b & (Bits.test_a2 | Bits.test_r2) != 0) return false;
-    if (b & Bits.skipped != 0) return expect == .linear and b == Bits.skipped;
+    // Any engine may report a case as unsupported (e.g. lone surrogates in a host
+    // with UTF-8 strings); it is counted as skipped, never as agreement.
+    if (b & Bits.skipped != 0) return b == Bits.skipped;
     if (b & (Bits.syntax | Bits.exception) != 0) return b == Bits.syntax or b == Bits.exception;
     return true;
 }
@@ -1041,7 +1043,7 @@ test "valid bits per mode" {
     try testing.expect(validBits(.tierup, 0x11));
     try testing.expect(validBits(.linear, 0x40));
     try testing.expect(!validBits(.linear, 0x41));
-    try testing.expect(!validBits(.normal, 0x40));
+    try testing.expect(validBits(.normal, 0x40));
     try testing.expect(!validBits(.normal, 0x05));
     try testing.expect(!validBits(.normal, 0x80));
 }

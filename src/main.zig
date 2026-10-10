@@ -268,6 +268,8 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
         .store = try finding.Store.init(gpa, o.out),
         .max_cases = o.max_cases,
     };
+    // The pool must live in run.cfg: the local cfg above goes out of scope.
+    alpha.active_pool = run.cfg.poolSlice();
     // Validate every configured flag set's printed-length bound up front.
     for (run.cfg.flagSets()) |f| {
         _ = run.grammarFor(f) catch |e| {
