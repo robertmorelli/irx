@@ -53,7 +53,14 @@ pub const Config = struct {
     // [strings]
     min_len: u8 = 1,
     max_len: u8 = 8,
-    max_symbols: u8 = 15,
+    max_symbols: u8 = 31,
+    /// Fraction of draws using the long length range [long_min, long_max].
+    long_fraction: f64 = 0.25,
+    long_min: u8 = 10,
+    long_max: u8 = 30,
+    /// Character pool as code points (empty = built-in default).
+    pool: [48]u21 = [_]u21{0} ** 48,
+    n_pool: u8 = 0,
     /// 0 = A and R drawn independently; k > 0 = R is A after 1..k random
     /// code-point edits (insert/delete/substitute), so edit distance <= k.
     max_edit_distance: u8 = 0,
@@ -106,6 +113,10 @@ pub const Config = struct {
     // [sanity]
     sanity_fraction: f64 = 0.01,
 
+    pub fn poolSlice(self: *const Config) []const u21 {
+        return if (self.n_pool == 0) &alpha.default_pool else self.pool[0..self.n_pool];
+    }
+
     pub fn flagSets(self: *const Config) []const alpha.Flags {
         return self.flag_sets[0..self.n_flag_sets];
     }
@@ -121,7 +132,9 @@ pub const Config = struct {
         if (!any) return error.NoPositiveSizeWeight;
         if (self.max_size < 1) return error.InvalidMaxSize;
         if (self.min_len < 1 or self.min_len > self.max_len) return error.InvalidLength;
-        if (self.max_symbols > 15) return error.MaxSymbolsAbove15;
+        if (self.max_symbols > 31) return error.MaxSymbolsAbove31;
+        if (self.long_fraction < 0 or self.long_fraction > 1) return error.InvalidLongFraction;
+        if (self.long_fraction > 0 and (self.long_min < 1 or self.long_min > self.long_max or self.long_max > self.max_symbols)) return error.InvalidLongRange;
         if (self.n_flag_sets == 0) return error.NoFlagSets;
         if (self.max_rep_bound > 254) return error.RepBoundTooLarge;
         if (self.class_max_members > 4) return error.ClassMembersTooLarge;
@@ -285,6 +298,19 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
         }
         return error.UnknownKey;
     }
+    if (eq(u8, section, "strings") and eq(u8, key, "pool")) {
+        const arr = switch (v) {
+            .nums => |n| n,
+            else => return error.ExpectedCodePointArray,
+        };
+        if (arr.len == 0 or arr.len > cfg.pool.len) return error.BadPoolSize;
+        for (arr, 0..) |x, i| {
+            if (x < 0 or x > 0x10FFFF or x != @floor(x)) return error.BadCodePoint;
+            cfg.pool[i] = @intFromFloat(x);
+        }
+        cfg.n_pool = @intCast(arr.len);
+        return;
+    }
     if (eq(u8, section, "flags")) {
         if (!eq(u8, key, "sets")) return error.UnknownKey;
         const arr = switch (v) {
@@ -317,7 +343,7 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
 fn sectionOf(comptime name: []const u8) ?[]const u8 {
     @setEvalBranchQuota(100_000);
     const grammar = .{ "max_size", "max_rep_bound", "class_max_members", "max_pattern_bytes", "allow_diagonal_lookarounds", "usefulness_pass", "usefulness_workspace" };
-    const strings = .{ "min_len", "max_len", "max_symbols", "max_edit_distance" };
+    const strings = .{ "min_len", "max_len", "max_symbols", "max_edit_distance", "long_fraction", "long_min", "long_max" };
     const limits = .{ "max_pairs", "max_combos", "max_prods", "max_count_terms", "max_table_bytes", "max_host_bytes", "max_table_attempts", "samples_per_table", "alias_cache", "alias_arena_bytes", "max_pending_findings", "max_pending_finding_bytes" };
     const harness = .{ "batch_size", "max_request_bytes", "startup_deadline_ms", "batch_deadline_base_ms", "batch_deadline_per512_ms", "recycle_cases", "novelty_cap", "novelty_bytes", "journal_bytes", "stderr_tail_bytes" };
     const adaptive = .{ "adaptive", "adaptive_factor", "adaptive_cap" };

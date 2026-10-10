@@ -261,7 +261,7 @@ pub fn relation(comptime R: type, spec: *const AtomSpec, flags: Flags, w: []cons
 // Inventory
 
 pub const InventoryConfig = struct {
-    pool: []const u21 = &alpha.default_pool,
+    pool: []const u21 = &alpha.base_pool,
     class_max_members: u8 = 2,
 };
 

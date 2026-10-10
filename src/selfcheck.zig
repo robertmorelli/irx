@@ -85,7 +85,7 @@ pub const Checker = struct {
     pub fn buildProbes(self: *Checker, flags: Flags) !void {
         const g = try self.run.grammarFor(flags);
         var symbuf: [alpha.max_symbols * 2]u21 = undefined;
-        const pool = alpha.poolSymbols(&alpha.default_pool, flags, &symbuf);
+        const pool = alpha.poolSymbols(alpha.active_pool, flags, &symbuf);
         var subjects: std.ArrayList(finding.Subject) = .empty;
         defer subjects.deinit(self.gpa);
         for (pool) |s| {
@@ -160,7 +160,7 @@ pub const Checker = struct {
         }
         for ([_]atoms.Kind{ .caret, .dollar, .wordb, .nwordb }) |kd| {
             for (strings.items) |s| {
-                var syms: [32]u21 = undefined;
+                var syms: [64]u21 = undefined;
                 const n = alpha.decode(s.slice(), flags, &syms) orelse continue;
                 for (0..n + 1) |i| try self.addProbe(flags, .{ .kind = kd }, @intCast(i), s, empty, "assertion");
             }

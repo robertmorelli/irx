@@ -12,7 +12,7 @@ const sample = @import("sample.zig");
 const Flags = alpha.Flags;
 const Allocator = std.mem.Allocator;
 
-pub const max_units = 32;
+pub const max_units = 64;
 
 pub const Subject = struct {
     units: [max_units]u16 = undefined,

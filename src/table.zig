@@ -58,7 +58,7 @@ pub const Grammar = struct {
 
     pub fn init(gpa: Allocator, cfg: *const config.Config, flags: Flags) !Grammar {
         const W = &cfg.weights;
-        const inv = try atoms.buildInventory(gpa, .{ .class_max_members = cfg.class_max_members }, flags);
+        const inv = try atoms.buildInventory(gpa, .{ .pool = alpha.active_pool, .class_max_members = cfg.class_max_members }, flags);
         var cat_count = [_]u32{0} ** @typeInfo(atoms.Category).@"enum".fields.len;
         for (inv) |a| cat_count[@intFromEnum(atoms.category(a))] += 1;
         const aw = try gpa.alloc(f64, inv.len);
@@ -587,14 +587,15 @@ pub const BuildInput = struct {
 };
 
 pub fn build(in: BuildInput) BuildError!*Table {
-    var sa: [16]u21 = undefined;
-    var sr: [16]u21 = undefined;
+    var sa: [32]u21 = undefined;
+    var sr: [32]u21 = undefined;
     const na = alpha.decode(in.a16, in.id.flags, &sa) orelse return error.InvalidInput;
     const nr = alpha.decode(in.r16, in.id.flags, &sr) orelse return error.InvalidInput;
     if (na > in.cfg.max_symbols or nr > in.cfg.max_symbols) return error.InvalidInput;
     if (na == nr and std.mem.eql(u21, sa[0..na], sr[0..nr])) return error.InvalidInput;
     if (@max(na, nr) <= relmod.Rel8.max_len) return Builder(relmod.Rel8).run(in, sa[0..na], sr[0..nr]);
-    return Builder(relmod.Rel16).run(in, sa[0..na], sr[0..nr]);
+    if (@max(na, nr) <= relmod.Rel16.max_len) return Builder(relmod.Rel16).run(in, sa[0..na], sr[0..nr]);
+    return Builder(relmod.Rel32).run(in, sa[0..na], sr[0..nr]);
 }
 
 fn Builder(comptime R: type) type {

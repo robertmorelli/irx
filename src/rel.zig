@@ -4,7 +4,7 @@
 const std = @import("std");
 
 pub fn Rel(comptime N: comptime_int) type {
-    comptime std.debug.assert(N == 8 or N == 16);
+    comptime std.debug.assert(N == 8 or N == 16 or N == 32);
     return struct {
         const Self = @This();
         pub const Row = std.meta.Int(.unsigned, N);
@@ -150,6 +150,7 @@ pub fn Rel(comptime N: comptime_int) type {
 
 pub const Rel8 = Rel(8);
 pub const Rel16 = Rel(16);
+pub const Rel32 = Rel(32);
 
 const testing = std.testing;
 

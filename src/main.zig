@@ -198,6 +198,7 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     var cfg: config.Config = undefined;
     var cfg_text: []const u8 = "";
     loadConfig(gpa, o, &cfg, &cfg_text);
+    alpha.active_pool = cfg.poolSlice();
 
     try sys.mkdirp(o.out);
     var pb: [4096]u8 = undefined;

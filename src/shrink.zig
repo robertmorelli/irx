@@ -375,13 +375,13 @@ pub const Triage = struct {
         defer cand.pattern.deinit(self.gpa);
         for ([_]bool{ true, false }) |which_a| {
             const subj = if (which_a) &c.a else &c.r;
-            var syms: [32]u21 = undefined;
+            var syms: [64]u21 = undefined;
             const n = alpha.decode(subj.slice(), c.flags, &syms) orelse continue;
             var i: usize = 0;
             while (i < n) : (i += 1) {
                 // drop symbol i, then replace it with 'a'
                 for ([_]bool{ true, false }) |drop| {
-                    var tmp: [32]u21 = undefined;
+                    var tmp: [64]u21 = undefined;
                     var m: usize = 0;
                     for (syms[0..n], 0..) |s, j| {
                         if (j == i) {

@@ -130,13 +130,13 @@ pub fn quantRel(comptime R: type, r: R, q: QuantSpec, dim: usize) R {
 
 /// Full-match oracle for one subject: (0, n) ∈ rel.
 pub fn fullMatch(t: *const Ast, flags: Flags, w: []const u21) bool {
-    const r = evalRel(relmod.Rel16, t, t.root, flags, w);
-    return r.get(0, w.len);
+    if (w.len <= relmod.Rel16.max_len) return evalRel(relmod.Rel16, t, t.root, flags, w).get(0, w.len);
+    return evalRel(relmod.Rel32, t, t.root, flags, w).get(0, w.len);
 }
 
 /// Decode a UTF-16 subject for `flags` and evaluate the oracle. Null if too long.
 pub fn oracle(t: *const Ast, flags: Flags, subject: []const u16) ?bool {
-    var syms: [15]u21 = undefined;
+    var syms: [31]u21 = undefined;
     const n = alpha.decode(subject, flags, &syms) orelse return null;
     return fullMatch(t, flags, syms[0..n]);
 }
@@ -440,7 +440,7 @@ test "relation model agrees with backtracking matcher" {
         const inv = try atoms.buildInventory(gpa, .{}, flags);
         defer gpa.free(inv);
         var symbuf: [alpha.max_symbols * 2]u21 = undefined;
-        const pool = alpha.poolSymbols(&alpha.default_pool, flags, &symbuf);
+        const pool = alpha.poolSymbols(alpha.active_pool, flags, &symbuf);
         for (0..400) |_| {
             var t: Ast = .{};
             t.root = try randomTree(&t, rnd, inv, rnd.intRangeAtMost(usize, 1, 12));

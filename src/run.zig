@@ -178,18 +178,22 @@ pub const Run = struct {
     // ------------------------------------------------------------------
     // Table building
 
-    fn drawCodePoints(self: *Run, rng: *rngmod.Rng, out: *[32]u21) usize {
-        const len = self.cfg.min_len + @as(u8, @intCast(rng.below(@as(u64, self.cfg.max_len - self.cfg.min_len) + 1)));
-        for (0..len) |i| out[i] = alpha.default_pool[rng.below(alpha.default_pool.len)];
+    fn drawCodePoints(self: *Run, rng: *rngmod.Rng, out: *[64]u21) usize {
+        const c = &self.cfg;
+        const long = c.long_fraction > 0 and rng.float() < c.long_fraction;
+        const lo: u8 = if (long) c.long_min else c.min_len;
+        const hi: u8 = if (long) c.long_max else c.max_len;
+        const len = lo + @as(u8, @intCast(rng.below(@as(u64, hi - lo) + 1)));
+        for (0..len) |i| out[i] = alpha.active_pool[rng.below(alpha.active_pool.len)];
         return len;
     }
 
     /// Encode code points, enforcing the decoded-length cap for `flags`.
     fn encodeSubject(self: *Run, cps: []const u21, flags: alpha.Flags, out: *finding.Subject) bool {
         if (cps.len == 0 and self.cfg.min_len > 0) return false;
-        var units: [64]u16 = undefined;
+        var units: [128]u16 = undefined;
         const n = alpha.toUtf16(cps, &units);
-        var syms: [64]u21 = undefined;
+        var syms: [128]u21 = undefined;
         const ns = alpha.decode(units[0..n], flags, &syms) orelse return false;
         if (ns > self.cfg.max_symbols or n > finding.max_units) return false;
         out.set(units[0..n]);
@@ -208,8 +212,8 @@ pub const Run = struct {
         var draws: usize = 0;
         while (true) : (draws += 1) {
             if (draws > 1000) return .invalid;
-            var ca: [32]u21 = undefined;
-            var cr: [32]u21 = undefined;
+            var ca: [64]u21 = undefined;
+            var cr: [64]u21 = undefined;
             const na = self.drawCodePoints(&rng, &ca);
             const nr = if (self.cfg.max_edit_distance == 0)
                 self.drawCodePoints(&rng, &cr)
@@ -432,12 +436,12 @@ pub const Run = struct {
 
 /// R = A after 1..k random code-point edits (insert, delete, substitute from
 /// the pool), so Levenshtein(A, R) <= k. Returns R's length.
-pub fn editPair(rng: *rngmod.Rng, a: []const u21, out: *[32]u21, k: u8) usize {
+pub fn editPair(rng: *rngmod.Rng, a: []const u21, out: *[64]u21, k: u8) usize {
     var n = a.len;
     @memcpy(out[0..n], a);
     const edits = 1 + rng.below(k);
     for (0..edits) |_| {
-        const pool = alpha.default_pool;
+        const pool = alpha.active_pool;
         const op = rng.below(3);
         if (op == 0 and n < out.len) { // insert
             const at = rng.below(n + 1);
@@ -456,8 +460,8 @@ pub fn editPair(rng: *rngmod.Rng, a: []const u21, out: *[32]u21, k: u8) usize {
 }
 
 fn levenshtein(a: []const u21, b: []const u21) usize {
-    var prev: [33]usize = undefined;
-    var cur: [33]usize = undefined;
+    var prev: [65]usize = undefined;
+    var cur: [65]usize = undefined;
     for (0..b.len + 1) |j| prev[j] = j;
     for (a, 0..) |x, i| {
         cur[0] = i + 1;
@@ -470,10 +474,10 @@ fn levenshtein(a: []const u21, b: []const u21) usize {
 test "editPair keeps edit distance within k" {
     var rng = rngmod.Rng.fromParts(3, &.{});
     for (0..2000) |i| {
-        var a: [32]u21 = undefined;
+        var a: [64]u21 = undefined;
         const na = 1 + rng.below(8);
         for (0..na) |j| a[j] = alpha.default_pool[rng.below(alpha.default_pool.len)];
-        var r: [32]u21 = undefined;
+        var r: [64]u21 = undefined;
         const k: u8 = @intCast(1 + i % 3);
         const nr = editPair(&rng, a[0..na], &r, k);
         try std.testing.expect(levenshtein(a[0..na], r[0..nr]) <= k);

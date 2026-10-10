@@ -81,9 +81,15 @@ pub const all_flag_sets: [24]Flags = blk: {
 pub const astral_char: u21 = 0x1F600;
 
 /// Default pool, as code points. Order is the canonical printing/mask order.
-pub const default_pool = [_]u21{ 'a', 'b', 'k', 's', 'A', 'K', 'S', '0', '_', ' ', '\n', 0x017F, 0x212A, 0x2028, astral_char };
+/// Original 15-symbol pool.
+pub const base_pool = [_]u21{ 'a', 'b', 'k', 's', 'A', 'K', 'S', '0', '_', ' ', '\n', 0x017F, 0x212A, 0x2028, astral_char };
+/// Default pool: base plus Latin-1 and other characters with tricky case or
+/// escaping behaviour (à é ß İ ı σ ς Σ, CR, '-', '.').
+pub const default_pool = base_pool ++ [_]u21{ 0xE0, 0xE9, 0xDF, 0x130, 0x131, 0x3C3, 0x3C2, 0x3A3, '\r', '-', '.' };
+/// Active pool (set from the config at startup).
+pub var active_pool: []const u21 = &default_pool;
 
-pub const max_symbols = 16;
+pub const max_symbols = 32;
 
 /// Pool symbols as decoded in the given mode: the astral char becomes its
 /// two surrogate halves without u/v.
