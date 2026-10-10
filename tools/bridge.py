@@ -35,6 +35,9 @@ def main():
                 continue
             with open(path, "w", encoding="utf-8") as f:
                 f.write("var __IRX_BATCH = " + json.dumps(line) + ";\n")
+                # Also as an object literal: JSON is valid JS, and string literals accept lone
+                # surrogate escapes even where JSON.parse wrongly rejects them (Boa).
+                f.write("var __IRX_BATCH_OBJ = " + line + ";\n")
                 f.write("var __IRX_MODE = " + json.dumps(mode) + ";\n")
                 f.write(core)
             # The shell stays in the bridge's process group, so the harness's

@@ -66,7 +66,7 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
     var line = read();
     if (line === null || line === undefined) break;
     if (line.length === 0) continue;
-    var msg = JSON.parse(line);
+    var msg = (bridge && typeof __IRX_BATCH_OBJ !== "undefined") ? __IRX_BATCH_OBJ : JSON.parse(line);
     var seq = msg[0], cases = msg[1];
     var parts = new Array(cases.length);
     for (var i = 0; i < cases.length; i++) {
