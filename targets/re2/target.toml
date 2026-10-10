@@ -5,12 +5,6 @@
 title = "RE2"
 kind = "shell"   # d8 | perl | shell
 command = "{root}/hosts/bin/re2_host {mode}"
-dialect = "perl"   # src/dialects/
+dialect = "re2"   # src/dialects/
 selfcheck = true
 
-# config overlay (merged over weights.toml)
-[weights]
-lookahead = 0
-neg_lookahead = 0
-lookbehind = 0
-neg_lookbehind = 0

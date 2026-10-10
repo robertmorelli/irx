@@ -179,7 +179,20 @@ fn compile(spec: *const AtomSpec, flags: Flags, ar: *SetArena) Compiled {
         // Atom :: PatternCharacter / escaped char: singleton, no folding at compile time.
         .lit => return .{ .root = ar.add(.{ .kind = .list, .syms = spec.syms[0..1] }), .invert = false },
         .dot => return .{ .root = ar.add(.{ .kind = .dotset }), .invert = false },
-        .esc => return .{ .root = escSet(ar, @enumFromInt(spec.sub), flags), .invert = false },
+        .esc => {
+            const e: Esc = @enumFromInt(spec.sub);
+            if (dialect.active.negated_escapes_invert) {
+                // \W, \D, \S as (positive set, invert): negation after case folding.
+                const pos: Esc = switch (e) {
+                    .W => .w,
+                    .D => .d,
+                    .S => .s,
+                    else => e,
+                };
+                return .{ .root = escSet(ar, pos, flags), .invert = pos != e };
+            }
+            return .{ .root = escSet(ar, e, flags), .invert = false };
+        },
         .range, .cls => {
             var contents: *const SetNode = if (spec.kind == .range)
                 ar.add(.{ .kind = .range, .lo = spec.syms[0], .hi = spec.syms[1] })

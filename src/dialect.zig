@@ -62,6 +62,9 @@ pub const Dialect = struct {
     named_group: NamedGroup = .angle,
     word_boundary: []const u8 = "\\b",
     nonword_boundary: []const u8 = "\\B",
+    /// \W \D \S negate after case folding (no case variant is in the positive
+    /// set) instead of complementing before folding as ECMAScript does.
+    negated_escapes_invert: bool = false,
     /// Grammar restrictions for constructs the engine does not support.
     allow_lookahead: bool = true,
     allow_lookbehind: bool = true,
@@ -81,7 +84,9 @@ pub const perl = @import("dialects/perl.zig").dialect;
 pub const swift = @import("dialects/swift.zig").dialect;
 pub const rust = @import("dialects/rust.zig").dialect;
 pub const fancy = @import("dialects/rust.zig").fancy;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy };
+pub const re2 = @import("dialects/re2.zig").dialect;
+pub const go = @import("dialects/re2.zig").go;
+pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
