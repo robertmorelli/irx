@@ -792,12 +792,13 @@ fn cmdTriage(gpa: Allocator, o: *const Options) !u8 {
         const cp = try std.fmt.allocPrint(gpa, "{s}/config.toml", .{o.out});
         if (sys.fileExists(cp)) opts.config_path = cp;
     }
-    opts.modes = "interp";
+    opts.modes = if (o.perl != null) "perl" else "interp";
     const s = try setup(gpa, &opts, true);
     const run = s.run;
-    // Make every mode available to triage (findings name their own mode).
+    // Make every mode of the target engine available (findings name their own mode).
+    const want: harness.Engine = if (o.perl != null) .perl else .d8;
     var all: std.ArrayList(*const harness.ModeSpec) = .empty;
-    for (&harness.builtin_modes) |*m| if (m.engine == .d8) try all.append(gpa, m);
+    for (&harness.builtin_modes) |*m| if (m.engine == want) try all.append(gpa, m);
     run.modes = all.items;
     var b: [4096]u8 = undefined;
     const fdir = try std.fmt.bufPrint(&b, "{s}/findings", .{o.out});
