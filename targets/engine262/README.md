@@ -24,3 +24,34 @@ Counts are distinct findings; one bug produces many distinct regexes. Shapes wer
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END engine262 1m results -->
+
+<!-- BEGIN engine262 10m results -->
+### engine262: 10m campaign
+
+* 729,184 patterns, 9 tables, 110,703 distinct findings
+* findings by kind: 97,356 wrong_result, 13,223 syntax_error, 124 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 2 | syntax_error | `v` | `"aΣ"` | `""` | `a[^[a-c]--\u{212A}]` | 04 |
+| 1 | syntax_error | `v` | `"aaΣ"` | `""` | `aa[^[a-z]--\u{17F}]` | 04 |
+| 1 | syntax_error | `v` | `"a"` | `""` | `(?:[^k--\u{17F}]\|(?:))a` | 04 |
+| 1 | syntax_error | `v` | `"aa"` | `""` | `a[^s--\u{212A}]` | 04 |
+| 1 | wrong_result | `v` | `"K"` | `""` | `[^[^a]&&\d]` | 00 |
+| 1 | syntax_error | `v` | `""` | `"aa"` | `[^[A-Z]&&\u{212A}]\|(?:)` | 04 |
+| 1 | syntax_error | `v` | `"aaa"` | `""` | `[^\s--\u{17F}]aa` | 04 |
+| 1 | syntax_error | `v` | `"a"` | `""` | `(?:[^s--\u{212A}]\|(?:))a` | 04 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END engine262 10m results -->
+
+<!-- BEGIN engine262 10m triage -->
+### engine262: 10-minute campaign triage
+
+* Nothing new. Every finding uses the `v` flag: the 13,223 syntax errors are IRX-E262-1 (`\u{…}` operand in a
+  class set operation) and the 97,356 wrong results are IRX-E262-2 (negated classes whose contents are set
+  operations, e.g. `[^\W&&s]` misses `"é"`).
+* 124 timeouts; engine262 is a spec interpreter (~1,200 cases/s).
+<!-- END engine262 10m triage -->
