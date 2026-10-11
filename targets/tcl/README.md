@@ -24,3 +24,20 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END tcl 1m results -->
+
+<!-- BEGIN tcl 10m results -->
+### Tcl ARE: 10m campaign
+
+* 1,050,176 patterns, 12 tables, 1,101 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 1,101 timeout (batch)
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END tcl 10m results -->
+
+<!-- BEGIN tcl 10m triage -->
+### tcl: 10-minute campaign triage
+
+* No wrong results; self-check clean (after the `\A…\Z` host fix); 1.05 M cases.
+* 1,101 timeouts, none reproducible: a recorded batch replays in 1.6 s against the 4 s deadline, and no case
+  takes more than 0.6 s. Load-induced; a larger `batch_deadline_per512_ms` would help.
+<!-- END tcl 10m triage -->
