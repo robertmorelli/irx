@@ -56,3 +56,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   classes with `ſ` miss `İ`, `é`, ...; most wrong results and the 1,344 self-check mismatches).
 * No timeouts; 11.2 M cases.
 <!-- END racket 10m triage -->
+
+<!-- BEGIN racket 5m results -->
+### Racket #px: 5m campaign
+
+* 1,510,752 patterns, 17 tables, 16,085 distinct findings; self-check 339,984 probes, 1,344 mismatches, 0 engine failures
+* findings by kind: 9,246 wrong_result, 6,205 wrong_span, 384 timeout (batch), 250 syntax_error, 125 selfcheck_mismatch (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 54 | wrong_result | `u` | `"ß"` | `"aa"` | `[^ \x{17F}]` | 00 |
+| 41 | wrong_span | `u` | `""` | `"aKa"` | `\B` | 03 |
+| 19 | wrong_span | `u` | `"ß"` | `"aa"` | `[^ \x{17F}]` | 00 |
+| 11 | wrong_result | `u` | `"ß"` | `""` | `[^ \x{17F}]` | 00 |
+| 9 | syntax_error | `u` | `""` | `"a"` | `(?:)(?:)` | 04 |
+| 8 | wrong_span | `u` | `""` | `"Σ"` | `(?:.(?<!.))*` | 03 |
+| 8 | wrong_span | `u` | `"é"` | `"éa"` | `[^_\x{17F}]` | 02 |
+| 6 | wrong_result | `u` | `"aaßaaaaa"` | `"aaa"` | `(?:[^ \x{17F}]a)+` | 00 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END racket 5m results -->

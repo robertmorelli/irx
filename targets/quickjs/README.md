@@ -66,3 +66,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   a class in `v` mode is rejected.
 * No wrong results. 1,724 timeouts: backtracking blowups, not investigated.
 <!-- END quickjs 10m triage -->
+
+<!-- BEGIN quickjs 5m results -->
+### QuickJS: 5m campaign
+
+* 1,604,096 patterns, 18 tables, 18,390 distinct findings; self-check 1,628,352 probes, 392 mismatches, 0 engine failures
+* findings by kind: 17,949 syntax_error, 441 timeout (batch), 172 syntax_error (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 846 | syntax_error | `v` | `"a"` | `""` | `a\|-` | 04 |
+| 796 | syntax_error | `v` | `"a"` | `""` | `-\|a` | 04 |
+| 310 | syntax_error | `v` | `""` | `"a"` | `\|-` | 04 |
+| 296 | syntax_error | `v` | `""` | `"a"` | `-*` | 04 |
+| 279 | syntax_error | `v` | `""` | `"a"` | `(?:)\|-` | 04 |
+| 273 | syntax_error | `v` | `""` | `"a"` | `-\|` | 04 |
+| 260 | syntax_error | `v` | `""` | `"a"` | `-\|()` | 04 |
+| 259 | syntax_error | `v` | `""` | `"a"` | `()\|-` | 04 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END quickjs 5m results -->

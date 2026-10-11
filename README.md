@@ -119,7 +119,7 @@ OUT/summary.json        end-of-run totals
 About 15 million patterns (roughly 50–60 million regex executions across 3–6 d8 modes) against
 V8 15.5.35.20 (Homebrew d8) produced three wrong-result candidates. All reproduce in fresh processes and
 were minimized by the fuzzer's own triage. None has been checked against current V8 main or Chrome, and
-none has been reported upstream; per the spec they are reproduced candidates, not confirmed V8 bugs.
+IRX-V8-2 and IRX-V8-3 have user-provided Chromium issue links in the bug ledger below; the issue contents could not be checked here. The others remain unreported candidates.
 
 | # | Minimized repro | d8 15.5 | Correct (ES spec) | Notes |
 |---|---|---|---|---|
@@ -173,7 +173,7 @@ edit-distance-5 campaign (`[strings] max_edit_distance = 5`).
 Two sources: bugs found by this inverted-pair fuzzer (irx), and bugs found earlier by differential fuzzing in
 the sibling repo [`../regex_comparison`](../regex_comparison/bugs/BUGS.md) (imported 2026-10-09; IDs link to
 that repo's write-ups, which hold full repros and upstream-search notes). None of the irx findings has been
-reported upstream yet. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.0) are fuzzed on the
+reported upstream except IRX-V8-2 and IRX-V8-3 (user-provided issue links below). Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.0) are fuzzed on the
 `node`/`deno` branches but excluded from this ledger: d8 15.5 is the up-to-date V8 target.
 
 ### Found by irx
@@ -181,8 +181,8 @@ reported upstream yet. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.
 | ID | Engine (version tested) | Kind | Minimized repro | Correct | Notes |
 |---|---|---|---|---|---|
 | IRX-V8-1 | V8 15.5.35.20 (d8) | wrong result | `/(?:.*?B^\|a)/s.test("a")` → `false` | `true` | quick-check family; fixed by `--no-regexp-quick-check` and `--no-regexp-optimization`. Same family as [V8-3](../regex_comparison/bugs/BUGS.md#v8-3) |
-| IRX-V8-2 | V8 15.5.35.20 (d8) | wrong result | `/^(?:.*?a^)*$/s.test("")` → `false` | `true` | fixed by `--no-regexp-quick-check`, not by `--no-regexp-optimization` |
-| IRX-V8-3 | V8 15.5.35.20 (d8) | wrong result | `/(?<![\s\S])(?:(?:^)*)(?![\s\S])/mu.test("😀")` → `true` | `false` | match starts inside a surrogate pair; related to [V8-1](../regex_comparison/bugs/BUGS.md#v8-1) / [V8-2](../regex_comparison/bugs/BUGS.md#v8-2) |
+| IRX-V8-2 | V8 15.5.35.20 (d8) | wrong result | `/^(?:.*?a^)*$/s.test("")` → `false` | `true` | [Chromium #572154295](https://issues.chromium.org/issues/572154295), user-provided link (mapping inferred from filing order); fixed by `--no-regexp-quick-check`, not by `--no-regexp-optimization` |
+| IRX-V8-3 | V8 15.5.35.20 (d8) | wrong result | `/(?<![\s\S])(?:(?:^)*)(?![\s\S])/mu.test("😀")` → `true` | `false` | [Chromium #572331418](https://issues.chromium.org/issues/572331418), user-provided link (mapping inferred from filing order); match starts inside a surrogate pair; related to [V8-1](../regex_comparison/bugs/BUGS.md#v8-1) / [V8-2](../regex_comparison/bugs/BUGS.md#v8-2) |
 | IRX-PERL-1 | Perl 5.34.1, 5.44.0, blead 5.45.4 | wrong result | `"0a" =~ /\A(?=a*)[0-9]a\z/` → false | true | optimizer builds an empty start class (`re 'debug'`: `synthetic stclass "ANYOF[]"`); also in loops: `"b" =~ /\A(?:(?=a*).)+\z/` |
 | IRX-PERL-2 | Perl 5.34.1, 5.44.0, blead 5.45.4 | wrong result | `"a" =~ /\A^\ba*\z/m` → false | true | needs `\A`, `/m` `^`, `\b` and a quantified atom together |
 | IRX-XS-1 | XS (jsvu, Moddable) | rejects valid pattern | `new RegExp("[]", "v")`, `new RegExp("[^]", "v")` → SyntaxError | accepted (ES2024) | empty `ClassContents` is legal in UnicodeSets mode |
@@ -275,7 +275,7 @@ reported upstream yet. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.
 | [RUBY-2](../regex_comparison/bugs/BUGS.md#ruby-2) | Onigmo (Ruby) | ❌ open | wrong result | [bugs.ruby-lang.org](https://bugs.ruby-lang.org/issues/22418) | `(?:a(?:()\|b){1,3}){2}` misses `"aa"`: a `{m,n}` loop (n ≥ 3) over an empty capture group or `b`, inside an outer loop, won't take the empty branch again; `{1,2}` and a plain empty branch are right |
 | [DOTNET-3](../regex_comparison/bugs/BUGS.md#dotnet-3) | .NET Regex (interpreter) | ✅ fixed in .NET 11 RC 1 (still in 10.0.12), filed [#135330](https://github.com/dotnet/runtime/issues/135330) | wrong result | [#135330](https://github.com/dotnet/runtime/issues/135330) | `(?:(?:\|,)(?:w\|)+?7){3}z` misses `"7,7,7z"`: exact repeat containing a lazy possibly-empty loop; Compiled is correct |
 | [DOTNET-5](../regex_comparison/bugs/BUGS.md#dotnet-5) | .NET Regex (interpreter) | ✅ fixed in .NET 11 RC 1 (still in 10.0.12), filed [#135331](https://github.com/dotnet/runtime/issues/135331) | **wrong result, invalid span** | [#135331](https://github.com/dotnet/runtime/issues/135331) | `(?:(?:a\|)+?b){2}` "matches" `"ab"` at Index=2, Length=1 (past the end of the string); `.Value` throws, `Replace` crashes |
-| [V8-1](../regex_comparison/bugs/BUGS.md#v8-1) | V8 (Node, Deno) | ❌ open, **partially fixed** | wrong result | not filed | `/[^a]$/u.test("😀")` is fixed in Chrome 155, but `/[\u{10000}-\u{10FFFF}]$/u.test("\u{115D3}")` still fails there. Node 26 reproduces both |
+| [V8-1](../regex_comparison/bugs/BUGS.md#v8-1) | V8 (Node, Deno) | ❌ open, **partially fixed** | wrong result | [#572331419](https://issues.chromium.org/issues/572331419) (mapping inferred from filing order) | `/[^a]$/u.test("😀")` is fixed in Chrome 155, but `/[\u{10000}-\u{10FFFF}]$/u.test("\u{115D3}")` still fails there. Node 26 reproduces both |
 | [V8-3](../regex_comparison/bugs/BUGS.md#v8-3) | V8 (Node, Deno) | ❌ open, **regression** | wrong result | [#571450188](https://issues.chromium.org/issues/571450188) | `/[\s\S]*?x^\|/.test("")` is false: a lazy match-anything class, a literal and `^` sink the whole regex. Node 25 is correct |
 | [V8-2](../regex_comparison/bugs/BUGS.md#v8-2) | V8 (Node, Deno) | ✅ resolved in Chrome 155; older V8 still affected | wrong result | not filed | with `/u` or `/v`, V8 tried match positions inside surrogate pairs; all six recorded cases pass in Chrome 155 |
 | [ICU-1](../regex_comparison/bugs/BUGS.md#icu-1) | ICU (`NSRegularExpression`) | ❌ open | wrong result | not filed | `(?:X*?)+?Y` doesn't match `"XY"`: a lazy loop over a lazy, possibly-empty body gives up |
@@ -342,7 +342,7 @@ dialect gaps rather than bugs. Structural matchers (CSS, DOM, FileCheck, macros,
 | Java `java.util.regex` | [`java`](targets/java) | `hosts/java` | `java`: Java line ends, `lower(upper())` fold, range rule (exact) | IRX-JAVA-1…3 |
 | nim-regex | [`nim-regex`](targets/nim-regex) | `hosts/nim` | `nim`: `(?P<…>)`, end-only `$`, case partners in ranges (exact) | NIM-1, NIM-3, NIM-6 rediscovered |
 | Tcl ARE | [`tcl`](targets/tcl) | `hosts/script/tcl_host.tcl` | `tcl`: `\y`, L\|Nd\|Pc words, `-linestop` negations, {p, upper, lower} nocase (exact) | IRX-TCL-1 |
-| Racket `#px` | [`racket`](targets/racket) | `hosts/racket` | `racket`: ASCII classes, multi-mode `.`, asymmetric fold, `?`-only nullable quantifiers (exact) | IRX-RACKET-1, 2; RACKET-1, 2 rediscovered |
+| Racket `#px` | [`racket`](targets/racket) | `hosts/racket` | `racket`: ASCII classes, multi-mode `.`, asymmetric fold, `?`-only nullable quantifiers (exact) | IRX-RACKET-1, 2; RACKET-1…3 rediscovered (RACKET-3 by span mode) |
 | Emacs Lisp | [`emacs`](targets/emacs) | `hosts/emacs` (translator) | `emacs`: dumped syntax/script/case tables, edge and script-change `\b` (exact) | IRX-EMACS-1 |
 | Vectorscan (Hyperscan) | [`vectorscan`](targets/vectorscan) | `hosts/c/hs_host` | `vectorscan`: UCP classes, no anchors or `\b` (exact) | 0 self-check mismatches; ~70 ms per compile |
 | LLVM `Regex` (POSIX ERE) | [`llvm-regex`](targets/llvm-regex) | `hosts/c/llvm_host` (translator) | `llvm`: ASCII-only model of a byte engine (exact) | IRX-LLVM-1, 2 |
