@@ -327,7 +327,7 @@ dialect gaps rather than bugs. Structural matchers (CSS, DOM, FileCheck, macros,
 | V8 14.1 / 15.0 (Node, Deno) | [`node`](targets/node), [`deno`](targets/deno) | `driver.js` | ES2024 | older V8; excluded from the ledger |
 | Perl 5.44 / blead | [`perl`](targets/perl) | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1, 2 |
 | PCRE2 10.49 | [`pcre2`](targets/pcre2) | `hosts/c/pcre2_host` | Perl (exact) | IRX-PCRE2-1, 3 (JIT), IRX-PCRE2-2 |
-| PHP 8.5 `preg_*` | [`php-pcre2`](targets/php-pcre2) | `hosts/script/php_host.php` | Perl (exact) | IRX-PCRE2-1 |
+| PHP 8.5 `preg_*` | [`php-pcre2`](targets/php-pcre2) | `hosts/script/php_host.php` | Perl (exact) | IRX-PCRE2-1…3 |
 | Swift Regex 6.4 | [`swift-regex`](targets/swift-regex) | `hosts/swift` (scalar semantics) | Swift (exact) | IRX-SWIFT-1…3 |
 | .NET 9 interpreter / Compiled / NonBacktracking | [`dotnet-interp`](targets/dotnet-interp), [`dotnet-compiled`](targets/dotnet-compiled), [`dotnet-nonbacktracking`](targets/dotnet-nonbacktracking) | `hosts/dotnet` | `dotnet` / `dotnet-nonbacktracking`: UTF-16 units, `\w` = L\|Mn\|Nd\|Pc (exact) | IRX-DOTNET-1…8 |
 | ICU (`NSRegularExpression`) | [`icu`](targets/icu) | `hosts/swift` | `icu`: UTS #18 classes, Unicode line ends, CRLF `$` (exact) | IRX-ICU-1 |
