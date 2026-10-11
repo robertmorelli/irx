@@ -36,12 +36,25 @@ def field(text, key):
 
 
 def signature(case):
+    """Coarse: kind, mode family, flag class, and which risky constructs appear (a few hundred
+    groups per run, so rare combinations still get sampled)."""
     ast = field(case, "ast")
     toks = set(re.findall(r"[a-z_]+", ast))
-    feats = [f for f in FEATURES if f in toks]
-    lazy = " lazy" if re.search(r"\(quant \w+ \d+ \d+ 1 ", ast) else ""
+    feats = []
+    if toks & {"look_ahead", "neg_look_ahead"}: feats.append("lookahead")
+    if toks & {"look_behind", "neg_look_behind"}: feats.append("lookbehind")
+    if toks & {"group_cap", "group_named"}: feats.append("capture")
+    if re.search(r"\(quant \w+ \d+ \d+ 1 ", ast): feats.append("lazy")
+    if toks & {"range", "open", "exact"}: feats.append("counted")
+    if re.search(r"\(quant [^()]*\((?:[^()]|\([^()]*\))*\(quant", ast): feats.append("nested")
+    if toks & {"caret", "dollar"}: feats.append("anchor")
+    if toks & {"wordb", "nwordb"}: feats.append("wordb")
+    if "empty" in toks: feats.append("empty")
+    if "vset" in toks: feats.append("vset")
+    fl = field(case, "flags")
+    fclass = ("v" if "v" in fl else "u" if "u" in fl else "-") + ("i" if "i" in fl else "") + ("m" if "m" in fl else "") + ("s" if "s" in fl else "")
     mode = field(case, "mode")
-    return (field(case, "kind"), mode.split("-")[-1] if "-" in mode else "full", field(case, "flags"), " ".join(feats) + lazy)
+    return (field(case, "kind"), mode.split("-")[-1] if "-" in mode else "full", fclass, " ".join(feats))
 
 
 def shapes(fdir):
