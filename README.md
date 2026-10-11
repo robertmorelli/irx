@@ -66,7 +66,7 @@ A campaign's configuration is [`weights.toml`](weights.toml) followed by the tar
 |---|---|---|
 | `[weights]` | how often each construct is generated | concat 4, alt 1.5, atoms 0.7–1, `(?:)` 0.2, quantifiers 0.08–0.25 (lazy ×0.5), lookarounds 0.4, groups 0.03–0.05 |
 | `[sizes]` | pattern size (tree nodes) | uniform over 4–24 |
-| `[strings]` | subjects A and R | 1–8 code points (25% of draws: 10–30), at most 31 decoded symbols; R = A after 1–5 edits; 26-character pool |
+| `[strings]` | subjects A and R | 0–8 code points (empty subjects included), at most 31 decoded symbols; R = A after 1–5 edits; 26-character pool |
 | `[flags]` | flag sets, one per table | 24 sets over `i m s u v` (JS `u`/`v`; other dialects ignore or map them) |
 | `[grammar]` | grammar shape | max size 24, counted repeats up to 3, classes of up to 2 members |
 | `[limits]` | table and memory budgets | 1 GiB per table, 4 GiB host, 100k samples per table |

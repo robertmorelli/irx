@@ -36,10 +36,10 @@ named_group = 0.03
 uniform = [4, 24]     # or: weights = [D(1), D(2), ...]
 
 [strings]
-min_len = 1
+min_len = 0            # empty subjects are drawn too
 max_len = 8
 max_symbols = 31
-long_fraction = 0.25   # share of draws using the long range below
+long_fraction = 0      # share of draws using the long range below (off: lengths are 0-8)
 long_min = 10
 long_max = 30
 # pool = [0x61, 0x62, ...]   # code points; default = base pool + à é ß İ ı σ ς Σ \r - .

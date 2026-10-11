@@ -151,7 +151,7 @@ pub const Config = struct {
         }
         if (!any) return error.NoPositiveSizeWeight;
         if (self.max_size < 1) return error.InvalidMaxSize;
-        if (self.min_len < 1 or self.min_len > self.max_len) return error.InvalidLength;
+        if (self.min_len > self.max_len) return error.InvalidLength;
         if (self.max_symbols > 31) return error.MaxSymbolsAbove31;
         if (self.long_fraction < 0 or self.long_fraction > 1) return error.InvalidLongFraction;
         if (self.long_fraction > 0 and (self.long_min < 1 or self.long_min > self.long_max or self.long_max > self.max_symbols)) return error.InvalidLongRange;
