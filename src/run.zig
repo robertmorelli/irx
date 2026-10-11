@@ -322,7 +322,8 @@ pub const Run = struct {
     }
 
     /// Acquire a strong table reference and up to `want` cases of its quota.
-    pub fn acquire(self: *Run, want: u64) ?struct { tab: *Table, n: u64 } {
+    /// The next chunk of the current table: cases [start, start + n).
+    pub fn acquire(self: *Run, want: u64) ?struct { tab: *Table, n: u64, start: u64 } {
         self.tmutex.lock();
         defer self.tmutex.unlock();
         const t_wait = sys.nowNs();
@@ -332,9 +333,10 @@ pub const Run = struct {
             if (self.current) |cur| {
                 if (self.served < self.cfg.samples_per_table) {
                     const n = @min(want, self.cfg.samples_per_table - self.served);
+                    const start = self.served;
                     self.served += n;
                     cur.acquire();
-                    return .{ .tab = cur, .n = n };
+                    return .{ .tab = cur, .n = n, .start = start };
                 }
                 if (self.replacement) |rep| {
                     self.current = rep;

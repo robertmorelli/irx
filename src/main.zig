@@ -278,6 +278,7 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     };
     // The pool must live in run.cfg: the local cfg above goes out of scope.
     alpha.active_pool = run.cfg.poolSlice();
+    run.store.max_per_group = run.cfg.max_findings_per_group;
     // Validate every configured flag set's printed-length bound up front.
     for (run.cfg.flagSets()) |f| {
         _ = run.grammarFor(f) catch |e| {
@@ -556,10 +557,16 @@ fn cmdFuzz(gpa: Allocator, o: *const Options) !u8 {
     triage.deinit();
     run.shutdownTables();
     statsLine(run, t_start, &last_cases, &last_t);
+    run.store.writeGroupCounts() catch {};
+    if (!run.cfg.keep_journals) {
+        // The run is reproducible from its seed; journals were only for sequence replay.
+        var jb: [4096]u8 = undefined;
+        if (std.fmt.bufPrint(&jb, "{s}/journals", .{run.out_dir})) |jd| sys.removeFlatDir(jd) else |_| {}
+    }
 
     var sumb: std.ArrayList(u8) = .empty;
-    try sumb.print(gpa, "{{\"cases\": {d}, \"batches\": {d}, \"findings\": {d}, \"distinct_findings\": {d}, \"coalesced\": {d}, \"triaged\": {d}, \"reproduced\": {d}, \"tables\": {d}, \"zero_mass_retries\": {d}, \"resource_rejects\": {d}, \"slow\": {d}, \"triage_overflow\": {d}, \"peak_managed_bytes\": {d}, \"peak_rss\": {d}, \"stop_reason\": ", .{
-        run.cases.load(.monotonic), run.batches.load(.monotonic), run.findings.load(.monotonic), run.findings_new.load(.monotonic), run.store.coalesced, run.triaged.load(.monotonic), run.confirmed.load(.monotonic), run.tables_built.load(.monotonic), run.zero_mass.load(.monotonic), run.resource_rejects.load(.monotonic), run.slow_cases.load(.monotonic), run.overflowed.load(.monotonic), run.host.peak.load(.monotonic), sys.peakRss(),
+    try sumb.print(gpa, "{{\"cases\": {d}, \"batches\": {d}, \"findings\": {d}, \"distinct_findings\": {d}, \"coalesced\": {d}, \"triaged\": {d}, \"reproduced\": {d}, \"tables\": {d}, \"zero_mass_retries\": {d}, \"resource_rejects\": {d}, \"slow\": {d}, \"over_group_cap\": {d}, \"triage_overflow\": {d}, \"peak_managed_bytes\": {d}, \"peak_rss\": {d}, \"stop_reason\": ", .{
+        run.cases.load(.monotonic), run.batches.load(.monotonic), run.findings.load(.monotonic), run.findings_new.load(.monotonic), run.store.coalesced, run.triaged.load(.monotonic), run.confirmed.load(.monotonic), run.tables_built.load(.monotonic), run.zero_mass.load(.monotonic), run.resource_rejects.load(.monotonic), run.slow_cases.load(.monotonic), run.store.over_cap, run.overflowed.load(.monotonic), run.host.peak.load(.monotonic), sys.peakRss(),
     });
     try harness.jsonAscii(&sumb, gpa, stop_reason);
     try sumb.print(gpa, ", \"long_pairs\": {{\"made\": {d}, \"no_pump\": {d}, \"no_accept\": {d}, \"no_reject\": {d}, \"guarded\": {d}}}", .{ run.long_made.load(.monotonic), run.long_no_pump.load(.monotonic), run.long_no_accept.load(.monotonic), run.long_no_reject.load(.monotonic), run.long_guarded.load(.monotonic) });
@@ -621,14 +628,14 @@ fn cmdReplay(gpa: Allocator, o: *const Options) !u8 {
                     var scratch: sample.Scratch = .{};
                     defer scratch.deinit(gpa);
                     try scratch.ensure(gpa, tab.max_prods_per_pair, tab.max_size);
-                    var rng = rngmod.caseRng(c.global_seed, c.lane, c.index);
+                    var rng = if (c.table_index) rngmod.tableCaseRng(c.global_seed, c.table.seq, c.table.attempt, c.index) else rngmod.caseRng(c.global_seed, c.lane, c.index);
                     var t: ast.Ast = .{};
                     var smp: sample.Sampler = .{ .tab = tab, .scratch = &scratch, .rng = &rng, .out = &t };
                     _ = try smp.sample();
                     var pat: std.ArrayList(u8) = .empty;
                     var pr: sample.Printer = .{ .flags = c.flags, .out = &pat, .gpa = gpa, .spell = rng.next() | 1 };
                     try pr.print(&t);
-                    sys.stdoutPrint("case re-derivation from seed triple: {s}\n", .{if (std.mem.eql(u8, pat.items, c.pattern.items)) "identical pattern" else "DIFFERENT pattern (saved pattern/AST remain authoritative)"});
+                    sys.stdoutPrint("case re-derivation from (seed, table, index): {s}\n", .{if (std.mem.eql(u8, pat.items, c.pattern.items)) "identical pattern" else "DIFFERENT pattern (saved pattern/AST remain authoritative)"});
                 }
             },
             else => sys.stdoutPrint("table reconstruction failed (different config?)\n", .{}),

@@ -158,6 +158,26 @@ pub fn zpath(buf: []u8, path: []const u8) ![*:0]const u8 {
     return @ptrCast(buf.ptr);
 }
 
+extern "c" fn readdir(dir: *std.c.DIR) ?*std.c.dirent;
+pub extern "c" fn rmdir(path: [*:0]const u8) c_int;
+
+/// Remove a directory holding only plain files (e.g. journals/). Best effort.
+pub fn removeFlatDir(path: []const u8) void {
+    var b: [4096]u8 = undefined;
+    const zp = zpath(&b, path) catch return;
+    const d = std.c.opendir(zp) orelse return;
+    while (readdir(d)) |e| {
+        const name = std.mem.sliceTo(&e.name, 0);
+        if (std.mem.eql(u8, name, ".") or std.mem.eql(u8, name, "..")) continue;
+        var fb: [4096]u8 = undefined;
+        const fp = std.fmt.bufPrint(&fb, "{s}/{s}", .{ path, name }) catch continue;
+        var zb: [4096]u8 = undefined;
+        if (zpath(&zb, fp)) |z| _ = unlink(z) else |_| {}
+    }
+    _ = std.c.closedir(d);
+    _ = rmdir(zp);
+}
+
 pub fn mkdirp(path: []const u8) !void {
     var buf: [4096]u8 = undefined;
     if (path.len >= buf.len) return error.NameTooLong;

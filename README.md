@@ -87,8 +87,8 @@ A campaign's configuration is [`weights.toml`](weights.toml) followed by the tar
 | `[strings]` | subjects A and R | 0–8 code points (empty subjects included), at most 31 decoded symbols; R = A after 1–5 edits; 26-character pool |
 | `[flags]` | flag sets, one per table | 24 sets over `i m s u v` (JS `u`/`v`; other dialects ignore or map them) |
 | `[grammar]` | grammar shape | max size 24, counted repeats up to 3, classes of up to 2 members |
-| `[limits]` | table and memory budgets | 1 GiB per table, 4 GiB host, 100k samples per table |
-| `[harness]` | batches and deadlines | 512 cases per batch, 2 s + 2 s per 512 cases |
+| `[limits]` | table and memory budgets, stored findings | 1 GiB per table, 4 GiB host, 100k samples per table, 20 stored findings per signature group |
+| `[harness]` | batches, deadlines, journals | 512 cases per batch, 2 s + 2 s per 512 cases, journals deleted after the run (`keep_journals`) |
 | `[target]` (target.toml) | how to launch the engine | `kind` (`d8`, `perl`, `shell`), `command`, `dialect`, `selfcheck` |
 | `[span]`, `[capture]` (target.toml) | range checks | `enabled`, `units`; `loop`, `lookbehind` |
 | `[long]` | long-input modes (off unless enabled) | `enabled`, `only` (no other modes), `span`/`capture` (long spans and captures where the target supports them; default true), `fraction` 0.25 of cases, `lengths` [64, 256, 1000, 4096] (at most 16000), `guard_factor` 50, `deadline_ms_per_kb` 20, `deadline_ms_per_case` 10, `max_request_bytes` 8 MiB |
@@ -97,6 +97,22 @@ The default character pool is chosen for the places engines get wrong: `a b k s 
 `\r`, `-`, `.`, `ſ` (U+017F), `K` (U+212A Kelvin), U+2028, `😀` (U+1F600, an astral character),
 `à é ß İ ı σ ς Σ`. Semantics are full Unicode (Unicode 17.0 case folding, per-dialect `\w \d \s \b`,
 line terminators), but subjects use only this pool.
+
+## Determinism and storage
+
+A run is a pure function of its seed and configuration (with `[adaptive]` off, the default). Tables are built
+in sequence from `(seed, seq, attempt)`, and case `k` of a table comes from its own random stream
+`(seed, seq, attempt, k)` (the long pair too), so the same case is generated whichever lane runs it and however
+many lanes there are. Lanes take consecutive chunks of the current table. `irx replay` rebuilds the table,
+verifies its digest and re-derives the case from `(seed, table, index)` (records say `derive=table`; older ones
+used a per-lane index and still replay).
+
+Because any case can be regenerated, stored findings are a sample, not the record. At most
+`max_findings_per_group` (`[limits]`, default 20) are stored per signature group (kind, mode, construct
+counts); the rest are only counted in `groups/counts.txt`, and the run summary reports `over_group_cap`.
+Per-process request journals are deleted when the run ends unless `[harness] keep_journals = true`. A batch
+failure (crash, timeout) still keeps its exact request in `batch.req`; what is lost is the replay of a
+process's earlier batches for sequence-dependent failures.
 
 ## The `irx` binary
 

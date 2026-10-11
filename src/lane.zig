@@ -121,7 +121,9 @@ pub const Lane = struct {
     }
 
     /// Sample up to `n` cases from `tab` into self.cases, encoding the request.
-    fn fillBatch(self: *Lane, tab: *tablemod.Table, n: u64) !usize {
+    /// Cases [start, start + n) of `tab`. A case that does not fit the request is skipped (the
+    /// split depends only on case contents, so this stays deterministic).
+    fn fillBatch(self: *Lane, tab: *tablemod.Table, start: u64, n: u64) !usize {
         const run = self.run;
         self.req.clearRetainingCapacity();
         self.req_long.clearRetainingCapacity();
@@ -136,8 +138,8 @@ pub const Lane = struct {
         var t_enc: u64 = 0;
         while (count < n) {
             const c = &self.cases[count];
-            const idx = self.case_counter;
-            var rng = rngmod.caseRng(run.global_seed, self.id, idx);
+            const idx = start + count;
+            var rng = rngmod.tableCaseRng(run.global_seed, tab.id.seq, tab.id.attempt, idx);
             const t0 = sys.nowNs();
             var smp: sample.Sampler = .{ .tab = tab, .scratch = &self.scratch, .rng = &rng, .out = &c.tree };
             const k = smp.sample() catch |e| {
@@ -169,7 +171,7 @@ pub const Lane = struct {
             if (self.has_long) {
                 // A separate stream so the long pair never perturbs the case's other draws.
                 const tl = sys.nowNs();
-                var lrng = rngmod.Rng.fromParts(0x10C6, &.{ run.global_seed, self.id, idx });
+                var lrng = rngmod.Rng.fromParts(0x10C6, &.{ run.global_seed, tab.id.seq, tab.id.attempt, idx });
                 if (lrng.float() < run.cfg.long_mode_fraction) {
                     const opts: longmod.Options = .{ .lengths = run.cfg.long_mode_lengths[0..run.cfg.n_long_mode_lengths], .guard_factor = run.cfg.long_mode_guard_factor };
                     if (try longmod.generate(self.gpa, &lrng, &c.tree, c.flags, c.a.slice(), c.r.slice(), opts, &self.long_a[count], &self.long_r[count], &self.long_stats)) {
@@ -230,14 +232,14 @@ pub const Lane = struct {
             // bounds memory without stalling lanes.
             const got = run.acquire(run.cfg.batch_size) orelse break;
             defer run.releaseTable(got.tab);
-            self.step(got.tab, got.n) catch |e| {
+            self.step(got.tab, got.start, got.n) catch |e| {
                 run.setStop("lane {d} failed: {s}", .{ self.id, @errorName(e) });
                 break;
             };
         }
     }
 
-    fn step(self: *Lane, tab: *tablemod.Table, n: u64) !void {
+    fn step(self: *Lane, tab: *tablemod.Table, start: u64, n: u64) !void {
         const run = self.run;
         // Recycle at batch boundaries (after draining), or replace dead children.
         for (self.children, 0..) |c, i| {
@@ -251,7 +253,7 @@ pub const Lane = struct {
                 } else if (!self.restart(c, i)) return;
             }
         }
-        const count = try self.fillBatch(tab, n);
+        const count = try self.fillBatch(tab, start, n);
         if (count == 0) return;
         // Every child must accept the request within its journal cap.
         for (self.children, 0..) |c, i| {

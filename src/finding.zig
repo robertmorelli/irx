@@ -57,6 +57,9 @@ pub const Case = struct {
     lane: u32 = 0,
     index: u64 = 0,
     selfcheck: bool = false,
+    /// `index` is the case's position in its table (rng.tableCaseRng); false for records
+    /// made before deterministic runs (per-lane index, rng.caseRng).
+    table_index: bool = true,
 };
 
 pub const Kind = enum { wrong_result, syntax_error, exception, tier_mismatch, crash, timeout, protocol, sanity_disagreement, selfcheck_mismatch, wrong_span, wrong_capture, long_result };
@@ -177,8 +180,8 @@ pub fn writeCaseRecord(out: *std.ArrayList(u8), gpa: Allocator, c: *const Case, 
     try out.print(gpa, "\nspell={d}", .{c.spell});
     try out.appendSlice(gpa, "\nast=");
     try ast.serialize(&c.tree, out, gpa);
-    try out.print(gpa, "\nsize={d}\ntable_seq={d}\ntable_attempt={d}\ntable_seed={d}\ntable_digest={s}\nglobal_seed={d}\nlane={d}\nindex={d}\nselfcheck={d}\n", .{
-        c.size, c.table.seq, c.table.attempt, c.table.seed, std.fmt.bytesToHex(c.table.digest, .lower), c.global_seed, c.lane, c.index, @intFromBool(c.selfcheck),
+    try out.print(gpa, "\nsize={d}\ntable_seq={d}\ntable_attempt={d}\ntable_seed={d}\ntable_digest={s}\nglobal_seed={d}\nlane={d}\nindex={d}\nselfcheck={d}\nderive={s}\n", .{
+        c.size, c.table.seq, c.table.attempt, c.table.seed, std.fmt.bytesToHex(c.table.digest, .lower), c.global_seed, c.lane, c.index, @intFromBool(c.selfcheck), if (c.table_index) "table" else "lane",
     });
 }
 
@@ -189,7 +192,7 @@ pub const LoadedCase = struct {
 };
 
 pub fn readCaseRecord(gpa: Allocator, text: []const u8, out: *LoadedCase) !void {
-    out.case = .{};
+    out.case = .{ .table_index = false }; // no derive= line: an older record
     out.pred = .{ .kind = .wrong_result, .mode = "" };
     var lines = std.mem.splitScalar(u8, text, '\n');
     while (lines.next()) |line| {
@@ -206,7 +209,7 @@ pub fn readCaseRecord(gpa: Allocator, text: []const u8, out: *LoadedCase) !void 
             try out.case.pattern.appendSlice(gpa, v);
         } else if (e(u8, k, "spell")) out.case.spell = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "ast")) out.case.tree = try ast.parse(v) else if (e(u8, k, "size")) out.case.size = try std.fmt.parseInt(u16, v, 10) else if (e(u8, k, "table_seq")) out.case.table.seq = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "table_attempt")) out.case.table.attempt = try std.fmt.parseInt(u32, v, 10) else if (e(u8, k, "table_seed")) out.case.table.seed = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "table_digest")) {
             if (v.len == 64) _ = std.fmt.hexToBytes(&out.case.table.digest, v) catch {};
-        } else if (e(u8, k, "global_seed")) out.case.global_seed = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "lane")) out.case.lane = try std.fmt.parseInt(u32, v, 10) else if (e(u8, k, "index")) out.case.index = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "selfcheck")) out.case.selfcheck = v.len > 0 and v[0] == '1';
+        } else if (e(u8, k, "global_seed")) out.case.global_seed = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "lane")) out.case.lane = try std.fmt.parseInt(u32, v, 10) else if (e(u8, k, "index")) out.case.index = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "selfcheck")) out.case.selfcheck = v.len > 0 and v[0] == '1' else if (e(u8, k, "derive")) out.case.table_index = std.mem.eql(u8, v, "table");
     }
 }
 
@@ -298,7 +301,12 @@ pub const Store = struct {
     count: u64 = 0,
     coalesced: u64 = 0,
     manifest_ref: []const u8 = "../../manifest.json",
+    /// Findings per signature group, and the cap on stored ones (0 = none).
+    group_counts: std.AutoHashMapUnmanaged(u64, GroupCount) = .empty,
+    max_per_group: u32 = 0,
+    over_cap: u64 = 0,
     const Seen = struct { id: u64, canon: []u8 };
+    const GroupCount = struct { stored: u32 = 0, total: u64 = 0, kind: Kind, mode: [32]u8 = undefined, mode_len: u8 = 0 };
 
     pub fn init(gpa: Allocator, root: []const u8) !Store {
         var b: [4096]u8 = undefined;
@@ -307,6 +315,28 @@ pub const Store = struct {
             try sys.mkdirp(p);
         }
         return .{ .gpa = gpa, .root = root };
+    }
+
+    /// groups/counts.txt: total and stored findings per signature group, largest first.
+    pub fn writeGroupCounts(self: *Store) !void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const Row = struct { key: u64, v: GroupCount };
+        var rows: std.ArrayList(Row) = .empty;
+        defer rows.deinit(self.gpa);
+        var it = self.group_counts.iterator();
+        while (it.next()) |e| try rows.append(self.gpa, .{ .key = e.key_ptr.*, .v = e.value_ptr.* });
+        std.mem.sort(Row, rows.items, {}, struct {
+            fn lt(_: void, a: Row, b: Row) bool {
+                return a.v.total > b.v.total;
+            }
+        }.lt);
+        var out: std.ArrayList(u8) = .empty;
+        defer out.deinit(self.gpa);
+        try out.appendSlice(self.gpa, "# total stored kind mode group\n");
+        for (rows.items) |r| try out.print(self.gpa, "{d} {d} {s} {s} {x:0>16}\n", .{ r.v.total, r.v.stored, @tagName(r.v.kind), r.v.mode[0..r.v.mode_len], r.key });
+        var pb: [4096]u8 = undefined;
+        try sys.writeFile(try std.fmt.bufPrint(&pb, "{s}/groups/counts.txt", .{self.root}), out.items);
     }
 
     pub fn findingDir(self: *const Store, buf: []u8, id: u64) ![]const u8 {
@@ -354,6 +384,31 @@ pub const Store = struct {
             }
             // Hash collision with different content: never coalesce.
         }
+        // Signature group (navigation and the storage cap).
+        var counts: [ast.n_constructs]u16 = undefined;
+        ast.constructCounts(&c.tree, &counts);
+        var ch = std.hash.Wyhash.init(0);
+        ch.update(std.mem.sliceAsBytes(&counts));
+        const ghash = ch.final();
+        var gh = std.hash.Wyhash.init(ghash);
+        gh.update(@tagName(pred.kind));
+        gh.update(pred.mode);
+        const gkey = gh.final();
+        const gop = try self.group_counts.getOrPut(gpa, gkey);
+        if (!gop.found_existing) {
+            gop.value_ptr.* = .{ .kind = pred.kind };
+            const ml = @min(pred.mode.len, 32);
+            @memcpy(gop.value_ptr.mode[0..ml], pred.mode[0..ml]);
+            gop.value_ptr.mode_len = @intCast(ml);
+        }
+        gop.value_ptr.total += 1;
+        if (self.max_per_group > 0 and gop.value_ptr.stored >= self.max_per_group) {
+            // Over the cap: counted only. The case stays reproducible from (seed, table, index).
+            gpa.free(canon);
+            self.over_cap += 1;
+            return .{ .id = 0, .new = false };
+        }
+        gop.value_ptr.stored += 1;
         const id = self.next_id;
         self.next_id += 1;
         c.id = id;
@@ -404,11 +459,7 @@ pub const Store = struct {
         try sys.writeFile(try std.fmt.bufPrint(&pb, "{s}/manifest.json", .{dir}), buf.items);
 
         // Group index (navigation only; members are never deleted).
-        var counts: [ast.n_constructs]u16 = undefined;
-        ast.constructCounts(&c.tree, &counts);
-        var ch = std.hash.Wyhash.init(0);
-        ch.update(std.mem.sliceAsBytes(&counts));
-        const gp = try std.fmt.bufPrint(&pb, "{s}/groups/{s}__{s}__{x:0>16}.txt", .{ self.root, @tagName(pred.kind), pred.mode, ch.final() });
+        const gp = try std.fmt.bufPrint(&pb, "{s}/groups/{s}__{s}__{x:0>16}.txt", .{ self.root, @tagName(pred.kind), pred.mode, ghash });
         const gfd = try sys.openAppend(gp);
         defer _ = sys.close(gfd);
         var line: [64]u8 = undefined;

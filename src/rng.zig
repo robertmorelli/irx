@@ -83,6 +83,13 @@ pub fn tableSeed(global: u64, seq: u64, attempt: u64) u64 {
 }
 
 /// Per-case stream from (global seed, lane id, case index).
+/// Case k of table (seq, attempt): independent of which lane runs it or when, so a run is a
+/// pure function of its seed (with adaptive weights off).
+pub fn tableCaseRng(global: u64, seq: u64, attempt: u64, k: u64) Rng {
+    return Rng.fromParts(Tag.case, &.{ global, seq, attempt, k, 0x7AB1E });
+}
+
+/// Legacy (lane, per-lane index) derivation: findings recorded before `derive=table`.
 pub fn caseRng(global: u64, lane: u64, case_index: u64) Rng {
     return Rng.fromParts(Tag.case, &.{ global, lane, case_index });
 }
