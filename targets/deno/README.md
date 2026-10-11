@@ -75,3 +75,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END deno 5m results -->
+
+<!-- BEGIN deno 30m results -->
+### V8 15.0 (Deno 2.9.7) - older V8, excluded from the ledger: 30m campaign
+
+* 12,852,736 patterns, 130 tables, 182,930 distinct findings; self-check 1,628,352 probes, 80 mismatches, 0 engine failures
+* findings by kind: 178,082 wrong_result, 1,938 wrong_capture, 1,938 wrong_span, 971 timeout (batch), 80 selfcheck_mismatch (selfcheck), 1 tier_mismatch
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 4684 | wrong_result | `mu` | `""` | `"😀"` | `(?:)` | 03 |
+| 3974 | wrong_result | `mu` | `""` | `"😀"` | `(?:)` | 33 |
+| 2440 | wrong_result | `mu` | `""` | `"😀"` | `()` | 03 |
+| 2106 | wrong_result | `mu` | `""` | `"😀"` | `()` | 33 |
+| 45 | wrong_capture | `u` | `""` | `"😀"` | `(?!.)` | 03 |
+| 45 | wrong_span | `u` | `""` | `"😀"` | `(?!.)` | 03 |
+| 33 | wrong_result | `mu` | `"aa"` | `"😀"` | `(?:aa)?` | 03 |
+| 21 | wrong_result | `mu` | `"ßa\ra.aka"` | `"😀"` | `(?:[^ab]a)*` | 03 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END deno 30m results -->

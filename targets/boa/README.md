@@ -71,3 +71,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END boa 5m results -->
+
+<!-- BEGIN boa 30m results -->
+### Boa (boa_cli): 30m campaign
+
+* 24,832 patterns, 2 tables, 31 distinct findings; self-check 1,628,352 probes, 9,252 mismatches, 0 engine failures
+* findings by kind: 182 selfcheck_mismatch (selfcheck), 16 wrong_result, 8 wrong_capture, 7 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 4 | wrong_result | `` | `"aa"` | `""` | `(?:(?:a+)+){2}` | 00 |
+| 2 | wrong_result | `` | `" ß "` | `""` | `(?:(?:.*\W)+){3,3}` | 00 |
+| 2 | wrong_result | `` | `"aa"` | `""` | `(?:(?:a+)+){0,2}a` | 00 |
+| 2 | wrong_result | `` | `" ß "` | `""` | `(?:(?:)(?:(?:\W\|())\W){1,}){3,}` | 00 |
+| 2 | wrong_result | `` | `"aaaa"` | `"a"` | `(?:(?:a{3,}?)+)*` | 00 |
+| 2 | wrong_result | `` | `"aa"` | `""` | `(?:(?:a+)+){2,2}` | 00 |
+| 2 | wrong_result | `` | `"aaa"` | `""` | `(?:(?:a(?:a\|()))+){3,}` | 00 |
+| 1 | wrong_span | `` | `" ß "` | `""` | `(?:(?:.*\W)+){3,3}` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END boa 30m results -->

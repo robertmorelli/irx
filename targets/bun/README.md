@@ -38,3 +38,18 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END bun 5m results -->
+
+<!-- BEGIN bun 30m results -->
+### JavaScriptCore (Bun): 30m campaign
+
+* 2,814,336 patterns, 30 tables, 4,148 distinct findings; self-check 1,628,352 probes, 0 mismatches, 0 engine failures
+* findings by kind: 4,147 timeout (batch), 1 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 1 | wrong_result | `` | `"aaaaaa"` | `"s"` | `(?:^(?:(?:(?:a*){2,3}){2,3})+){2}` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END bun 30m results -->

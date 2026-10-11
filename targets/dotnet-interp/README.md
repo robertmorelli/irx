@@ -78,3 +78,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-interp 5m results -->
+
+<!-- BEGIN dotnet-interp 30m results -->
+### .NET 9 Regex (interpreter): 30m campaign
+
+* 983,456 patterns, 11 tables, 8,969 distinct findings; self-check 336,272 probes, 0 mismatches, 0 engine failures
+* findings by kind: 4,817 timeout (batch), 1,938 wrong_span, 1,865 wrong_capture, 228 wrong_result, 110 exception, 10 protocol (batch), 1 tier_mismatch
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 21 | wrong_span | `` | `""` | `"a"` | `(?:(?:)+?)*` | 02 |
+| 20 | wrong_span | `` | `""` | `"a"` | `(?:(?:)+?)+` | 02 |
+| 11 | wrong_span | `` | `""` | `"a"` | `(?:()+?)*` | 02 |
+| 10 | wrong_span | `` | `""` | `"a"` | `(?:(?:$)+?)*` | 00 |
+| 9 | wrong_span | `` | `""` | `"a"` | `(?:()+?)+` | 02 |
+| 7 | wrong_span | `` | `"aa"` | `"aaa"` | `a(?:)+?a` | 02 |
+| 6 | wrong_span | `` | `"aa"` | `""` | `a(?:)+?a` | 00 |
+| 6 | wrong_span | `` | `""` | `"a"` | `(?:()+?){0,}` | 02 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END dotnet-interp 30m results -->

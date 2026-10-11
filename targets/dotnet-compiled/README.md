@@ -75,3 +75,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-compiled 5m results -->
+
+<!-- BEGIN dotnet-compiled 30m results -->
+### .NET 9 Regex (Compiled): 30m campaign
+
+* 1,318,432 patterns, 15 tables, 8,648 distinct findings; self-check 336,272 probes, 0 mismatches, 0 engine failures
+* findings by kind: 6,327 exception, 1,509 timeout (batch), 336 wrong_result, 240 wrong_span, 236 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 70 | exception | `` | `""` | `"a"` | `(?<=(?:)*?)` | 08 |
+| 59 | exception | `` | `""` | `"a"` | `(?<=(?:)??)` | 08 |
+| 35 | exception | `` | `"a"` | `""` | `(?<=(?:)*?)a` | 08 |
+| 29 | exception | `` | `""` | `"a"` | `(?<=()??)` | 08 |
+| 29 | exception | `` | `"a"` | `""` | `a(?<=(?:)*?)` | 08 |
+| 25 | exception | `` | `""` | `"a"` | `(?<=()*?)` | 08 |
+| 21 | exception | `` | `"a"` | `""` | `a\|(?<!(?:)??)` | 08 |
+| 18 | exception | `` | `""` | `"a"` | `(?<=(?:){0,1}?)` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END dotnet-compiled 30m results -->
