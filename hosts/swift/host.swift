@@ -4,6 +4,12 @@ setvbuf(stdout, nil, _IOLBF, 0)
 let engine = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "swift"
 let mode = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : "default"
 let rep = (mode == "repeat" || mode == "tierup") ? 2 : 1
+// Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
+let wide = mode == "lspan" || mode == "lcapture"
+let isSpan = mode == "span" || mode == "lspan", isCap = mode == "capture" || mode == "lcapture"
+let NONE = wide ? "ffffffff" : "ffff"
+func hxw(_ n: Int) -> String { String(format: wide ? "%04x" : "%02x", n) }
+func failed(_ b: Int, _ rest: Int) -> String { (wide ? String(format: "fffe%04x", b) : String(format: "fe%02x", b)) + String(repeating: "0", count: (wide ? 4 : 2) * rest) }
 print("ready \(engine == "icu" ? "icu-nsregex" : "swift-regex-scalar") mode=\(mode)")
 func hasLone(_ s: String) -> Bool { s.unicodeScalars.contains { $0.value == 0xFFFF } }
 /// Minimal parser for the irx request line (Foundation's JSON decoding drops U+FEFF).
@@ -61,28 +67,28 @@ func icuFirst(_ re: NSRegularExpression, _ s: String) throws -> NSTextCheckingRe
 
 /// Span mode: unanchored search; UTF-16 offsets of the first match in A and R (src/span.zig).
 func spanCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
-    func hx(_ n: Int) -> String { String(format: "%02x", n) }
+    func hx(_ n: Int) -> String { hxw(n) }
     var res = ""
     if engine == "icu" {
         var o: NSRegularExpression.Options = []
         if f.contains("i") { o.insert(.caseInsensitive) }
         if f.contains("m") { o.insert(.anchorsMatchLines) }
         if f.contains("s") { o.insert(.dotMatchesLineSeparators) }
-        guard let re = try? NSRegularExpression(pattern: p, options: o) else { return "fe040000" }
+        guard let re = try? NSRegularExpression(pattern: p, options: o) else { return failed(4, 2) }
         do {
             for s in [a, r] {
-                if let mm = try icuFirst(re, s) { res += hx(mm.range.location) + hx(mm.range.location + mm.range.length) } else { res += "ffff" }
+                if let mm = try icuFirst(re, s) { res += hx(mm.range.location) + hx(mm.range.location + mm.range.length) } else { res += NONE }
             }
-        } catch { return "fe400000" }
+        } catch { return failed(0x40, 2) }
         return res
     }
-    guard var re = try? Regex(p) else { return "fe040000" }
+    guard var re = try? Regex(p) else { return failed(4, 2) }
     re = re.matchingSemantics(.unicodeScalar).wordBoundaryKind(.simple)
     if f.contains("i") { re = re.ignoresCase() }
     if f.contains("m") { re = re.anchorsMatchLineEndings() }
     if f.contains("s") { re = re.dotMatchesNewlines() }
     for s in [a, r] {
-        guard let mm = try? re.firstMatch(in: s) else { res += "ffff"; continue }
+        guard let mm = try? re.firstMatch(in: s) else { res += NONE; continue }
         let st = s.utf16.distance(from: s.startIndex, to: mm.range.lowerBound)
         res += hx(st) + hx(st + s.utf16.distance(from: mm.range.lowerBound, to: mm.range.upperBound))
     }
@@ -90,8 +96,8 @@ func spanCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
 }
 /// Capture mode: whole match + groups 1..6 per subject, UTF-16 offsets (src/capture.zig).
 func captureCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
-    func hx(_ n: Int) -> String { String(format: "%02x", n) }
-    let fail = { (b: String) in "fe" + b + String(repeating: "00", count: 26) }
+    func hx(_ n: Int) -> String { hxw(n) }
+    let fail = { (b: String) in failed(Int(b, radix: 16)!, 26) }
     var res = ""
     if engine == "icu" {
         var o: NSRegularExpression.Options = []
@@ -103,7 +109,7 @@ func captureCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
             let m: NSTextCheckingResult?
             do { m = try icuFirst(re, s) } catch { return fail("40") }
             for g in 0...6 {
-                if let m = m, g < m.numberOfRanges, m.range(at: g).location != NSNotFound { let rg = m.range(at: g); res += hx(rg.location) + hx(rg.location + rg.length) } else { res += "ffff" }
+                if let m = m, g < m.numberOfRanges, m.range(at: g).location != NSNotFound { let rg = m.range(at: g); res += hx(rg.location) + hx(rg.location + rg.length) } else { res += NONE }
             }
         }
         return res
@@ -119,7 +125,7 @@ func captureCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
             if let mm = mm, g < mm.output.count, let rg = mm.output[g].range {
                 let st = s.utf16.distance(from: s.startIndex, to: rg.lowerBound)
                 res += hx(st) + hx(st + s.utf16.distance(from: rg.lowerBound, to: rg.upperBound))
-            } else { res += "ffff" }
+            } else { res += NONE }
         }
     }
     return res
@@ -130,9 +136,9 @@ while let line = readLine(strippingNewline: true) {
     var out = "\(seq) "
     for c in cases {
         let f = c[0], a = c[1], r = c[2], p = c[3]
-        if hasLone(a) || hasLone(r) || hasLone(p) { out += mode == "span" ? "fe400000" : mode == "capture" ? "fe40" + String(repeating: "00", count: 26) : "40"; continue }
-        if mode == "span" { out += spanCase(f, a, r, p); continue }
-        if mode == "capture" { out += captureCase(f, a, r, p); continue }
+        if hasLone(a) || hasLone(r) || hasLone(p) { out += isSpan ? failed(0x40, 2) : isCap ? failed(0x40, 26) : "40"; continue }
+        if isSpan { out += spanCase(f, a, r, p); continue }
+        if isCap { out += captureCase(f, a, r, p); continue }
         let src = "\\A(?:" + p + ")\\z"
         var bits = 0
         if engine == "icu" {

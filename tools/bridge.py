@@ -23,8 +23,9 @@ MEM_LIMIT = 4 << 30  # best effort; macOS may not enforce RLIMIT_DATA/AS
 BASE_S = float(os.environ.get("IRX_BRIDGE_BASE_S", "0.5"))
 PER_CASE_S = float(os.environ.get("IRX_BRIDGE_PER_CASE_S", "0.02"))
 # Result hex digits per case and the "unsupported" marker for each driver mode.
-WIDTH = {"span": 8, "capture": 56}
-SKIP = {"span": "fe400000", "capture": "fe40" + "00" * 26}
+# Long modes (lspan, lcapture) use 4 hex digits per position; "unsupported" is fffe + 0040.
+WIDTH = {"span": 8, "capture": 56, "lspan": 16, "lcapture": 112}
+SKIP = {"span": "fe400000", "capture": "fe40" + "00" * 26, "lspan": "fffe0040" + "0" * 8, "lcapture": "fffe0040" + "0000" * 26}
 
 
 def limit():

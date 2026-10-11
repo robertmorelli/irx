@@ -63,6 +63,11 @@ pub fn serve_span(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8,
 pub fn serve_all(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, span: impl Fn(&str, &str, &str, &str) -> SpanResult, capture: impl Fn(&str, &str, &str, &str) -> CaptureResult) {
     let mode = std::env::args().nth(1).unwrap_or_else(|| "default".into());
     let repeat = mode == "repeat" || mode == "tierup";
+    // Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
+    let wide = mode == "lspan" || mode == "lcapture";
+    let pair = |s: usize, e: usize| if wide { format!("{:04x}{:04x}", s, e) } else { format!("{:02x}{:02x}", s, e) };
+    let none = if wide { "ffffffff" } else { "ffff" };
+    let failed = |e: u8, rest: usize| if wide { format!("fffe{:04x}{}", e, "0000".repeat(rest)) } else { format!("fe{:02x}{}", e, "00".repeat(rest)) };
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
     writeln!(out, "ready {} mode={}", name, mode).unwrap();
@@ -87,20 +92,19 @@ pub fn serve_all(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, 
                 if k < 3 { i += 1; }
             }
             i += 1; // ']'
-            if mode == "capture" {
-                let fail = |e: u8| format!("fe{:02x}{}", e, "00".repeat(26));
-                if f.iter().any(|x| x.1) { resp.push_str(&fail(0x40)); continue; }
+            if mode == "capture" || mode == "lcapture" {
+                if f.iter().any(|x| x.1) { resp.push_str(&failed(0x40, 26)); continue; }
                 match capture(&f[0].0, &f[1].0, &f[2].0, &f[3].0) {
-                    Err(e) => resp.push_str(&fail(e)),
-                    Ok(subj) => for gs in subj { for g in gs { match g { Some((s, e)) => resp.push_str(&format!("{:02x}{:02x}", s, e)), None => resp.push_str("ffff") } } },
+                    Err(e) => resp.push_str(&failed(e, 26)),
+                    Ok(subj) => for gs in subj { for g in gs { match g { Some((s, e)) => resp.push_str(&pair(s, e)), None => resp.push_str(none) } } },
                 }
                 continue;
             }
-            if mode == "span" {
-                if f.iter().any(|x| x.1) { resp.push_str("fe400000"); continue; }
+            if mode == "span" || mode == "lspan" {
+                if f.iter().any(|x| x.1) { resp.push_str(&failed(0x40, 2)); continue; }
                 match span(&f[0].0, &f[1].0, &f[2].0, &f[3].0) {
-                    Err(e) => resp.push_str(&format!("fe{:02x}0000", e)),
-                    Ok(ms) => for m in ms { match m { Some((s, e)) => resp.push_str(&format!("{:02x}{:02x}", s, e)), None => resp.push_str("ffff") } },
+                    Err(e) => resp.push_str(&failed(e, 2)),
+                    Ok(ms) => for m in ms { match m { Some((s, e)) => resp.push_str(&pair(s, e)), None => resp.push_str(none) } },
                 }
                 continue;
             }

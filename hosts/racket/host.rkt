@@ -5,6 +5,14 @@
 (define mode (if (> (vector-length args) 0) (vector-ref args 0) "default"))
 (define rep (if (member mode '("repeat" "tierup")) 2 1))
 (printf "ready racket-~a mode=~a\n" (version) mode) (flush-output)
+;; Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
+(define wide (and (member mode '("lspan" "lcapture")) #t))
+(define is-span (and (member mode '("span" "lspan")) #t))
+(define is-cap (and (member mode '("capture" "lcapture")) #t))
+(define D (if wide 4 2))
+(define (hx n) (let ([h (number->string n 16)]) (string-append (make-string (max 0 (- D (string-length h))) #\0) h)))
+(define NONE (make-string (* 2 D) #\f))
+(define (failed b rest) (string-append (if wide "fffe" "fe") (hx b) (make-string (* D rest) #\0)))
 (define (fix p)
   (let* ([p (regexp-replace* #px"\\\\x\\{([0-9A-Fa-f]+)\\}" p
                              (lambda (_ h) (let ([c (integer->char (string->number h 16))])
@@ -20,38 +28,36 @@
     (for ([c (cadr msg)])
       (define f (car c)) (define a (cadr c)) (define r (caddr c)) (define p (cadddr c))
       (cond
-        [(for/or ([s (list a r p)]) (string-contains? s "￿")) (write-string (cond [(string=? mode "span") "fe400000"] [(string=? mode "capture") (string-append "fe40" (make-string 52 #\0))] [else "40"]) out)]
-        [(string=? mode "capture")
+        [(for/or ([s (list a r p)]) (string-contains? s "￿")) (write-string (cond [is-span (failed #x40 2)] [is-cap (failed #x40 26)] [else "40"]) out)]
+        [is-cap
          ;; Whole match + groups 1..6 per subject, character offsets (src/capture.zig).
          (define modes (string-append (if (string-contains? f "i") "i" "") (if (string-contains? f "s") "s" "") (if (string-contains? f "m") "m" "")))
          (define src (if (string=? modes "") (fix p) (string-append "(?" modes ":" (fix p) ")")))
          (define rx (with-handlers ([exn:fail? (lambda (e) #f)]) (pregexp src)))
-         (define (hx n) (string-append (if (< n 16) "0" "") (number->string n 16)))
          (write-string
           (cond
-            [(not rx) (string-append "fe04" (make-string 52 #\0))]
+            [(not rx) (failed 4 26)]
             [else
-             (with-handlers ([exn:fail? (lambda (e) (string-append "fe08" (make-string 52 #\0)))])
+             (with-handlers ([exn:fail? (lambda (e) (failed 8 26))])
                (apply string-append
                       (for*/list ([s (list a r)] [m (in-value (regexp-match-positions rx s))] [g 7])
                         (define x (and m (< g (length m)) (list-ref m g)))
-                        (if x (string-append (hx (car x)) (hx (cdr x))) "ffff"))))])
+                        (if x (string-append (hx (car x)) (hx (cdr x))) NONE))))])
           out)]
-        [(string=? mode "span")
+        [is-span
          ;; Unanchored search, character offsets (src/span.zig).
          (define modes (string-append (if (string-contains? f "i") "i" "") (if (string-contains? f "s") "s" "") (if (string-contains? f "m") "m" "")))
          (define src (if (string=? modes "") (fix p) (string-append "(?" modes ":" (fix p) ")")))
          (define rx (with-handlers ([exn:fail? (lambda (e) #f)]) (pregexp src)))
-         (define (hx n) (string-append (if (< n 16) "0" "") (number->string n 16)))
          (write-string
           (cond
-            [(not rx) "fe040000"]
+            [(not rx) (failed 4 2)]
             [else
-             (with-handlers ([exn:fail? (lambda (e) "fe080000")])
+             (with-handlers ([exn:fail? (lambda (e) (failed 8 2))])
                (apply string-append
                       (for/list ([s (list a r)])
                         (define m (regexp-match-positions rx s))
-                        (if m (string-append (hx (caar m)) (hx (cdar m))) "ffff"))))])
+                        (if m (string-append (hx (caar m)) (hx (cdar m))) NONE))))])
           out)]
         [else
          (define modes (string-append (if (string-contains? f "i") "i" "") (if (string-contains? f "s") "s" "") (if (string-contains? f "m") "m" "")))

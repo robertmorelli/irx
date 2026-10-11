@@ -57,7 +57,7 @@ pub const Lane = struct {
             .bits = try gpa.alloc([]u8, nm + run.sanity_modes.len),
         };
         for (l.cases) |*c| c.* = .{};
-        for (run.modes) |m| if (m.expect == .long) {
+        for (run.modes) |m| if (m.expect.isLong()) {
             l.has_long = true;
         };
         if (l.has_long) {
@@ -68,7 +68,7 @@ pub const Lane = struct {
                 y.* = .empty;
             }
         }
-        for (l.bits) |*b| b.* = try gpa.alloc(u8, run.cfg.batch_size * capmod.width);
+        for (l.bits) |*b| b.* = try gpa.alloc(u8, run.cfg.batch_size * harness.max_result_width);
         for (run.modes, 0..) |m, i| {
             l.mode_index[i] = i;
             l.children[i] = try l.makeChild(m, i);
@@ -270,12 +270,12 @@ pub const Lane = struct {
         const now = sys.nowNs();
         const deadline = now + harness.batchDeadlineNs(&run.cfg, count);
         // The long mode's batches scale with their request size.
-        const deadline_long = deadline + @as(u64, self.req_long.items.len / 1024) * run.cfg.long_mode_deadline_ms_per_kb * std.time.ns_per_ms;
+        const deadline_long = deadline + harness.longExtraNs(&run.cfg, self.req_long.items.len, count);
         var active: [runmod.max_modes + 4]*harness.Child = undefined;
         var na: usize = 0;
         for (self.children, 0..) |c, i| {
             self.batches[i] = .{ .seq = self.batch_seq, .ncases = @intCast(count), .req = self.reqFor(c), .bits = self.bits[i][0 .. count * harness.resultWidth(c.spec.expect)] };
-            c.admit(&self.batches[i], if (c.spec.expect == .long) deadline_long else deadline) catch {
+            c.admit(&self.batches[i], if (c.spec.expect.isLong()) deadline_long else deadline) catch {
                 run.setStop("journal write failed for mode {s}", .{c.spec.name});
                 return;
             };
@@ -315,18 +315,18 @@ pub const Lane = struct {
                 try self.batchFailure(c, b, i);
                 continue;
             }
-            const is_long = c.spec.expect == .long;
-            const is_span = c.spec.expect == .span;
-            const is_cap = c.spec.expect == .capture;
+            const is_long = c.spec.expect.isLong();
+            const is_span = c.spec.expect.isSpan();
+            const is_cap = c.spec.expect.isCapture();
             const wd = harness.resultWidth(c.spec.expect);
             for (self.cases[0..count], 0..) |*cs, ci| {
                 var ck: spanmod.Check = .{ .bits = 0 };
                 var cck: capmod.Check = .{ .bits = 0 };
                 const raw = b.bits[ci * wd ..][0..wd];
-                if (is_span) ck = spanmod.check(cs, raw, run.cfg.span_units);
-                if (is_cap) cck = capmod.check(cs, raw, &run.cfg);
-                // Long mode: a case without a long pair carried A/R only as a placeholder.
+                // Long modes: a case without a long pair carried A/R only as a placeholder.
                 if (is_long and cs.la.len == 0) continue;
+                if (is_span) ck = spanmod.check(cs, raw, run.cfg.span_units, is_long);
+                if (is_cap) cck = capmod.check(cs, raw, &run.cfg, is_long);
                 const bits = if (is_span) ck.bits else if (is_cap) cck.bits else b.bits[ci];
                 if (bits & harness.Bits.skipped != 0) {
                     if (cs.flags.m) _ = ms.skipped_multiline.fetchAdd(1, .monotonic) else _ = ms.skipped_unsupported.fetchAdd(1, .monotonic);
@@ -368,7 +368,7 @@ pub const Lane = struct {
     }
 
     fn reqFor(self: *Lane, c: *const harness.Child) []u8 {
-        return if (c.spec.expect == .long) self.req_long.items else self.req.items;
+        return if (c.spec.expect.isLong()) self.req_long.items else self.req.items;
     }
 
     fn report(self: *Lane, cs: *finding.Case, pred: finding.Predicate, c: *harness.Child) !void {

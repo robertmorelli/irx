@@ -52,6 +52,7 @@ func main() {
 		mode = os.Args[1]
 	}
 	repeat := mode == "repeat" || mode == "tierup"
+	wide = mode == "lspan" || mode == "lcapture"
 	out := bufio.NewWriter(os.Stdout)
 	fmt.Fprintf(out, "ready go-regexp-%s mode=%s\n", runtime.Version(), mode)
 	out.Flush()
@@ -74,17 +75,17 @@ func main() {
 		for _, raw := range cases {
 			var c [4]string
 			json.Unmarshal(raw, &c)
-			if mode == "capture" {
+			if mode == "capture" || mode == "lcapture" {
 				if loneSurrogate(string(raw)) {
-					sb.WriteString("fe40" + strings.Repeat("00", 26))
+					sb.WriteString(failHex(0x40, 26))
 				} else {
 					sb.WriteString(capture(c[0], c[1], c[2], c[3]))
 				}
 				continue
 			}
-			if mode == "span" {
+			if mode == "span" || mode == "lspan" {
 				if loneSurrogate(string(raw)) {
-					sb.WriteString("fe400000")
+					sb.WriteString(failHex(0x40, 2))
 				} else {
 					sb.WriteString(span(c[0], c[1], c[2], c[3]))
 				}
@@ -137,11 +138,36 @@ func run(flags, a, r, pat string, repeat bool) (bits int) {
 	return bits
 }
 
+// Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
+var wide bool
+
+func pairHex(s, e int) string {
+	if wide {
+		return fmt.Sprintf("%04x%04x", s, e)
+	}
+	return fmt.Sprintf("%02x%02x", s, e)
+}
+
+func noneHex() string {
+	if wide {
+		return "ffffffff"
+	}
+	return "ffff"
+}
+
+// failHex: failed case with bits b; rest = remaining positions after the first two.
+func failHex(b, rest int) string {
+	if wide {
+		return fmt.Sprintf("fffe%04x", b) + strings.Repeat("0000", rest)
+	}
+	return fmt.Sprintf("fe%02x", b) + strings.Repeat("00", rest)
+}
+
 // span: unanchored search, byte offsets of the first match in A and R (src/span.zig).
 func span(flags, a, r, pat string) (res string) {
 	defer func() {
 		if recover() != nil {
-			res = "fe080000"
+			res = failHex(8, 2)
 		}
 	}()
 	pre := ""
@@ -155,13 +181,13 @@ func span(flags, a, r, pat string) (res string) {
 	}
 	re, err := regexp.Compile(pre + pat)
 	if err != nil {
-		return "fe040000"
+		return failHex(4, 2)
 	}
 	for _, s := range []string{a, r} {
 		if m := re.FindStringIndex(s); m != nil {
-			res += fmt.Sprintf("%02x%02x", m[0], m[1])
+			res += pairHex(m[0], m[1])
 		} else {
-			res += "ffff"
+			res += noneHex()
 		}
 	}
 	return res
@@ -171,7 +197,7 @@ func span(flags, a, r, pat string) (res string) {
 func capture(flags, a, r, pat string) (res string) {
 	defer func() {
 		if recover() != nil {
-			res = "fe08" + strings.Repeat("00", 26)
+			res = failHex(8, 26)
 		}
 	}()
 	pre := ""
@@ -185,15 +211,15 @@ func capture(flags, a, r, pat string) (res string) {
 	}
 	re, err := regexp.Compile(pre + pat)
 	if err != nil {
-		return "fe04" + strings.Repeat("00", 26)
+		return failHex(4, 26)
 	}
 	for _, s := range []string{a, r} {
 		m := re.FindStringSubmatchIndex(s)
 		for g := 0; g <= 6; g++ {
 			if m != nil && 2*g+1 < len(m) && m[2*g] >= 0 {
-				res += fmt.Sprintf("%02x%02x", m[2*g], m[2*g+1])
+				res += pairHex(m[2*g], m[2*g+1])
 			} else {
-				res += "ffff"
+				res += noneHex()
 			}
 		}
 	}

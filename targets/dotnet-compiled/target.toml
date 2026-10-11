@@ -16,3 +16,8 @@ units = "utf16"  # index unit of the host's reported spans
 enabled = true
 loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)
 lookbehind = false  # lookbehind runs forward here; JS (and the model) match it right to left
+
+[long]
+# .NET spends about 10 ms per long case (more under load), and up to 250 ms on one that hits
+# the host's per-match limit: give long-mode batches more time per case.
+deadline_ms_per_case = 40

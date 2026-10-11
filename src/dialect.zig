@@ -77,6 +77,9 @@ pub const Dialect = struct {
     /// The empty atom may also print as nothing: `(?:|a)`, `a|`, `(?=)` (fuzz cases only;
     /// self-check keeps `(?:)`). POSIX ERE rejects empty branches.
     bare_empty: bool = true,
+    /// A bare empty is also accepted inside lookarounds (nim-regex rejects `(?<=)`, `(?=)` and
+    /// `(?<=|b)`, but accepts `(?=(?:))` and `(?=a|)`).
+    bare_empty_in_lookaround: bool = true,
     /// The empty atom may also print as an empty capture `()`.
     empty_capture: bool = true,
     /// \W \D \S negate after case folding (no case variant is in the positive

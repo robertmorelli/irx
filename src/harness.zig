@@ -168,16 +168,41 @@ pub fn reapNonblocking(pid: sys.pid_t) ?ExitInfo {
 
 /// shell: any JS shell given as a command template (`--shell "CMD {driver} {mode}"`).
 pub const Engine = enum { d8, sm, jsc, shell, perl };
-pub const Expect = enum { normal, tierup, linear, span, capture, long };
+pub const Expect = enum {
+    normal,
+    tierup,
+    linear,
+    span,
+    capture,
+    long,
+    long_span,
+    long_capture,
 
-/// Result bytes per case on the wire: span mode reports four position bytes (span.zig).
+    /// Modes that run on each case's long pair (long.zig).
+    pub fn isLong(e: Expect) bool {
+        return e == .long or e == .long_span or e == .long_capture;
+    }
+    pub fn isSpan(e: Expect) bool {
+        return e == .span or e == .long_span;
+    }
+    pub fn isCapture(e: Expect) bool {
+        return e == .capture or e == .long_capture;
+    }
+};
+
+/// Result bytes per case on the wire: span mode reports four positions (span.zig), capture
+/// mode 28 (capture.zig); the long modes use two bytes per position.
 pub fn resultWidth(expect: Expect) usize {
     return switch (expect) {
         .span => 4,
         .capture => @import("capture.zig").width,
+        .long_span => 8,
+        .long_capture => 2 * @import("capture.zig").width,
         else => 1,
     };
 }
+
+pub const max_result_width = 2 * @import("capture.zig").width;
 
 pub const ModeSpec = struct {
     name: []const u8,
@@ -214,6 +239,13 @@ pub const builtin_modes = [_]ModeSpec{
     .{ .name = "long", .flags = &.{"--no-regexp-tier-up"}, .driver_mode = "native", .expect = .long },
     .{ .name = "shell-long", .engine = .shell, .flags = &.{}, .driver_mode = "interp", .expect = .long },
     .{ .name = "perl-long", .engine = .perl, .flags = &.{}, .driver_mode = "perl", .expect = .long },
+    // Spans and captures on the long pair; positions are 4 hex digits (driver modes lspan/lcapture).
+    .{ .name = "long-span", .flags = &.{"--no-regexp-tier-up"}, .driver_mode = "lspan", .expect = .long_span },
+    .{ .name = "shell-long-span", .engine = .shell, .flags = &.{}, .driver_mode = "lspan", .expect = .long_span },
+    .{ .name = "perl-long-span", .engine = .perl, .flags = &.{}, .driver_mode = "lspan", .expect = .long_span },
+    .{ .name = "long-capture", .flags = &.{"--no-regexp-tier-up"}, .driver_mode = "lcapture", .expect = .long_capture },
+    .{ .name = "shell-long-capture", .engine = .shell, .flags = &.{}, .driver_mode = "lcapture", .expect = .long_capture },
+    .{ .name = "perl-long-capture", .engine = .perl, .flags = &.{}, .driver_mode = "lcapture", .expect = .long_capture },
 };
 
 pub fn findMode(name: []const u8) ?*const ModeSpec {
@@ -831,11 +863,16 @@ pub fn batchDeadlineNs(cfg: *const config.Config, ncases: usize) u64 {
     return @max(base, scaled) * std.time.ns_per_ms;
 }
 
+/// Extra deadline for a long-mode batch: per KB of request and per case.
+pub fn longExtraNs(cfg: *const config.Config, req_len: usize, ncases: usize) u64 {
+    return (@as(u64, req_len / 1024) * cfg.long_mode_deadline_ms_per_kb + @as(u64, ncases) * cfg.long_mode_deadline_ms_per_case) * std.time.ns_per_ms;
+}
+
 /// Run one batch to completion on one child (used by probes, replay and triage).
 pub fn runSync(c: *Child, b: *Batch) BatchState {
     if (!c.alive) return .failed;
     // Long-mode requests get the same per-KB extra as in a lane.
-    const extra: u64 = if (c.spec.expect == .long) @as(u64, b.req.len / 1024) * c.opts.cfg.long_mode_deadline_ms_per_kb * std.time.ns_per_ms else 0;
+    const extra: u64 = if (c.spec.expect.isLong()) longExtraNs(c.opts.cfg, b.req.len, b.ncases) else 0;
     c.admit(b, sys.nowNs() + batchDeadlineNs(c.opts.cfg, b.ncases) + extra) catch return .failed;
     while (b.state == .queued and c.alive) pump(&.{c}, 1000);
     if (b.state == .queued) b.state = .failed;
@@ -909,24 +946,42 @@ pub fn probeMode(gpa: Allocator, spec: *const ModeSpec, opts: ChildOptions) Prob
     const c = Child.create(gpa, spec, o) catch return .{ .ok = false, .reason = "alloc" };
     defer c.destroy();
     c.start() catch return .{ .ok = false, .reason = gpa.dupe(u8, c.message()) catch "handshake failed" };
-    // Known-answer batch: /a/ on ("a", "b") -> test(A)=1, test(R)=0.
+    // Known-answer batch: /a/ on ("a", "b") -> test(A)=1, test(R)=0. Wide (long span/capture)
+    // modes search "b"x300 + "a", so the answer needs more than one byte.
+    const wide = spec.expect == .long_span or spec.expect == .long_capture;
+    var long_a: [301]u16 = undefined;
+    @memset(long_a[0..300], 'b');
+    long_a[300] = 'a';
     var req: std.ArrayList(u8) = .empty;
     defer req.deinit(gpa);
     req.appendSlice(gpa, "[1,[") catch return .{ .ok = false, .reason = "alloc" };
-    encodeCase(&req, gpa, .{ .flags = "", .a = &.{'a'}, .r = &.{'b'}, .pattern = "a" }) catch return .{ .ok = false, .reason = "alloc" };
+    encodeCase(&req, gpa, .{ .flags = "", .a = if (wide) &long_a else &.{'a'}, .r = &.{'b'}, .pattern = "a" }) catch return .{ .ok = false, .reason = "alloc" };
     req.appendSlice(gpa, ",") catch return .{ .ok = false, .reason = "alloc" };
     const perl_syntax = spec.engine == .perl or @import("dialect.zig").active.escape == .x_brace;
     const astral_pat = if (perl_syntax) "\\x{1F600}" else "\\u{1F600}";
     const astral_r: []const u16 = if (perl_syntax) &.{'a'} else &.{0xD83D};
     encodeCase(&req, gpa, .{ .flags = "u", .a = &.{ 0xD83D, 0xDE00 }, .r = astral_r, .pattern = astral_pat }) catch return .{ .ok = false, .reason = "alloc" };
     req.appendSlice(gpa, "]]\n") catch return .{ .ok = false, .reason = "alloc" };
-    var buf: [64]u8 = undefined;
+    var buf: [2 * max_result_width]u8 = undefined;
     const bits = buf[0 .. 2 * resultWidth(spec.expect)];
     var b: Batch = .{ .seq = 1, .ncases = 2, .req = req.items, .bits = bits };
     if (runSync(c, &b) != .answered) return .{ .ok = false, .reason = gpa.dupe(u8, c.message()) catch "no response" };
     // Response arrived while the child is still alive: output is flushed per line.
     const flushed = c.alive;
-    if (spec.expect == .span or spec.expect == .capture) {
+    if (wide) {
+        // Same checks with 16-bit positions: [300, 301) then no match (ffff); the astral case
+        // starts at 0 or is unsupported (fffe, bits 40).
+        const w = resultWidth(spec.expect);
+        const half = w / 2;
+        const p = struct {
+            fn f(x: []const u8, k: usize) u16 {
+                return (@as(u16, x[2 * k]) << 8) | x[2 * k + 1];
+            }
+        }.f;
+        const ok1 = p(bits, 0) == 300 and p(bits, 1) == 301 and p(bits[half..], 0) == 0xFFFF;
+        const ok2 = (p(bits[w..], 0) == 0 and p(bits[w..], 1) > 0 and p(bits[w + half ..], 0) == 0xFFFF) or (p(bits[w..], 0) == 0xFFFE and bits[w + 3] == Bits.skipped);
+        if (!ok1 or !ok2) return .{ .ok = false, .reason = "known-answer mismatch (long span/capture)" };
+    } else if (spec.expect == .span or spec.expect == .capture) {
         // a in "a" -> [0,1); no match in R; the astral case starts at 0 (end in host units)
         // or is unsupported (lone surrogate R on a UTF-8 host). Capture mode: per subject
         // the whole match comes first, then group slots (none here).

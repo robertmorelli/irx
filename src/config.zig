@@ -129,8 +129,11 @@ pub const Config = struct {
     /// Run the long-input mode too: each case gets a long accept/reject pair pumped from A
     /// (long.zig) and engines run the full-match test on it.
     long_mode: bool = false,
-    /// Run only the long mode (a long-input campaign): the other modes are not started.
+    /// Run only the long modes (a long-input campaign): the other modes are not started.
     long_mode_only: bool = false,
+    /// Long spans and captures too (where [span] / [capture] are enabled).
+    long_mode_span: bool = true,
+    long_mode_capture: bool = true,
     /// Fraction of cases that get a long pair (the rest are skipped by the long mode).
     long_mode_fraction: f64 = 0.25,
     /// Target lengths in symbols; each pair picks one, plus a little jitter.
@@ -142,6 +145,8 @@ pub const Config = struct {
     long_mode_max_request_bytes: u32 = 8 << 20,
     /// Extra batch deadline for the long mode per KB of request (long subjects take longer).
     long_mode_deadline_ms_per_kb: u32 = 20,
+    /// And per case (engines with a per-match time limit can spend it on several cases).
+    long_mode_deadline_ms_per_case: u32 = 10,
 
     // [adaptive]
     adaptive: bool = false,
@@ -182,7 +187,8 @@ pub const Config = struct {
         if (self.sanity_fraction < 0 or self.sanity_fraction > 1) return error.InvalidSanityFraction;
         if (self.long_mode_fraction < 0 or self.long_mode_fraction > 1) return error.InvalidLongModeFraction;
         if (self.n_long_mode_lengths == 0) return error.NoLongModeLengths;
-        for (self.long_mode_lengths[0..self.n_long_mode_lengths]) |l| if (l < 16 or l > 65536) return error.LongModeLengthOutOfRange;
+        // 16-bit wire positions: a 16000-symbol subject is at most 64000 UTF-8 bytes.
+        for (self.long_mode_lengths[0..self.n_long_mode_lengths]) |l| if (l < 16 or l > 16000) return error.LongModeLengthOutOfRange;
         // Every case must fit a request: conservative escaped encoding of
         // pattern + two subjects (6 bytes per code unit) + framing.
         const per_case: u64 = @as(u64, self.max_pattern_bytes) * 6 + 2 * 16 * 6 + 64;
@@ -378,6 +384,14 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
             cfg.long_mode_only = try asBool(v);
             return;
         }
+        if (eq(u8, key, "span")) {
+            cfg.long_mode_span = try asBool(v);
+            return;
+        }
+        if (eq(u8, key, "capture")) {
+            cfg.long_mode_capture = try asBool(v);
+            return;
+        }
         if (eq(u8, key, "fraction")) {
             cfg.long_mode_fraction = try asF(v);
             return;
@@ -392,6 +406,10 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
         }
         if (eq(u8, key, "deadline_ms_per_kb")) {
             cfg.long_mode_deadline_ms_per_kb = try asInt(u32, v);
+            return;
+        }
+        if (eq(u8, key, "deadline_ms_per_case")) {
+            cfg.long_mode_deadline_ms_per_case = try asInt(u32, v);
             return;
         }
         if (eq(u8, key, "lengths")) {
