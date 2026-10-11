@@ -125,6 +125,24 @@ pub const Config = struct {
     /// their own order, e.g. Java's shortest-first; such cases are skipped).
     capture_lookbehind: bool = true,
 
+    // [long]
+    /// Run the long-input mode too: each case gets a long accept/reject pair pumped from A
+    /// (long.zig) and engines run the full-match test on it.
+    long_mode: bool = false,
+    /// Run only the long mode (a long-input campaign): the other modes are not started.
+    long_mode_only: bool = false,
+    /// Fraction of cases that get a long pair (the rest are skipped by the long mode).
+    long_mode_fraction: f64 = 0.25,
+    /// Target lengths in symbols; each pair picks one, plus a little jitter.
+    long_mode_lengths: [8]u32 = .{ 64, 256, 1000, 4096, 0, 0, 0, 0 },
+    n_long_mode_lengths: u8 = 4,
+    /// Backtracking steps per symbol the guard allows the reference matcher (0: no guard).
+    long_mode_guard_factor: u32 = 50,
+    /// Request size limit for the long mode's batches.
+    long_mode_max_request_bytes: u32 = 8 << 20,
+    /// Extra batch deadline for the long mode per KB of request (long subjects take longer).
+    long_mode_deadline_ms_per_kb: u32 = 20,
+
     // [adaptive]
     adaptive: bool = false,
     adaptive_factor: f64 = 1.5,
@@ -162,6 +180,9 @@ pub const Config = struct {
         if (self.max_pairs == 0 or self.max_prods == 0) return error.InvalidLimits;
         if (self.adaptive_cap < 1.0 or self.adaptive_factor < 1.0) return error.InvalidAdaptive;
         if (self.sanity_fraction < 0 or self.sanity_fraction > 1) return error.InvalidSanityFraction;
+        if (self.long_mode_fraction < 0 or self.long_mode_fraction > 1) return error.InvalidLongModeFraction;
+        if (self.n_long_mode_lengths == 0) return error.NoLongModeLengths;
+        for (self.long_mode_lengths[0..self.n_long_mode_lengths]) |l| if (l < 16 or l > 65536) return error.LongModeLengthOutOfRange;
         // Every case must fit a request: conservative escaped encoding of
         // pattern + two subjects (6 bytes per code unit) + framing.
         const per_case: u64 = @as(u64, self.max_pattern_bytes) * 6 + 2 * 16 * 6 + 64;
@@ -344,6 +365,46 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
                 else => return error.ExpectedString,
             };
             cfg.span_units = std.meta.stringToEnum(SpanUnits, t) orelse return error.BadSpanUnits;
+            return;
+        }
+        return error.UnknownKey;
+    }
+    if (eq(u8, section, "long")) {
+        if (eq(u8, key, "enabled")) {
+            cfg.long_mode = try asBool(v);
+            return;
+        }
+        if (eq(u8, key, "only")) {
+            cfg.long_mode_only = try asBool(v);
+            return;
+        }
+        if (eq(u8, key, "fraction")) {
+            cfg.long_mode_fraction = try asF(v);
+            return;
+        }
+        if (eq(u8, key, "guard_factor")) {
+            cfg.long_mode_guard_factor = try asInt(u32, v);
+            return;
+        }
+        if (eq(u8, key, "max_request_bytes")) {
+            cfg.long_mode_max_request_bytes = try asInt(u32, v);
+            return;
+        }
+        if (eq(u8, key, "deadline_ms_per_kb")) {
+            cfg.long_mode_deadline_ms_per_kb = try asInt(u32, v);
+            return;
+        }
+        if (eq(u8, key, "lengths")) {
+            const arr = switch (v) {
+                .nums => |x| x,
+                else => return error.ExpectedArray,
+            };
+            if (arr.len == 0 or arr.len > cfg.long_mode_lengths.len) return error.BadLongModeLengths;
+            for (arr, 0..) |x, i| {
+                if (x != @floor(x) or x < 0) return error.BadLongModeLengths;
+                cfg.long_mode_lengths[i] = @intFromFloat(x);
+            }
+            cfg.n_long_mode_lengths = @intCast(arr.len);
             return;
         }
         return error.UnknownKey;

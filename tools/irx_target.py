@@ -3,8 +3,11 @@
 
 usage: tools/irx_target.py NAME... | --all  [--duration S] [--seed N] [--jobs J]
                                            [--label L] [--selfcheck-only] [--no-readme] [--no-selfcheck]
+                                           [--long [--long-lengths "64, 256, 1000, 4096"]]
 
 `--all` skips targets whose [target] section sets `campaign = false`.
+`--long` runs a long-input campaign instead: only the long mode, with a pumped long pair for
+every case (label prefix `long-`).
 Each run writes findings/<label>-<name>/ (with the merged campaign.toml) and, unless
 --no-readme, refreshes the "<name> <label> results" block in targets/<name>/README.md.
 Placeholders in `command`: {root} (repo), {home}, {driver}, {mode} (filled by irx).
@@ -34,9 +37,12 @@ def run(name, a):
     sub = lambda c: c.replace("{root}", ROOT).replace("{home}", os.path.expanduser("~"))
     cmd = sub(meta["command"])
     label = a.label or ("selfcheck" if a.selfcheck_only else f"{a.duration // 60}m" if a.duration % 60 == 0 else f"{a.duration}s")
+    if a.long and not a.label: label = "long-" + label
     out = os.path.join(ROOT, "findings", f"{label}-{name}")
     subprocess.run(["rm", "-rf", out]); os.makedirs(out)
     cfg = os.path.join(out, "campaign.toml")
+    # --long: a long-input campaign (only the long mode, every case pumped; src/long.zig).
+    if a.long: text = re.sub(r"^\[long\].*?(?=^\[|\Z)", "", text, flags=re.S | re.M) + f"\n[long]\nonly = true\nfraction = 1.0\nlengths = [{a.long_lengths}]\n"
     open(cfg, "w").write(open(os.path.join(ROOT, "weights.toml")).read() + "\n" + text)
     irx = [os.path.join(ROOT, "zig-out/bin/irx")]
     if a.selfcheck_only: irx.append("selfcheck")
@@ -64,6 +70,8 @@ def main():
     p.add_argument("--jobs", type=int, default=8); p.add_argument("--label")
     p.add_argument("--selfcheck-only", action="store_true"); p.add_argument("--no-readme", action="store_true")
     p.add_argument("--no-selfcheck", action="store_true")
+    p.add_argument("--long", action="store_true", help="long-input campaign: only the long mode, every case gets a pumped long pair")
+    p.add_argument("--long-lengths", default="64, 256, 1000, 4096", help="target lengths for --long (symbols)")
     a = p.parse_args()
     # --all skips targets marked `campaign = false` (they can still be run by name).
     names = [n for n in sorted(os.listdir(os.path.join(ROOT, "targets"))) if target_meta(n)[0].get("campaign", True)] if a.all else a.names

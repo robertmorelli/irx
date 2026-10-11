@@ -260,8 +260,8 @@ pub const Matcher = struct {
                 const a = &n.atom;
                 if (a.kind == .empty) return self.run(c, pos);
                 if (a.isAssertion()) {
-                    const mask = atoms.assertionMask(a, self.flags, self.w);
-                    if ((mask >> @intCast(pos)) & 1 == 0) return false;
+                    // At this position only: a whole-string mask is O(n) per step and only 32 bits.
+                    if (!atoms.assertionAt(a, self.flags, self.w, pos)) return false;
                     return self.run(c, pos);
                 }
                 if (dir == .fwd) {
@@ -504,7 +504,7 @@ fn countRec(t: *const Ast, idx: u8, out: *[n_constructs]u16) void {
 const testing = std.testing;
 const ucd = @import("ucd.zig");
 
-fn randomTree(t: *Ast, rnd: std.Random, inv: []const AtomSpec, budget: usize) !u8 {
+pub fn randomTree(t: *Ast, rnd: std.Random, inv: []const AtomSpec, budget: usize) !u8 {
     if (budget <= 1) return t.add(.{ .op = .atom, .atom = inv[rnd.uintLessThan(usize, inv.len)] });
     const choice = rnd.uintLessThan(u8, 10);
     switch (choice) {

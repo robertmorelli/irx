@@ -168,7 +168,7 @@ pub fn reapNonblocking(pid: sys.pid_t) ?ExitInfo {
 
 /// shell: any JS shell given as a command template (`--shell "CMD {driver} {mode}"`).
 pub const Engine = enum { d8, sm, jsc, shell, perl };
-pub const Expect = enum { normal, tierup, linear, span, capture };
+pub const Expect = enum { normal, tierup, linear, span, capture, long };
 
 /// Result bytes per case on the wire: span mode reports four position bytes (span.zig).
 pub fn resultWidth(expect: Expect) usize {
@@ -210,6 +210,10 @@ pub const builtin_modes = [_]ModeSpec{
     .{ .name = "capture", .flags = &.{}, .driver_mode = "capture", .expect = .capture },
     .{ .name = "shell-capture", .engine = .shell, .flags = &.{}, .driver_mode = "capture", .expect = .capture },
     .{ .name = "perl-capture", .engine = .perl, .flags = &.{}, .driver_mode = "capture", .expect = .capture },
+    // Full match on each case's long pair (long.zig). d8 runs it compiled from the start.
+    .{ .name = "long", .flags = &.{"--no-regexp-tier-up"}, .driver_mode = "native", .expect = .long },
+    .{ .name = "shell-long", .engine = .shell, .flags = &.{}, .driver_mode = "interp", .expect = .long },
+    .{ .name = "perl-long", .engine = .perl, .flags = &.{}, .driver_mode = "perl", .expect = .long },
 };
 
 pub fn findMode(name: []const u8) ?*const ModeSpec {
@@ -830,7 +834,9 @@ pub fn batchDeadlineNs(cfg: *const config.Config, ncases: usize) u64 {
 /// Run one batch to completion on one child (used by probes, replay and triage).
 pub fn runSync(c: *Child, b: *Batch) BatchState {
     if (!c.alive) return .failed;
-    c.admit(b, sys.nowNs() + batchDeadlineNs(c.opts.cfg, b.ncases)) catch return .failed;
+    // Long-mode requests get the same per-KB extra as in a lane.
+    const extra: u64 = if (c.spec.expect == .long) @as(u64, b.req.len / 1024) * c.opts.cfg.long_mode_deadline_ms_per_kb * std.time.ns_per_ms else 0;
+    c.admit(b, sys.nowNs() + batchDeadlineNs(c.opts.cfg, b.ncases) + extra) catch return .failed;
     while (b.state == .queued and c.alive) pump(&.{c}, 1000);
     if (b.state == .queued) b.state = .failed;
     return b.state;

@@ -253,33 +253,37 @@ fn isWordAt(w: []const u21, i: isize, flags: Flags) bool {
 }
 
 /// Bitmask over positions 0..n where the assertion holds.
-pub fn assertionMask(spec: *const AtomSpec, flags0: Flags, w: []const u21) u32 {
+pub fn assertionMask(spec: *const AtomSpec, flags: Flags, w: []const u21) u32 {
+    var mask: u32 = 0;
+    for (0..w.len + 1) |i| {
+        if (assertionAt(spec, flags, w, i)) mask |= @as(u32, 1) << @intCast(i);
+    }
+    return mask;
+}
+
+/// Does assertion `spec` (^ $ \b \B) hold at position i of w (0 <= i <= w.len)?
+pub fn assertionAt(spec: *const AtomSpec, flags0: Flags, w: []const u21, i: usize) bool {
     const dl = dialect.active;
     var flags = flags0;
     if (dl.anchors_always_multiline) flags.m = true;
-    var mask: u32 = 0;
     const n = w.len;
-    for (0..n + 1) |i| {
-        const ok = switch (spec.kind) {
-            // Perl: /m ^ never matches after a trailing newline; $ without /m
-            // also matches before a final newline.
-            .caret => if (flags.m and dl.caret_m_never_at_end and i == n) false else i == 0 or (flags.m and alpha.isLineTerminator(w[i - 1]) and (dl.caret_after_trailing_newline or i != n) and
-                !(dl.crlf_atomic and !dl.caret_splits_crlf and w[i - 1] == '\r' and i < n and w[i] == '\n')),
-            .dollar => i == n or
-                (flags.m and alpha.isLineTerminator(w[i]) and !(dl.crlf_atomic and w[i] == '\n' and i > 0 and w[i - 1] == '\r')) or
-                (dl.dollar_before_final_terminator and !flags.m and
-                    ((i + 1 == n and alpha.isLineTerminator(w[i]) and !(dl.crlf_atomic and w[i] == '\n' and i > 0 and w[i - 1] == '\r')) or
-                    (dl.crlf_atomic and i + 2 == n and w[i] == '\r' and w[i + 1] == '\n'))),
-            .wordb, .nwordb => blk: {
-                const ii: isize = @intCast(i);
-                const b = if (dl.boundaryAt) |f| f(w, i, flags) else isWordAt(w, ii - 1, flags) != isWordAt(w, ii, flags);
-                break :blk if (spec.kind == .wordb) b else !b;
-            },
-            else => unreachable,
-        };
-        if (ok) mask |= @as(u32, 1) << @intCast(i);
-    }
-    return mask;
+    return switch (spec.kind) {
+        // Perl: /m ^ never matches after a trailing newline; $ without /m
+        // also matches before a final newline.
+        .caret => if (flags.m and dl.caret_m_never_at_end and i == n) false else i == 0 or (flags.m and alpha.isLineTerminator(w[i - 1]) and (dl.caret_after_trailing_newline or i != n) and
+            !(dl.crlf_atomic and !dl.caret_splits_crlf and w[i - 1] == '\r' and i < n and w[i] == '\n')),
+        .dollar => i == n or
+            (flags.m and alpha.isLineTerminator(w[i]) and !(dl.crlf_atomic and w[i] == '\n' and i > 0 and w[i - 1] == '\r')) or
+            (dl.dollar_before_final_terminator and !flags.m and
+                ((i + 1 == n and alpha.isLineTerminator(w[i]) and !(dl.crlf_atomic and w[i] == '\n' and i > 0 and w[i - 1] == '\r')) or
+                (dl.crlf_atomic and i + 2 == n and w[i] == '\r' and w[i + 1] == '\n'))),
+        .wordb, .nwordb => blk: {
+            const ii: isize = @intCast(i);
+            const b = if (dl.boundaryAt) |f| f(w, i, flags) else isWordAt(w, ii - 1, flags) != isWordAt(w, ii, flags);
+            break :blk if (spec.kind == .wordb) b else !b;
+        },
+        else => unreachable,
+    };
 }
 
 /// Relation of one atom on string w.
