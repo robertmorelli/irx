@@ -37,7 +37,5 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 <!-- BEGIN tcl 10m triage -->
 ### tcl: 10-minute campaign triage
 
-* No wrong results; self-check clean (after the `\A…\Z` host fix); 1.05 M cases.
-* 1,101 timeouts, none reproducible: a recorded batch replays in 1.6 s against the 4 s deadline, and no case
-  takes more than 0.6 s. Load-induced; a larger `batch_deadline_per512_ms` would help.
+* Cross-check found **IRX-TCL-1**: `k{1}`, `k+`, `k*` with `-nocase` miss the Kelvin sign, which the bare `k` matches.
 <!-- END tcl 10m triage -->

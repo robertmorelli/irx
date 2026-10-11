@@ -11,3 +11,18 @@ Bugs found here are listed in the [bug ledger](../../README.md#bug-ledger).
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END vectorscan 1m results -->
+
+<!-- BEGIN vectorscan 10m results -->
+### Vectorscan (Hyperscan): 10m campaign
+
+* 19,264 patterns, 2 tables, 22 distinct findings; self-check 272,528 probes, 0 mismatches, 0 engine failures
+* findings by kind: 22 timeout (batch)
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END vectorscan 10m results -->
+
+<!-- BEGIN vectorscan 10m triage -->
+### vectorscan: 10-minute campaign triage
+
+* Clean but thin: 19 K cases (slow compiles), 0 wrong results, self-check clean. The 22 timeouts did not reproduce.
+<!-- END vectorscan 10m triage -->

@@ -45,3 +45,29 @@ match. Not reported upstream.
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END xs 1m results -->
+
+<!-- BEGIN xs 10m results -->
+### XS (Moddable, jsvu): 10m campaign
+
+* 801,536 patterns, 10 tables, 3,126 distinct findings; self-check 1,628,352 probes, 76,472 mismatches, 0 engine failures
+* findings by kind: 2,172 timeout (batch), 952 crash (batch), 200 syntax_error (selfcheck), 2 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 2 | wrong_result | `` | `"a"` | `" "` | `(?:a\|^){2}` | 00 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END xs 10m results -->
+
+<!-- BEGIN xs 10m triage -->
+### xs: 10-minute campaign triage
+
+* New (some from the campaign, the rest from the cross-check): **IRX-XS-5** (`(?:a|^){2}` misses `"a"`, the
+  campaign's only minimized wrong result), **IRX-XS-4**, **IRX-XS-6**, **IRX-XS-7** (hang on `(?:a?)*b` vs `"a"`).
+* The 76,472 self-check mismatches are IRX-XS-1 (`[^]` rejected in `v` mode, so every `[^]*`-wrapped assertion probe
+  fails) and IRX-XS-2 (`v`-mode classes ignore `i`). The 200 syntax errors are IRX-XS-1.
+* The 952 crashes are IRX-XS-3 (`RangeError: buffer overflow`, uncatchable). The 2,172 timeouts are probably
+  IRX-XS-7 hangs, which is why only part of the 0.8 M cases executed.
+<!-- END xs 10m triage -->
