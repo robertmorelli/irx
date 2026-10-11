@@ -4,6 +4,7 @@
 usage: tools/irx_target.py NAME... | --all  [--duration S] [--seed N] [--jobs J]
                                            [--label L] [--selfcheck-only] [--no-readme] [--no-selfcheck]
 
+`--all` skips targets whose [target] section sets `campaign = false`.
 Each run writes findings/<label>-<name>/ (with the merged campaign.toml) and, unless
 --no-readme, refreshes the "<name> <label> results" block in targets/<name>/README.md.
 Placeholders in `command`: {root} (repo), {home}, {driver}, {mode} (filled by irx).
@@ -64,7 +65,8 @@ def main():
     p.add_argument("--selfcheck-only", action="store_true"); p.add_argument("--no-readme", action="store_true")
     p.add_argument("--no-selfcheck", action="store_true")
     a = p.parse_args()
-    names = sorted(os.listdir(os.path.join(ROOT, "targets"))) if a.all else a.names
+    # --all skips targets marked `campaign = false` (they can still be run by name).
+    names = [n for n in sorted(os.listdir(os.path.join(ROOT, "targets"))) if target_meta(n)[0].get("campaign", True)] if a.all else a.names
     if not names: p.error("give target names or --all")
     rcs = [run(n, a) for n in names]
     sys.exit(0 if all(r == 0 for r in rcs) else 1)

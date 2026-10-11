@@ -355,7 +355,7 @@ target has its own. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are 
 | engine262 | [`engine262`](targets/engine262) | bridge | ES2024 | IRX-E262-1, 2 |
 | Hermes | [`hermes`](targets/hermes) | bridge | ES2024 minus `v` | IRX-HERMES-1…4 |
 | JavaScriptCore (Bun 1.4.2) | [`bun`](targets/bun) | `driver.js` (node adapter) | ES2024 | clean (0 self-check mismatches) |
-| V8 14.1 / 15.0 (Node, Deno) | [`node`](targets/node), [`deno`](targets/deno) | `driver.js` | ES2024 | older V8; excluded from the ledger |
+| V8 14.1 / 15.0 (Node, Deno) | [`node`](targets/node), [`deno`](targets/deno) | `driver.js` | ES2024 | older V8; excluded from the ledger and from `--all` campaigns (`campaign = false`) |
 | Perl 5.44 / blead | [`perl`](targets/perl) | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1…4 |
 | PCRE2 10.49 | [`pcre2`](targets/pcre2) | `hosts/c/pcre2_host` | Perl (exact) | IRX-PCRE2-1, 3 (JIT), IRX-PCRE2-2 |
 | PHP 8.5 `preg_*` | [`php-pcre2`](targets/php-pcre2) | `hosts/script/php_host.php` | Perl (exact) | IRX-PCRE2-1…3 |

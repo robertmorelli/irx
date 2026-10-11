@@ -7,6 +7,7 @@ kind = "shell"   # d8 | perl | shell
 command = "/opt/homebrew/bin/deno run -q {driver} {mode}"
 dialect = "es"   # src/dialects/
 selfcheck = true
+campaign = false   # older V8 than the v8 (d8) target; skipped by --all, run by name to check whether a V8 bug is old
 
 [span]
 enabled = true
