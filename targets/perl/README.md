@@ -54,3 +54,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   `K`) or IRX-PERL-1 (`(?=a*)` before a character class: an empty synthetic start class).
 * Self-check clean; 5.4 M cases. 1,322 timeouts: backtracking blowups, not investigated.
 <!-- END perl 10m triage -->
+
+<!-- BEGIN perl 5m results -->
+### Perl 5.44 (also blead via vendor/perl5): 5m campaign
+
+* 1,655,296 patterns, 18 tables, 519 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 379 timeout (batch), 82 wrong_span, 58 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 8 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:\|a)` | 00 |
+| 4 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:(?:)\|a)` | 00 |
+| 2 | wrong_result | `imu` | `"ſ"` | `""` | `^\bs?` | 00 |
+| 2 | wrong_result | `u` | `"ſ"` | `""` | `(?=a?)\w(?:a\|(?:))` | 00 |
+| 2 | wrong_span | `u` | `" "` | `"ka"` | `(?=a*).` | 02 |
+| 2 | wrong_result | `imu` | `"ſ"` | `""` | `^\b[k-s]?` | 00 |
+| 2 | wrong_result | `u` | `"Kaaa"` | `""` | `(?:(?=a*)\Da){1,2}` | 00 |
+| 2 | wrong_result | `u` | `"😀aa"` | `""` | `(?:(?=a?)[^A\x{E0}]){3,}` | 00 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END perl 5m results -->

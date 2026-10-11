@@ -57,3 +57,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * The 2,175 timeouts are genuine: timing one batch case by case found 5 cases over 5 s and 7 more over 2 s, all
   on an 8-character subject with nested nullable loops. Same family as IRX-HERMES-2.
 <!-- END hermes 10m triage -->
+
+<!-- BEGIN hermes 5m results -->
+### Hermes (jsvu): 5m campaign
+
+* 144,032 patterns, 3 tables, 951 distinct findings
+* findings by kind: 789 timeout (batch), 152 wrong_span, 10 exception
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 3 | wrong_span | `` | `"aa"` | `""` | `(?:(?:a+){1,1}){2,2}` | 00 |
+| 3 | wrong_span | `` | `"aa"` | `""` | `(?:(?:a{1,}){1,1}){2,}` | 00 |
+| 3 | wrong_span | `` | `"aa"` | `""` | `(?:(?:a{1,})+){2}` | 00 |
+| 2 | wrong_span | `` | `"aa"` | `""` | `(?:(?:a{1,}){1,1}){2,2}` | 00 |
+| 2 | wrong_span | `` | `"aa"` | `""` | `(?:(?:aa*){1,1}){2,2}` | 00 |
+| 2 | wrong_span | `` | `"aa"` | `""` | `(?:(?:a+){1,1}){0,2}a` | 00 |
+| 1 | wrong_span | `` | `"aa"` | `""` | `(?:(?:a{1,}){1,1}){0,2}a` | 00 |
+| 1 | wrong_span | `` | `" aa"` | `""` | `\W(?:(?:a+){1,1}){2,}` | 00 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END hermes 5m results -->

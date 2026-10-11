@@ -50,3 +50,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   characters), a resource limit. 1,149 timeouts are the same blowups under the batch deadline.
 * IRX-PCRE2-1 (JIT negative lookbehind) did not come up in this run.
 <!-- END pcre2 10m triage -->
+
+<!-- BEGIN pcre2 5m results -->
+### PCRE2 10.49 (interpreter; IRX_PCRE2_JIT=1 for the JIT): 5m campaign
+
+* 992,160 patterns, 11 tables, 890 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 572 exception, 317 timeout (batch), 1 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 3 | exception | `u` | `"\r"` | `"aaa"` | `(?:(?:(?:()\|){0,2}){0,2}a){0,}[^a\x{1F600}]` | 08 |
+| 3 | exception | `u` | `"aaaaaaaa"` | `""` | `(?:(?:(?:(?:a\|)+)+)+a{2,}aa){2,2}` | 08 |
+| 3 | exception | `u` | `"aak\r"` | `"aàa"` | `(?:(?:(?:(?:)*){0,3}){0,2}){0,3}aa[k-s]\W` | 08 |
+| 3 | exception | `u` | `"aaaaaaaa"` | `"Kaaaaa"` | `(?:.(?:a(?:(?:()\|)*){0,3}){3,}){2,2}` | 08 |
+| 3 | exception | `u` | `"aaa"` | `"a\naa"` | `(?:(?:(?:(?:()\|[^\x{1F600}\x{E9}])*)*){0,3}){0,2}aaa` | 08 |
+| 2 | exception | `u` | `""` | `"aaaſ"` | `(?:(?:(?:()\|(?:)){3,}(?:a\|(?:))){2,}){0,2}` | 08 |
+| 2 | exception | `u` | `"aaaaaa"` | `"aaaaa"` | `(?:(?:a(?:\|()\|()){0,3}){2,3}a)+` | 08 |
+| 2 | exception | `u` | `""` | `"aaſ"` | `(?:(?:(?:(?:a?){0,1}){2,}){0,3})+` | 08 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END pcre2 5m results -->

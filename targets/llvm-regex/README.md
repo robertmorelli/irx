@@ -55,3 +55,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   * IRX-LLVM-1: a nullable first alternative, e.g. `(?:(?:)|a)\s` with `m`, where the reported match is not leftmost.
 * Self-check clean; no timeouts.
 <!-- END llvm-regex 10m triage -->
+
+<!-- BEGIN llvm-regex 5m results -->
+### LLVM Regex (POSIX ERE, translated): 5m campaign
+
+* 6,440,960 patterns, 66 tables, 29,971 distinct findings; self-check 46,080 probes, 0 mismatches, 0 engine failures
+* findings by kind: 17,630 wrong_result, 12,341 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 333 | wrong_result | `u` | `"a"` | `""` | `a(?:$){2,2}` | 00 |
+| 313 | wrong_result | `u` | `"a"` | `""` | `(?:^){2,2}a` | 00 |
+| 282 | wrong_result | `u` | `""` | `"a"` | `(?:^){2,2}` | 00 |
+| 277 | wrong_result | `u` | `""` | `"a"` | `(?:$){2,2}` | 00 |
+| 175 | wrong_result | `u` | `"a"` | `""` | `(?:^){2,}a` | 00 |
+| 170 | wrong_result | `u` | `"a"` | `""` | `a(?:$){2,}` | 00 |
+| 146 | wrong_result | `u` | `"a"` | `""` | `a(?:$){2}` | 00 |
+| 141 | wrong_result | `u` | `""` | `"a"` | `(?:^){2,}` | 00 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END llvm-regex 5m results -->

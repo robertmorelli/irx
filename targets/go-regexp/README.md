@@ -38,3 +38,11 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 
 * Clean: 19.4 M cases, 0 findings, self-check 0 mismatches.
 <!-- END go-regexp 10m triage -->
+
+<!-- BEGIN go-regexp 5m results -->
+### Go regexp: 5m campaign
+
+* 9,501,024 patterns, 97 tables, 0 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END go-regexp 5m results -->

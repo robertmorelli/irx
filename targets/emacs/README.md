@@ -42,3 +42,12 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * No wrong results; self-check clean after the dialect work.
 * 1,502 timeouts, none reproduced alone; Emacs's backtracker is slow on the longer subjects. Not investigated further.
 <!-- END emacs 10m triage -->
+
+<!-- BEGIN emacs 5m results -->
+### Emacs Lisp regexps (translated): 5m campaign
+
+* 659,904 patterns, 8 tables, 427 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 425 timeout (batch), 2 crash (batch)
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END emacs 5m results -->

@@ -55,3 +55,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   operations, e.g. `[^\W&&s]` misses `"é"`).
 * 124 timeouts; engine262 is a spec interpreter (~1,200 cases/s).
 <!-- END engine262 10m triage -->
+
+<!-- BEGIN engine262 5m results -->
+### engine262: 5m campaign
+
+* 246,080 patterns, 4 tables, 22,900 distinct findings
+* findings by kind: 15,826 syntax_error, 4,724 wrong_result, 2,281 wrong_span, 69 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 1 | syntax_error | `v` | `"aſaaa"` | `""` | `[^a&&\u{17F}][^ak]aaa` | 04 |
+| 1 | syntax_error | `v` | `""` | `"a"` | `[\d--\u{17F}]\|(?:)` | 04 |
+| 1 | syntax_error | `v` | `"aaa"` | `""` | `[^\u{212A}&&\u{17F}]aa` | 04 |
+| 1 | syntax_error | `v` | `"aaa"` | `""` | `[^s&&\u{212A}]aa` | 04 |
+| 1 | syntax_error | `v` | `"aΣ"` | `""` | `a(?:\W\|[\d--\u{17F}])` | 04 |
+| 1 | syntax_error | `v` | `"a"` | `"aa"` | `a\|[\u{17F}&&\u{212A}]` | 04 |
+| 1 | syntax_error | `v` | `"a"` | `""` | `(?:(?:)\|[^\W--\u{17F}])a` | 04 |
+| 1 | syntax_error | `v` | `"a"` | `""` | `a[^[a-z]&&\u{212A}]?` | 04 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END engine262 5m results -->

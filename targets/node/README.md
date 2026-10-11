@@ -49,3 +49,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * Unlike Deno's V8 15.0, Node's V8 14.1 does not have the warm-up negated-class bug (see `targets/deno`).
 * 1,309 timeouts: load-induced, as for Bun and Deno.
 <!-- END node 10m triage -->
+
+<!-- BEGIN node 5m results -->
+### V8 14.1 (Node 25.8) - older V8, excluded from the ledger: 5m campaign
+
+* 1,005,120 patterns, 12 tables, 14,220 distinct findings; self-check 1,628,352 probes, 80 mismatches, 0 engine failures
+* findings by kind: 13,553 wrong_result, 379 timeout (batch), 288 wrong_span, 80 selfcheck_mismatch (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 803 | wrong_result | `mu` | `""` | `"😀"` | `(?:)` | 03 |
+| 362 | wrong_result | `mu` | `""` | `"😀"` | `()` | 03 |
+| 59 | wrong_result | `mu` | `""` | `"😀"` | `(?:)` | 33 |
+| 54 | wrong_span | `u` | `""` | `"😀"` | `(?!.)` | 03 |
+| 42 | wrong_span | `u` | `""` | `"😀"` | `(?!\S)` | 03 |
+| 18 | wrong_result | `mu` | `""` | `"😀"` | `()` | 33 |
+| 14 | wrong_span | `u` | `""` | `"😀"` | `(?!\W)` | 03 |
+| 12 | wrong_span | `u` | `""` | `"😀"` | `(?!\D)` | 03 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END node 5m results -->

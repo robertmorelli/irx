@@ -49,3 +49,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   `\b`/`\B`-guarded alternatives under a leading `^`.
 * Self-check clean, no timeouts. 2.6 M cases in 10 minutes.
 <!-- END dotnet-nonbacktracking 10m triage -->
+
+<!-- BEGIN dotnet-nonbacktracking 5m results -->
+### .NET 9 Regex (NonBacktracking): 5m campaign
+
+* 650,176 patterns, 8 tables, 582 distinct findings; self-check 336,272 probes, 0 mismatches, 0 engine failures
+* findings by kind: 580 wrong_span, 2 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 23 | wrong_span | `` | `"aaaaaaaa"` | `""` | `(?:a{2,}?){0,}a` | 00 |
+| 13 | wrong_span | `` | `"aaaaaaaa"` | `""` | `(?:a{2,3}){0,}a` | 00 |
+| 12 | wrong_span | `` | `"aaaaaaaa"` | `""` | `(?:a{3,}?){0,3}a` | 00 |
+| 10 | wrong_span | `` | `"aéa"` | `""` | `(?:a\|.*?)a` | 00 |
+| 6 | wrong_span | `` | `"aaaaaaaa"` | `""` | `(?:a{2,3})+a` | 00 |
+| 5 | wrong_span | `` | `"aaaaaaaa"` | `""` | `(?:a{1,2}a){0,}a` | 00 |
+| 4 | wrong_span | `` | `"aaaaaaaa"` | `"aa"` | `(?:a{2,}?){0,}a` | 00 |
+| 4 | wrong_span | `` | `"aaaaaaaa"` | `""` | `(?:a+?a){0,}a` | 00 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END dotnet-nonbacktracking 5m results -->

@@ -57,3 +57,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * 1,682 timeouts, not investigated; NIM-4 (exponential compile of counted empty alternatives) is the likely cause.
 * Self-check clean.
 <!-- END nim-regex 10m triage -->
+
+<!-- BEGIN nim-regex 5m results -->
+### nim-regex: 5m campaign
+
+* 592,672 patterns, 7 tables, 44,519 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 25,160 exception, 14,358 wrong_result, 4,294 wrong_span, 465 timeout (batch), 238 syntax_error, 4 crash (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 6 | exception | `u` | `""` | `"a"` | `(?:(?!(?:))){0,}` | 08 |
+| 6 | exception | `u` | `""` | `"a"` | `(?:(?!(?:))){0,1}` | 08 |
+| 5 | exception | `u` | `""` | `"a"` | `(?:(?!())){0,}` | 08 |
+| 5 | exception | `u` | `""` | `"a"` | `(?:(?<=(?:))){0,1}` | 08 |
+| 4 | exception | `u` | `""` | `"a"` | `(?:(?=())){0,}` | 08 |
+| 4 | exception | `u` | `""` | `"a"` | `(?:(?<!())){0,}` | 08 |
+| 3 | exception | `u` | `""` | `"a"` | `(?:(?=(?:))){0,}` | 08 |
+| 3 | exception | `u` | `""` | `"a"` | `(?:(?<=())){0,}` | 08 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END nim-regex 5m results -->

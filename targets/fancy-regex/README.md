@@ -55,3 +55,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   alternatives (`a(?=(?:\b|[^A0]|.)*)` on a 20-char subject): exponential backtracking hitting fancy-regex's
   backtrack limit (1,000,000 steps by default), a documented resource limit rather than a bug.
 <!-- END fancy-regex 10m triage -->
+
+<!-- BEGIN fancy-regex 5m results -->
+### fancy-regex: 5m campaign
+
+* 1,621,504 patterns, 18 tables, 3,005 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 3,005 exception
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 3 | exception | `iu` | `"kΣ"` | `"aaa"` | `(?:(?:\b\|(?:a\|){0,3})+){0,3}[K\x{212A}][^a\x{E9}]` | 08 |
+| 3 | exception | `u` | `"aaaaaa"` | `""` | `(?:(?:(?:a\b){0,}(?:(?:a*){3,})*a){3,}){2}` | 08 |
+| 3 | exception | `su` | `" a\nß-S"` | `""` | `(?:\s(?:(?:[^a ]\|(?:(?:)\|\b\|.){0,1})+)*.){2,2}` | 08 |
+| 3 | exception | `su` | `" \naa"` | `""` | `(?:\s(?:(?:(?:(?:.\|\B)*){0,3}){1,})+){2,}` | 08 |
+| 3 | exception | `u` | `"ka"` | `"aaa"` | `(?:(?:(?:a*){0,2}a?)+\|(?=(?:)))+[k-s]a` | 08 |
+| 3 | exception | `u` | `" a\naaaa"` | `""` | `(?:\s(?:(?:(?:a\|\D)*)+\|(?<!()))+a){2}` | 08 |
+| 3 | exception | `u` | `" a\na-a"` | `""` | `(?:\W(?:(?:.*\|\|\b){0,3})+a){3}` | 08 |
+| 3 | exception | `u` | `"aaaaaaaa"` | `"aaaaa"` | `(?:(?:a(?:(?:\|a){0,2}\|\B){0,3}a){2,}){2,2}` | 08 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END fancy-regex 5m results -->

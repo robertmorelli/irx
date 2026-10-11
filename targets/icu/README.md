@@ -30,3 +30,12 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   bodies from the `icu` dialect, or with a per-case watchdog.
 * Self-check clean.
 <!-- END icu 10m triage -->
+
+<!-- BEGIN icu 5m results -->
+### ICU NSRegularExpression: 5m campaign
+
+* 150,176 patterns, 3 tables, 882 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 882 timeout (batch)
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END icu 5m results -->

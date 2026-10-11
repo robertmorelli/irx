@@ -60,3 +60,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * The 1,426 exceptions are Oniguruma's retry limit on exponential patterns such as `(?:a|a)+` over 23 characters.
 * Self-check clean.
 <!-- END oniguruma 10m triage -->
+
+<!-- BEGIN oniguruma 5m results -->
+### Oniguruma 6.9 (C library): 5m campaign
+
+* 1,639,936 patterns, 18 tables, 3,021 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 2,221 exception, 458 wrong_result, 200 timeout (batch), 142 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 7 | exception | `u` | `""` | `"aaaaaaaaaaaaaaaaaaaaaa "` | `(?:a\|a)*` | 08 |
+| 4 | wrong_result | `u` | `"a"` | `"_"` | `(?:^(?:()\|a)){2,}` | 00 |
+| 4 | wrong_result | `u` | `"a"` | `"aa"` | `(?:(?:a\|^)\b){2,2}` | 00 |
+| 4 | wrong_result | `u` | `"a"` | `"_"` | `(?:^a?){2,3}` | 00 |
+| 4 | wrong_result | `u` | `"a"` | `"_"` | `(?:^a*){2,3}` | 00 |
+| 3 | exception | `u` | `"aaaaaaaa"` | `""` | `(?:(?:(?:a{0,2})+(?:))+(?:a\|a\|a)a{3,3}){2}` | 08 |
+| 3 | exception | `u` | `"aaaaaaa"` | `""` | `(?:(?:(?:)\|(?:(?:a?){2,})+a)\Ba{3,3}){2,2}` | 08 |
+| 3 | exception | `iu` | `"k"` | `"aaa"` | `(?:(?:(?:\|(?:a*){0,2})+){2,2}){0,}K` | 08 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END oniguruma 5m results -->

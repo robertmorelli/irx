@@ -58,3 +58,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * Self-check mismatches: the known IRX-JAVA-1 ß/ẞ asymmetry.
 * 1,448 timeouts: backtracking blowups, not investigated.
 <!-- END java 10m triage -->
+
+<!-- BEGIN java 5m results -->
+### java.util.regex: 5m campaign
+
+* 1,022,528 patterns, 12 tables, 2,371 distinct findings; self-check 339,984 probes, 212 mismatches, 0 engine failures
+* findings by kind: 1,426 wrong_result, 486 wrong_span, 455 timeout (batch), 200 selfcheck_mismatch (selfcheck), 4 syntax_error
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 24 | wrong_result | `u` | `"a"` | `" "` | `(?:a\|^){2,2}` | 00 |
+| 20 | wrong_result | `u` | `"a"` | `" "` | `(?:^\|a){2,2}` | 00 |
+| 16 | wrong_result | `u` | `"a"` | `"-"` | `(?:a\|^){2,2}` | 00 |
+| 16 | wrong_result | `u` | `"a"` | `" "` | `(?:^\|a){2,}` | 00 |
+| 14 | wrong_result | `u` | `"a"` | `" "` | `(?:^\|a){2}` | 00 |
+| 14 | wrong_result | `u` | `"a"` | `"-"` | `(?:^\|a){2,2}` | 00 |
+| 12 | wrong_span | `u` | `"a"` | `" "` | `(?:a\|^){2,2}` | 00 |
+| 10 | wrong_result | `u` | `"a"` | `" "` | `(?:a\|^){2}` | 00 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END java 5m results -->
