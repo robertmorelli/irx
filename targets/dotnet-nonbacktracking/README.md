@@ -71,3 +71,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-nonbacktracking 5m results -->
+
+<!-- BEGIN dotnet-nonbacktracking 30m results -->
+### .NET 9 Regex (NonBacktracking): 30m campaign
+
+* 3,161,440 patterns, 33 tables, 5,996 distinct findings; self-check 336,272 probes, 0 mismatches, 0 engine failures
+* findings by kind: 3,051 wrong_capture, 2,941 wrong_span, 2 timeout (batch), 2 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 9 | wrong_span | `` | `"aa"` | `""` | `(?:aa\|()\|a)a` | 00 |
+| 8 | wrong_span | `` | `"aa"` | `""` | `(?:aa\|a*?)a` | 00 |
+| 6 | wrong_capture | `` | `"aa"` | `""` | `(?:aa\|a*?)a` | 00 |
+| 5 | wrong_span | `` | `"a😀a"` | `"a😀a😀"` | `(?:a\|.*?)a` | 02 |
+| 5 | wrong_capture | `` | `"a😀a"` | `"a😀a😀"` | `(?:a\|.*?)a` | 02 |
+| 4 | wrong_capture | `` | `"aa"` | `""` | `(?:aa\|()\|a)a` | 00 |
+| 4 | wrong_span | `` | `"aa"` | `""` | `(?:aa\|(?:)\|a)a` | 00 |
+| 4 | wrong_capture | `` | `"  "` | `""` | `(?:a\|.*?)\W` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END dotnet-nonbacktracking 30m results -->
