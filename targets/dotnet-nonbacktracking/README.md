@@ -22,7 +22,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | wrong_result | `su` | `"a\nàaa"` | `""` | `(?:\x{E0}?(?:\B\|\b)a.){2}` | 00 |
 | 2 | wrong_result | `u` | `"a"` | `"aa"` | `a\x{1F600}{0,1}` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-nonbacktracking 1m results -->
 
 <!-- BEGIN dotnet-nonbacktracking 10m results -->
@@ -39,7 +39,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | wrong_result | `` | `"aa aa"` | `"a"` | `(?:.(?:(?:\B\|\b)a){1,})*` | 00 |
 | 2 | wrong_result | `` | `"\n.-a0"` | `""` | `(?:(?:\x{A}\|\S)a*\B){0,3}0` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-nonbacktracking 10m results -->
 
 <!-- BEGIN dotnet-nonbacktracking 10m triage -->
@@ -69,5 +69,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 4 | wrong_span | `` | `"aaaaaaaa"` | `"aa"` | `(?:a{2,}?){0,}a` | 00 |
 | 4 | wrong_span | `` | `"aaaaaaaa"` | `""` | `(?:a+?a){0,}a` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-nonbacktracking 5m results -->

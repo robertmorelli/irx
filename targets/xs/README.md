@@ -43,7 +43,7 @@ match. Not reported upstream.
 * 109,216 patterns, 3 tables, 426 distinct findings; self-check 1,628,352 probes, 76,472 mismatches, 0 engine failures
 * findings by kind: 224 crash (batch), 202 timeout (batch), 200 syntax_error (selfcheck)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END xs 1m results -->
 
 <!-- BEGIN xs 10m results -->
@@ -58,7 +58,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 |---|---|---|---|---|---|---|
 | 2 | wrong_result | `` | `"a"` | `" "` | `(?:a\|^){2}` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END xs 10m results -->
 
 <!-- BEGIN xs 10m triage -->
@@ -91,5 +91,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | wrong_span | `` | `"a"` | `"aK"` | `(?:a*?)*` | 02 |
 | 2 | wrong_span | `` | `"aaa"` | `"aa"` | `(?:a\|a){3,}` | 03 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END xs 5m results -->

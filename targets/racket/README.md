@@ -22,7 +22,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 5 | syntax_error | `u` | `"a"` | `""` | `a(?:){0,1}` | 04 |
 | 4 | wrong_result | `u` | `"ſ"` | `""` | `\w` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END racket 1m results -->
 
 <!-- BEGIN racket 10m results -->
@@ -44,7 +44,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 16 | wrong_result | `u` | `"aa"` | `""` | `(?<!(?!a))aa` | 00 |
 | 16 | syntax_error | `u` | `"a"` | `""` | `a(?:(?:)(?:)\|(?:))` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END racket 10m results -->
 
 <!-- BEGIN racket 10m triage -->
@@ -76,5 +76,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 8 | wrong_span | `u` | `"é"` | `"éa"` | `[^_\x{17F}]` | 02 |
 | 6 | wrong_result | `u` | `"aaßaaaaa"` | `"aaa"` | `(?:[^ \x{17F}]a)+` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END racket 5m results -->

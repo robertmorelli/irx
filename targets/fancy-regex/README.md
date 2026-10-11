@@ -22,7 +22,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 173 | syntax_error | `u` | `""` | `"a"` | `(?:)+` | 04 |
 | 158 | syntax_error | `u` | `"a"` | `""` | `(?:){0,1}a` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END fancy-regex 1m results -->
 
 <!-- BEGIN fancy-regex 10m results -->
@@ -44,7 +44,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | exception | `u` | `""` | `"a.a😀ſ-😀Kı-éK\nAσKσKΣk "` | `(?:(?:\S\|\b){0,2})*` | 08 |
 | 2 | exception | `u` | `""` | `"a.a😀a😀aı-éK\nAσKσKΣk "` | `(?:(?:\b\|\S){0,2})*` | 08 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END fancy-regex 10m results -->
 
 <!-- BEGIN fancy-regex 10m triage -->
@@ -75,5 +75,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 3 | exception | `u` | `" a\na-a"` | `""` | `(?:\W(?:(?:.*\|\|\b){0,3})+a){3}` | 08 |
 | 3 | exception | `u` | `"aaaaaaaa"` | `"aaaaa"` | `(?:(?:a(?:(?:\|a){0,2}\|\B){0,3}a){2,}){2,2}` | 08 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END fancy-regex 5m results -->

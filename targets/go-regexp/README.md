@@ -22,7 +22,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 72 | wrong_result | `u` | `"aſ"` | `""` | `a\B.` | 00 |
 | 61 | wrong_result | `u` | `"ſ"` | `"aa"` | `\w` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END go-regexp 1m results -->
 
 <!-- BEGIN go-regexp 10m results -->
@@ -30,7 +30,7 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 
 * 19,402,048 patterns, 196 tables, 0 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END go-regexp 10m results -->
 
 <!-- BEGIN go-regexp 10m triage -->
@@ -44,5 +44,5 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 
 * 9,501,024 patterns, 97 tables, 0 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END go-regexp 5m results -->

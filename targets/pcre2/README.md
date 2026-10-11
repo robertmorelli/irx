@@ -17,7 +17,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | exception | `u` | `"aaaaaaaa"` | `""` | `(?:(?:(?:(?:a(?:(?:)\|(?:)\|(?:){0,1}))+){2,}){2,2}){2}` | 08 |
 | 2 | exception | `u` | `"aa"` | `"aaàa"` | `(?:(?:(?:(?:(?:)\|.)*)+\|(?:))*)+aa` | 08 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END pcre2 1m results -->
 
 <!-- BEGIN pcre2 10m results -->
@@ -39,7 +39,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | exception | `u` | `"aaaaé-K"` | `""` | `(?:a(?:(?:(?:.\|(?:)){3,})*){0,}){3,3}` | 08 |
 | 2 | exception | `u` | `"aaaaaaaa"` | `""` | `(?:(?:(?:a(?:(?:(?:)\|(?:)\|(?:))*\|(?:)?))+){3}a){2,2}` | 08 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END pcre2 10m results -->
 
 <!-- BEGIN pcre2 10m triage -->
@@ -70,5 +70,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | exception | `u` | `"aaaaaa"` | `"aaaaa"` | `(?:(?:a(?:\|()\|()){0,3}){2,3}a)+` | 08 |
 | 2 | exception | `u` | `""` | `"aaſ"` | `(?:(?:(?:(?:a?){0,1}){2,}){0,3})+` | 08 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END pcre2 5m results -->

@@ -2,7 +2,7 @@
 """Run irx campaigns for targets/<name>/target.toml and record results.
 
 usage: tools/irx_target.py NAME... | --all  [--duration S] [--seed N] [--jobs J]
-                                           [--label L] [--selfcheck-only] [--no-readme]
+                                           [--label L] [--selfcheck-only] [--no-readme] [--no-selfcheck]
 
 Each run writes findings/<label>-<name>/ (with the merged campaign.toml) and, unless
 --no-readme, refreshes the "<name> <label> results" block in targets/<name>/README.md.

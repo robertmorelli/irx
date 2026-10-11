@@ -22,7 +22,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 44 | wrong_result | `u` | `"a"` | `"aa"` | `\ba` | 00 |
 | 44 | wrong_result | `u` | `"aaaaaaaa"` | `"a"` | `(?:a\Ba)*` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END tcl 1m results -->
 
 <!-- BEGIN tcl 10m results -->
@@ -31,7 +31,7 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * 1,050,176 patterns, 12 tables, 1,101 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
 * findings by kind: 1,101 timeout (batch)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END tcl 10m results -->
 
 <!-- BEGIN tcl 10m triage -->
@@ -49,5 +49,5 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * 356,320 patterns, 5 tables, 156 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
 * findings by kind: 156 timeout (batch)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END tcl 5m results -->

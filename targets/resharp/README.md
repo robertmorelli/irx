@@ -22,7 +22,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 30 | wrong_result | `u` | `"aaaaaaaſ"` | `""` | `(?:a.)+` | 00 |
 | 28 | syntax_error | `u` | `"aaaaaaaa"` | `"a"` | `(?:aaaa){0,2}?` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END resharp 1m results -->
 
 <!-- BEGIN resharp 10m results -->
@@ -44,7 +44,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | syntax_error | `mu` | `"a"` | `""` | `(?:a$\|[^a]){1,2}` | 04 |
 | 2 | syntax_error | `msu` | `"aaaaa"` | `""` | `a(?:(?:a\|$).){0,2}` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END resharp 10m results -->
 
 <!-- BEGIN resharp 10m triage -->
@@ -62,5 +62,5 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 
 * 28,672 patterns, 2 tables, 0 distinct findings; self-check 289,392 probes, 0 mismatches, 0 engine failures
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END resharp 5m results -->

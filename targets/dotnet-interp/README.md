@@ -22,7 +22,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 1 | wrong_result | `u` | `"aaaaaa"` | `"aaaaSa"` | `(?:a(?:[^\x{2028}\x{131}](?:(?:)+?){0,1})+){3}` | 03 |
 | 1 | wrong_result | `u` | `"aaaaaa"` | `"aaaaSa"` | `(?:a(?:[^\x{2028}\x{131}](?:(?:)+?){0,1})+){3}` | 33 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-interp 1m results -->
 
 <!-- BEGIN dotnet-interp 10m results -->
@@ -44,7 +44,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | exception | `` | `"aaaaaaaa"` | `""` | `(?:a(?<=(?:)+?)aaa)+` | 08 |
 | 2 | wrong_result | `` | `"aa"` | `"S"` | `(?:a(?:(?![k-s]))+?)*` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-interp 10m results -->
 
 <!-- BEGIN dotnet-interp 10m triage -->
@@ -76,5 +76,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 3 | wrong_span | `` | `"aa"` | `"aK"` | `(?:a()*?){2,}` | 03 |
 | 3 | wrong_span | `` | `"a"` | `"aK"` | `(?:a(?:)+?)+` | 02 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-interp 5m results -->

@@ -9,7 +9,7 @@ Bugs found here are listed in the [bug ledger](../../README.md#bug-ledger).
 * 155,296 patterns, 3 tables, 204 distinct findings; self-check 1,628,352 probes, 0 mismatches, 0 engine failures
 * findings by kind: 204 timeout (batch)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END bun 1m results -->
 
 <!-- BEGIN bun 10m results -->
@@ -18,7 +18,7 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * 1,504,096 patterns, 17 tables, 1,612 distinct findings; self-check 1,628,352 probes, 0 mismatches, 0 engine failures
 * findings by kind: 1,612 timeout (batch)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END bun 10m results -->
 
 <!-- BEGIN bun 10m triage -->
@@ -36,5 +36,5 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * 257,856 patterns, 4 tables, 502 distinct findings; self-check 1,628,352 probes, 0 mismatches, 0 engine failures
 * findings by kind: 502 timeout (batch)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END bun 5m results -->

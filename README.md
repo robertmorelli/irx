@@ -1,79 +1,139 @@
-# irx — inverted-pair regex fuzzer for d8
+# irx — inverted-pair regex fuzzer
 
-Implementation of [`spec.md`](spec.md). irx picks an accept string A and a
-reject string R, builds a finite tree grammar whose nonterminals are
-(rel_A, rel_R) span-relation pairs, samples regexes that *provably* fully match
-A and fully reject R, and reports any case where V8 (`d8`) disagrees. Every
-case has its own model-derived oracle; independent engines are optional sanity
-checks.
+irx tests regex engines against a model instead of against each other. For each test table it draws an
+accept string A and a reject string R, builds a finite tree grammar whose nonterminals are pairs of span
+relations over A and R, and samples regexes that *provably* match all of A and none of R. Every pattern
+therefore carries its own expected answer, so a bug is caught even when every engine shares it. On top of
+that yes/no check, irx asks each engine where it matches and what its capture groups hold, and checks
+those answers against a reference backtracking matcher.
 
-## Build and test
+It drives 32 targets covering about 25 engines: V8 (d8, Node, Deno, Bun), QuickJS, Boa, Hermes, XS,
+engine262, Perl, PCRE2 (and PHP), Python `re`, Ruby (Onigmo), Oniguruma, Java, .NET (interpreter,
+Compiled, NonBacktracking), ICU, Swift Regex, Rust `regex`, fancy-regex, RE#, Go, RE2, nim-regex, Racket,
+Tcl, Emacs, Vectorscan and LLVM Regex. Each engine family has an exact semantic model (a *dialect*), and
+each target is a small `target.toml`. The original single-engine design for d8 is [`spec.md`](spec.md);
+everything since generalizes it. Bugs found so far are in the [bug ledger](#bug-ledger).
 
-Requires the exact Zig version in `.zigversion` (0.16.0). macOS on Apple
-Silicon is the primary target. Only POSIX/Darwin APIs are used.
+## Quick start
+
+Requires Zig 0.16.0 (`.zigversion`); macOS on Apple Silicon is the primary platform (POSIX/Darwin APIs
+only). Engines come from Homebrew, jsvu, cargo, npm and the system (see each `targets/<name>/target.toml`).
 
 ```sh
 zig build test                        # unit tests (Debug, safety checks on)
-zig build -Doptimize=ReleaseFast      # benchmark/campaign build -> zig-out/bin/irx
+zig build -Doptimize=ReleaseFast      # campaign build -> zig-out/bin/irx
+hosts/build.sh                        # build the native protocol hosts into hosts/bin/
+tools/irx_target.py pcre2 --duration 300          # one engine for 5 minutes
+tools/irx_target.py --all --duration 600          # every target, 10 minutes each
 ```
 
-## Usage
+`tools/irx_target.py` merges `weights.toml` with the target's overlay, runs irx, writes
+`findings/<label>-<target>/`, and refreshes the results block in `targets/<target>/README.md`
+(`--no-readme` to skip, `--no-selfcheck` to skip the startup self-check, `--label` to name the run).
+
+## What each case checks
+
+Every batch of cases goes to one engine process per *mode*; a target enables the modes it supports.
+
+| Mode | Host is asked | Expected answer from |
+|---|---|---|
+| full match (`shell`, `perl`, d8 `interp`/`native`) | does the pattern fully match A? R? | the relation model (exact, by construction) |
+| repeat (`shell-repeat`, `perl-repeat`, d8 `tierup`) | the same, twice on one compiled regex | same; catches state carried between runs and tier-up bugs |
+| span (`[span]`) | `[start, end)` of the first match of an unanchored search in A and R | the backtracking matcher's first match in priority order, or the relation's leftmost-longest span (POSIX engines) |
+| capture (`[capture]`) | the whole match plus groups 1–6 | the matcher's capture slots, with per-engine loop and lookbehind rules |
+
+Hosts report positions in their native unit (UTF-16, code points or UTF-8 bytes: `[span] units`); irx
+converts them to UTF-16 offsets, so an offset inside a character is itself a finding. A self-check at
+startup probes every atom and assertion against the engine to catch model gaps before fuzzing.
+
+Engine families disagree on a few things that only matter for spans and captures; the dialects record them:
+
+* **Empty loop iterations** (`empty_iteration`): ES rejects an iteration that matched empty and tries the
+  next alternative; Perl, PCRE, Python, Java, .NET, Ruby, ICU, Swift, Racket and Emacs accept it and leave the
+  loop; RE2, Go, Rust and .NET NonBacktracking have their own rule (`unmodeled`: such patterns are skipped).
+* **Captures in loops** (`[capture] loop`): cleared each iteration (`reset`: JS), kept until overwritten
+  (`keep`: PCRE family, automata), or not modelled (`unmodeled`: Perl 5.38+). Survey and design:
+  [`docs/phase2-captures.md`](docs/phase2-captures.md).
+* **Match selection** (`span_semantics`): first in priority order for backtracking engines, leftmost-longest
+  for LLVM, Tcl and RE#.
+
+## Configuration
+
+A campaign's configuration is [`weights.toml`](weights.toml) followed by the target's `target.toml`
+(later keys win). Defaults live in `src/config.zig`.
+
+| Section | Controls | Defaults in `weights.toml` |
+|---|---|---|
+| `[weights]` | how often each construct is generated | concat 4, alt 1.5, atoms 0.7–1, `(?:)` 0.2, quantifiers 0.08–0.25 (lazy ×0.5), lookarounds 0.4, groups 0.03–0.05 |
+| `[sizes]` | pattern size (tree nodes) | uniform over 4–24 |
+| `[strings]` | subjects A and R | 1–8 code points (25% of draws: 10–30), at most 31 decoded symbols; R = A after 1–5 edits; 26-character pool |
+| `[flags]` | flag sets, one per table | 24 sets over `i m s u v` (JS `u`/`v`; other dialects ignore or map them) |
+| `[grammar]` | grammar shape | max size 24, counted repeats up to 3, classes of up to 2 members |
+| `[limits]` | table and memory budgets | 1 GiB per table, 4 GiB host, 100k samples per table |
+| `[harness]` | batches and deadlines | 512 cases per batch, 2 s + 2 s per 512 cases |
+| `[target]` (target.toml) | how to launch the engine | `kind` (`d8`, `perl`, `shell`), `command`, `dialect`, `selfcheck` |
+| `[span]`, `[capture]` (target.toml) | range checks | `enabled`, `units`; `loop`, `lookbehind` |
+
+The default character pool is chosen for the places engines get wrong: `a b k s A K S 0 _`, space, `\n`,
+`\r`, `-`, `.`, `ſ` (U+017F), `K` (U+212A Kelvin), U+2028, `😀` (U+1F600, an astral character),
+`à é ß İ ı σ ς Σ`. Semantics are full Unicode (Unicode 17.0 case folding, per-dialect `\w \d \s \b`,
+line terminators), but subjects use only this pool.
+
+## The `irx` binary
 
 ```sh
-irx --d8 ./d8 --config weights.toml --jobs 0 --seed 42 --out findings/ \
-    [--modes interp,native,tierup] [--optional-modes linear,noopt,nopeephole,fallback0] \
-    [--jsc PATH] [--sm PATH] [--max-cases N] [--duration SECONDS] [--no-selfcheck]
-irx selfcheck --d8 ./d8 [--config F] [--out DIR] [--sm PATH]   # atom/assertion self-check only
-irx replay findings/findings/000001 --d8 ./d8                  # model recheck, table digest, re-derive, rerun
-irx triage --d8 ./d8 --out findings/                           # resume triage of untriaged findings
-irx gate --d8 ./d8 --out gate/                                 # performance gate over src/gate_corpus.toml
-irx sample [--config F] [--seed N] [--max-cases N]             # distribution diagnostics (no engine)
+irx [fuzz] (--d8 PATH | --shell CMD | --perl CMD) --dialect NAME --config FILE --out DIR
+           [--jobs N] [--seed N] [--duration SECONDS] [--max-cases N] [--no-selfcheck]
+           [--modes ...] [--optional-modes ...] [--sm PATH] [--jsc PATH]     # d8 only
+irx selfcheck ...               # atom and assertion self-check only
+irx replay FINDING_DIR ...      # model recheck, table digest, re-derive, rerun
+irx triage ... --out DIR        # resume triage of untriaged findings
+irx gate --d8 PATH --out DIR    # performance gate (d8)
+irx sample [--config F]         # distribution diagnostics, no engine
 ```
 
-`--jobs 0` uses `sysctl hw.physicalcpu` as the ceiling on sampling d8
-processes; with M active modes there are floor(jobs / M) lanes. The allocation,
-the unused slots, and the single extra triage child are printed at startup.
+`--shell CMD` speaks the line protocol to any host (`{driver}` and `{mode}` are substituted; JS shells run
+`driver.js`, Perl runs `driver.pl`). `--jobs 0` uses the physical core count; with M active modes there are
+floor(jobs / M) lanes. A once-per-second stats line shows throughput, per-stage times, memory, findings and
+per-mode executed/skipped/mismatch/restart counts.
 
-The once-per-second stats line on stderr shows cases/s, per-stage times
-(sample, print, encode, engine wait), pairs/prods of the latest table, managed
-bytes and RSS (host and children), findings, pending triage queue, zero-mass
-retries, per-mode executed/skipped/mismatch/restart counts, tier
-first-seen/repeated counts (transitions unverified), and slow cases.
+## Layout
 
-## Layout: dialects, targets, hosts
-
-* `src/dialect.zig` — the **Dialect** component interface; `src/dialects/*.zig` implement it, one model per engine family (es, perl, swift, rust/fancy, re2/go, python, java, ruby/oniguruma, dotnet, icu, resharp, nim, racket, tcl, emacs, vectorscan, llvm)
-* Span mode (`[span] enabled = true` in a target's `target.toml`, with `units` = `utf16`, `cp` or `utf8`): a third mode (`shell-span`, `perl-span`, or `span` for d8) where the host runs an unanchored search on A and R and reports the first match's `[start, end)` (4 bytes per case, `src/span.zig`). irx converts the host's units to UTF-16 offsets and compares them with the reference: the backtracking matcher's first match in priority order (`span_semantics = .first`), or the leftmost-longest span from the relation (`.longest`: LLVM, Tcl, RE#). Loops whose body matched empty end the loop (Perl/PCRE family, `empty_iteration = .stop`) or reject that path (ES, `.reject`); engines with their own rule (RE2, Go, Rust, .NET NonBacktracking: `.unmodeled`) skip patterns with such loops. Mismatches are `wrong_span` findings with the expected/observed spans in the manifest and triage report. Vectorscan has no span mode.
-* Capture mode (`[capture] enabled = true`, `loop` = `reset`/`keep`/`unmodeled`, optional `lookbehind = false`): like span mode, but the host also reports groups 1–6 (`src/capture.zig`), checked against the matcher's capture slots. The printer maps tree groups to printed group numbers (the `()` empty spelling adds groups) and names named groups `gN` after their printed number. Mismatches are `wrong_capture` findings. Design and engine survey: [docs/phase2-captures.md](docs/phase2-captures.md).
-* Empty-atom spellings: each fuzz case carries a `spell` seed (recorded in `case.irx`, reused by the shrinker and replay) that prints every empty atom as `(?:)`, as nothing where the syntax allows (`(?:|a)`, `a|`, `(?=)`), or as `()`. Parser bugs often depend on the spelling. Dialects can opt out (`bare_empty`, `empty_capture`); the self-check always uses `(?:)`.
-  (character predicates, case rules, anchors, escape syntax, string/flag/grammar constraints). Selected with
-  `--dialect`. Semantic only, so a future match-range oracle can reuse it.
-* `targets/<name>/target.toml` — one per engine: how to launch it (`kind`, `command`), which dialect models it,
-  whether to self-check, and a config overlay (e.g. no lookbehind). `targets/<name>/README.md` holds that
-  engine's campaign results.
-* `hosts/` — protocol hosts shared by several targets (C, Go, Rust, Java, .NET, Swift, Nim, Racket, Emacs,
-  scripting languages); `hosts/build.sh` builds the native ones into `hosts/bin/`.
-* `tools/irx_target.py NAME | --all [--duration S]` — runs campaigns from target definitions and refreshes the
-  target's README block. Older per-engine branches were folded into `targets/` and archived as tags
-  `archive/<name>`.
+* `src/` — the fuzzer (module map below). `src/dialects/*.zig` — one exact model per engine family (es, perl,
+  swift, rust/fancy, re2/go, python, java, ruby/oniguruma, dotnet, icu, resharp, nim, racket, tcl, emacs,
+  vectorscan, llvm): character predicates, case rules, anchors, escape syntax, grammar restrictions, and the
+  span/capture semantics above.
+* `targets/<name>/` — `target.toml` (launch command, dialect, overlays) and `README.md` (that engine's
+  campaign results and triage notes).
+* `hosts/` — protocol hosts in C, C++, Go, Rust, Java, C#, Swift, Nim, Racket, Emacs Lisp, Python, Ruby, PHP
+  and Tcl; `hosts/build.sh` builds the native ones. `driver.js` serves every JS shell; `tools/bridge.py` serves
+  shells without stdin (one process per batch; a batch that times out is split and a hanging case is reported
+  as unsupported). `driver.pl` serves Perl.
+* `tools/` — `irx_target.py` (campaigns), `probe.py` (ask a host ad-hoc questions), `summarize.py`,
+  `mismatches.py`, `gen_emacs_tables.py`.
+* `docs/` — design notes ([phase 2 captures](docs/phase2-captures.md)) and reproducers that need a whole batch.
+* Empty atoms print as `(?:)`, as nothing where the syntax allows (`(?:|a)`, `a|`, `(?=)`), or as `()`, chosen
+  per case by a recorded `spell` seed (replay and shrinking reuse it); parser bugs often depend on the spelling.
 
 ## Output layout
 
 ```
-OUT/manifest.json       seeds, build identity, d8 path/hash/version, driver hash, Unicode manifest,
-                        resolved config, per-flag-set atom and quantifier inventories, mode flags, probes
+OUT/manifest.json       seeds, build identity, engine path/hash/version, driver hash, Unicode manifest,
+                        resolved config, per-flag-set atom and quantifier inventories, modes, probes
 OUT/config.toml         copy of the config used (replay/triage read it automatically)
 OUT/tables.log          every table: identity, A/R/flags, digest, per-level build stats and truncation
-OUT/selfcheck/report.txt
-OUT/findings/NNNNNN/    case.irx (machine-readable), case.json, repro.js, manifest.json,
+OUT/selfcheck/          report.txt and mismatches.tsv
+OUT/findings/NNNNNN/    case.irx (machine-readable), case.json, repro.js, manifest.json (span/capture details),
                         triage.json, repro.min.js + minimized.irx (semantic findings),
-                        batch.req/stderr.txt/isolated.req/sequence.jsonl (crash/timeout findings),
-                        occurrences (byte-identical recurrences)
-OUT/groups/KIND__MODE__CONSTRUCTS.txt   navigation index; members are never deleted
+                        batch.req/stderr.txt/isolated.req/sequence.jsonl (crash/timeout findings)
+OUT/groups/KIND__MODE__CONSTRUCTS.txt   navigation index
 OUT/slow/index.txt      timeouts, kept apart from semantic findings
-OUT/journals/           per-process request journals (deleted only if unreferenced after retirement)
+OUT/journals/           per-process request journals (deleted only if unreferenced)
 OUT/summary.json        end-of-run totals
 ```
+
+Finding kinds: `wrong_result`, `wrong_span`, `wrong_capture`, `tier_mismatch`, `syntax_error`, `exception`,
+`crash`, `timeout`, `protocol`, `selfcheck_mismatch`, `sanity_disagreement`.
 
 ## Module map
 
@@ -81,91 +141,54 @@ OUT/summary.json        end-of-run totals
 | --- | --- |
 | `src/rel.zig` | `Rel(N)` for N ∈ {8, 16}: product, closure (Warshall), bounded powers by squaring, lookaround diagonals |
 | `src/ucd.zig`, `src/ucd/` | Vendored Unicode 17.0.0 (CaseFolding, UnicodeData, SpecialCasing) with SHA-256 manifest verified at startup |
-| `src/alphabet.zig` | Flags, UTF-16 → symbol decoding per mode, line terminators, `\s`, word chars, Canonicalize for i / iu / iv |
-| `src/dialect.zig`, `src/dialects/` | Dialect component interface and one exact model per target engine (`tools/probe.py` asks a host ad-hoc questions while writing one; `tools/gen_emacs_tables.py` regenerates the Emacs tables) |
-| `src/atoms.zig` | Atom specs and ES2024 CharacterSetMatcher semantics (incl. v-mode set ops, MaybeSimpleCaseFolding, folded-universe complements), assertion masks, inventory |
-| `src/ast.zig` | Owned trees, direct relation evaluation, naive backtracking matcher (cross-check), s-expression serialization |
-| `src/table.zig` | Grammar inventory, Robin Hood interner, production set, budgeted semi-naive levels, Vitter Method D combo sampling, usefulness pruning, renumbering, log-space counts, digest |
-| `src/budget.zig` | Hard byte accounting (`max_table_bytes` per table under `max_host_bytes`) on every allocation |
-| `src/sample.zig` | Lazy per-(pair, size) Walker/Vose alias tables (CAS-published arena), split inversion, mode-aware printer |
-| `src/harness.zig` | `posix_spawn` with QoS and null crash exception ports, nonblocking poll transport, deadlines, journals, novelty set, mode probes |
+| `src/alphabet.zig` | Flags, UTF-16 → symbol decoding per mode, the character pool, dialect-dispatched predicates |
+| `src/dialect.zig`, `src/dialects/` | Dialect interface and one model per engine family; grammar restrictions mirrored for the shrinker |
+| `src/atoms.zig` | Atom specs and their semantics (ES2024 CharacterSetMatcher, v-mode set operations, case folding), assertion masks |
+| `src/ast.zig` | Trees, relation evaluation, the reference backtracking matcher (search, captures), serialization |
+| `src/table.zig` | Grammar inventory, pair interning with subtree flags, production set, budgeted levels, counts, digest |
+| `src/budget.zig` | Hard byte accounting on every allocation |
+| `src/sample.zig` | Alias-table sampling and the dialect-aware printer (empty-atom spellings, group numbering) |
+| `src/span.zig`, `src/capture.zig` | Span and capture references, host unit conversion, comparison, finding details |
+| `src/harness.zig` | Process spawning, nonblocking transport, deadlines, journals, modes and probes |
 | `src/lane.zig` | Per-lane sample → fan-out → compare → persist loop |
-| `src/run.zig` | Table publication (mutex-exchanged strong refs), background builder, bounded retries, adaptive weights, triage queue with disk overflow |
-| `src/shrink.zig` | Triage: fresh-process reproduction, tree/string/flag shrinking, batch isolation/bisection, journal prefix replay, sanity classification |
-| `src/selfcheck.zig` | Startup atom and assertion self-check against d8 and optional independent engines |
-| `src/finding.zig` | Owned cases, failure predicates, finding persistence, lossless dedup |
-| `src/main.zig` | CLI, config, probing, manifests, stats line, gate/replay/triage/sample commands |
-| `driver.js` | Batch driver with d8/SpiderMonkey/JSC adapters (embedded; its hash is in the manifest) |
+| `src/run.zig` | Table publication, background builder, string drawing, adaptive weights, triage queue |
+| `src/shrink.zig` | Triage: fresh-process reproduction, tree/string/flag shrinking, batch bisection, journal replay |
+| `src/selfcheck.zig` | Startup atom and assertion self-check |
+| `src/finding.zig` | Cases, failure predicates, persistence, dedup |
+| `src/main.zig` | CLI, config, probing, manifests, stats line, subcommands |
+| `driver.js`, `driver.pl` | JS and Perl protocol drivers (embedded; hashes recorded in the manifest) |
 
 ## Validation status
 
 * **Model vs. backtracking matcher**: >3,000 random trees across 11 flag sets agree (`ast.zig` test).
-* **Flag-semantics checklist**: unit tests for `[^k]` under i/iu/iv, `\W` vs ſ/K (Kelvin sign), `[a--A]`/`[a&&A]` under iv,
-  dot/line terminators, `^ $ \b \B` under m and iu, case-insensitive literals, lone surrogates.
-* **Atom self-check against d8 15.5**: 744,480 probes over all 24 flag sets (every consuming atom × pool symbols,
-  out-of-pool case variants, lone surrogates, multi-symbol/multiline subjects; every assertion at every position)
-  — **0 mismatches**. Injecting a one-line model bug (Kelvin sign treated as non-word under iu) yields 1,004
+* **Self-check**: every dialect reaches 0 self-check mismatches against its engine, apart from known engine bugs
+  (IRX-SWIFT-1, IRX-JAVA-1, RACKET-1, the XS `v`-mode bugs). A one-line injected model bug yields ~1,000
   mismatches, so the check has teeth.
-* **Counts**: exhaustive enumeration of small grammars matches table counts to <1e-5 relative error, including
-  extreme weight ratios (1e-3 … 50). Sampling frequencies match exact tree probabilities within 5.5σ over 60k
-  draws, on both the cached and uncached alias paths.
-* **Transport**: tests for partial writes (600 KB and 2 MB requests), malformed responses, a child that stops
-  reading during batch 1 while batch 2 is being sent (recovers by deadline, no watchdog thread), stderr flooding
-  (bounded tail, truncation counted), signal death, EOF/malformed handshake.
-* **Budgets**: deterministic truncation under tiny caps (identical digests), resource rejection with zero leaked
-  bytes, zero-mass rejection, A = R rejection, finite retry exhaustion (gate scenario `retry-exhaustion`).
+* **Span and capture modes**: deliberately wrong host units produce `wrong_span` findings that minimize to one
+  atom; sweeps over all targets leave only known engine bugs, resource limits, or unminimized findings.
+* **Counts**: exhaustive enumeration of small grammars matches table counts to <1e-5 relative error; sampling
+  frequencies match exact tree probabilities within 5.5σ over 60k draws.
+* **Transport**: tests for partial writes, malformed responses, stalled children, stderr flooding, signal death,
+  EOF and malformed handshakes; hosts are checked with a known-answer probe at startup.
+* **Budgets**: deterministic truncation under tiny caps, resource rejection with zero leaked bytes, finite retries.
 
-## Candidate V8 bugs found
+## Limitations and measured decisions
 
-About 15 million patterns (roughly 50–60 million regex executions across 3–6 d8 modes) against
-V8 15.5.35.20 (Homebrew d8) produced three wrong-result candidates. All reproduce in fresh processes and
-were minimized by the fuzzer's own triage. Later Chrome 155 rechecks and the filed Chromium reports are recorded in the bug ledger below. IRX-V8-1 remains unreported.
-
-| # | Minimized repro | d8 15.5 | Correct (ES spec) | Notes |
-|---|---|---|---|---|
-| 1 | `/(?:.*?B^\|a)/s.test("a")` | `false` | `true` | Fixed by `--no-regexp-quick-check` and by `--no-regexp-optimization`. Node 25.8 (older V8) and the `l` linear engine are correct. |
-| 2 | `/^(?:.*?a^)*$/s.test("")` | `false` | `true` (zero iterations) | Fixed by `--no-regexp-quick-check` but **not** by `--no-regexp-optimization`, so possibly distinct from #1. Node 25.8 is correct. |
-| 3 | `/(?<![\s\S])(?:(?:^)*)(?![\s\S])/mu.test("😀")` | `true` | `false` | A unicode-mode match apparently starts between the two halves of a surrogate pair. Not affected by `--no-regexp-quick-check`. The simpler `/(?<![\s\S])(?![\s\S])/u` is correct in 15.5 but wrong in Node 25.8 (match at index 1), so this looks like a surviving variant of an older bug. |
-
-Candidates 1 and 2 have the same shape: a lazy any-char loop followed by an unsatisfiable `^`, after which
-V8 skips later alternatives (or the empty iteration). They account for every quick-check finding seen
-(~25 tables, all with the `s` flag). Candidate 3 produced ~8.8k distinct findings from a single `msu` table whose
-reject string contained surrogate pairs. The jsvu SpiderMonkey shell gives the same wrong answers for all
-three; it vendors V8's irregexp, so its agreement is not independent evidence.
-
-First detection took about 6 seconds of fuzzing (candidates 1 and 2); candidate 3 appeared in the
-edit-distance-5 campaign (`[strings] max_edit_distance = 5`).
-
-## Deviations, limitations and measured decisions
-
-* **Default weights** were rebalanced after measurement: with all-ones weights, ~50% of nodes were quantifiers
-  nested 3–5 deep, and nearly every 512-case batch timed out on catastrophic backtracking. Defaults now favour
-  concat/alt (see `weights.toml`); typical nesting depth is 1–2.
-* **Shared lazy alias cache is enabled by default.** Measured: uncached sampling cost ~3 ms/case on large
-  tables (ReleaseFast); with the cache, ~7 µs/case amortized over 100k samples per table. Cached and uncached
-  paths use identical ordering, arithmetic and RNG draws.
-* **Class templates** are enumerated as positive or negated listings of up to `class_max_members` pool symbols
-  (equivalent to pool-member bits plus the "other" bit under a member-count limit).
+* **Default weights** favour concat and alternation: with all-ones weights about half of all nodes were nested
+  quantifiers and nearly every batch timed out on catastrophic backtracking.
+* **Hanging engines**: Boa (IRX-BOA-8), XS (IRX-XS-7) and ICU (IRX-ICU-1) loop forever on some patterns. Bridged
+  shells split a timed-out batch and report the hanging case as unsupported; the Swift host abandons an ICU
+  match after 50 ms. Those targets use small batches and long deadlines, and still run slower than the rest.
+* **Skipped cases** (counted, never treated as agreement): lone surrogates on UTF-8 hosts; patterns whose
+  span or capture semantics an engine doesn't share with the model (see *What each case checks*).
 * **Tree shrinking** uses structural AST reductions with direct relation evaluation (the spec's documented
-  fallback); grammar reconstruction is used for replay digest verification, not witness search. The limitation
-  is recorded in each `triage.json`.
-* **Tier transitions are reported as unverified**: `--trace-regexp-tier-up` is read-only in the Homebrew build
-  (probed by launching, not by `--help`). Repeated-execution semantics are still tested in `tierup` mode.
-* **JSC** is not installed on this machine; the adapter exists (`--jsc PATH`). SpiderMonkey via jsvu works
-  (`--sm ~/.jsvu/bin/sm`) but shares irregexp.
-* **linear mode** skips `m` cases (`multiline-wrapper`) and marks u/v and lookaround cases as
-  `engine-unsupported`; both are counted and never treated as agreement.
-* **One batch in flight per lane**; the two-in-flight option and parallel table construction are not
-  implemented (the spec gates them on measurements).
-* **Peak-phase memory** is enforced by hard per-allocation checks through budgeted allocators plus a startup
-  feasibility check (lanes' scratch + two tables + triage); there is no separate precomputed worst-phase
-  reservation.
-* **Finding artifacts** are written atomically (temp + rename) without fsync; fsync per file dominated
-  persistence cost when a bug produced thousands of distinct findings.
-* **Counting cost**: at the spec's default caps a table hits `max_count_terms` around level 5–6 and takes
-  ~3 s to build in ReleaseFast. Tune `max_count_terms`/`samples_per_table` per campaign.
-* **ASan pool**, **d8 source build** and **Linux** are not exercised here; d8 was the Homebrew release build
-  (not `dcheck_always_on`). The spec's recommended GN args remain the right choice for real campaigns.
+  fallback), recorded in each `triage.json`.
+* **One batch in flight per lane**; parallel table construction is not implemented.
+* **V8 specifics** (from the d8 design): tier transitions are reported as unverified (`--trace-regexp-tier-up` is
+  read-only in the Homebrew build); the `linear` mode skips `m` and marks u/v and lookaround cases as
+  unsupported; SpiderMonkey via jsvu shares irregexp, so its agreement is not independent; d8 is the Homebrew
+  release build, not `dcheck_always_on`.
+* **Finding artifacts** are written atomically (temp + rename) without fsync.
 
 <!-- BEGIN shared bug ledger (identical on every branch) -->
 ## Bug ledger
@@ -173,8 +196,8 @@ edit-distance-5 campaign (`[strings] max_edit_distance = 5`).
 Two sources: bugs found by this inverted-pair fuzzer (irx), and bugs found earlier by differential fuzzing in
 the sibling repo [`../regex_comparison`](../regex_comparison/bugs/BUGS.md) (imported 2026-10-09; IDs link to
 that repo's write-ups, which hold full repros and upstream-search notes). None of the irx findings has been
-reported upstream except IRX-V8-2, IRX-V8-3, IRX-DOTNET-6–8, and IRX-SWIFT-1–3 (issue links below). Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.0) are fuzzed on the
-`node`/`deno` branches but excluded from this ledger: d8 15.5 is the up-to-date V8 target.
+reported upstream except IRX-V8-2, IRX-V8-3, IRX-DOTNET-6–8, and IRX-SWIFT-1–3 (issue links below). Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 = V8 15.0) are fuzzed as the
+`node`/`deno` targets but excluded from this ledger: d8 15.5 is the up-to-date V8 target.
 
 ### Found by irx
 
@@ -314,13 +337,13 @@ reported upstream except IRX-V8-2, IRX-V8-3, IRX-DOTNET-6–8, and IRX-SWIFT-1�
 | [PYFILECHECK-2](../regex_comparison/bugs/BUGS.md#pyfilecheck-2) | filecheck | Open · not filed | wrong result: `CHECK-NOT: cb` fails on `cbx` before `CHECK: bx` | Tested: filecheck (Python FileCheck clone); latest 1.0.6. `CHECK-NOT` matches that overlap the next match count: `CHECK-NOT: cb` / `CHECK: bx` fails on `cbx`; LLVM passes. Likely the cause of upstream #10 |
 | [SOUPSIEVE-2](../regex_comparison/bugs/BUGS.md#soupsieve-2) | soupsieve | Open · not filed | wrong CSS match: `div > :has(~ b)` selects `a` and `c`; expected only `a` | Tested: soupsieve (Beautiful Soup); latest soupsieve 2.10. `:has(~ X)` is wrong: on `<a/><b/><c/>`, `div > :has(~ b)` selects a and c (Chrome: a) |
 
-## Fuzzer plan: one inverted-pair fuzzer per dialect
+## Targets
 
-Every regex target in `../regex_comparison` has a directory `targets/<name>/` (engine command, dialect,
-config overlay, results) and has had a 1-minute smoke campaign (`tools/irx_target.py`). A host speaks the line protocol (`driver.js`, `driver.pl`, `tools/bridge.py` or a
-program under `hosts/`). The **model** column says which semantics the oracle uses; "Perl model" on a
-non-Perl engine means its own dialect model is not written yet, so smoke-run mismatches there are mostly
-dialect gaps rather than bugs. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are out of scope.
+Every regex engine from `../regex_comparison` has a directory `targets/<name>/` (engine command, dialect,
+config overlay, campaign results and triage notes) and has run 1-, 5- and 10-minute campaigns
+(`tools/irx_target.py`). A host speaks the line protocol (`driver.js`, `driver.pl`, `tools/bridge.py` or a
+program under `hosts/`). The **model** column names the dialect that supplies the expected answers; every
+target has its own. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are out of scope.
 
 | Target | Directory | Host | Model | Status |
 |---|---|---|---|---|

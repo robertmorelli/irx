@@ -22,7 +22,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 94 | syntax_error | `u` | `""` | `"a"` | `(?:\b)?` | 04 |
 | 93 | syntax_error | `u` | `""` | `"a"` | `(?:\B){0,1}` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END oniguruma 1m results -->
 
 <!-- BEGIN oniguruma 10m results -->
@@ -44,7 +44,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 33 | syntax_error | `u` | `""` | `"😀"` | `(?:a\|^)*` | 04 |
 | 31 | syntax_error | `u` | `""` | `"σ"` | `(?:^\|a)*` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END oniguruma 10m results -->
 
 <!-- BEGIN oniguruma 10m triage -->
@@ -80,5 +80,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 3 | exception | `u` | `"aaaaaaa"` | `""` | `(?:(?:(?:)\|(?:(?:a?){2,})+a)\Ba{3,3}){2,2}` | 08 |
 | 3 | exception | `iu` | `"k"` | `"aaa"` | `(?:(?:(?:\|(?:a*){0,2})+){2,2}){0,}K` | 08 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END oniguruma 5m results -->

@@ -15,7 +15,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 |---|---|---|---|---|---|---|
 | 200 | wrong_result | `mu` | `""` | `"😀"` | `(?:)` | 03 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END node 1m results -->
 
 <!-- BEGIN node 10m results -->
@@ -37,7 +37,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 1 | wrong_result | `mu` | `"\raa.aa"` | `"😀"` | `(?:\Waa)*` | 03 |
 | 1 | wrong_result | `imv` | `"ak"` | `"😀"` | `(?:a[[A-Z]--[\u{1F600}a]])*` | 33 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END node 10m results -->
 
 <!-- BEGIN node 10m triage -->
@@ -69,5 +69,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 14 | wrong_span | `u` | `""` | `"😀"` | `(?!\W)` | 03 |
 | 12 | wrong_span | `u` | `""` | `"😀"` | `(?!\D)` | 03 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END node 5m results -->

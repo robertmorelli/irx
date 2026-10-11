@@ -1,8 +1,8 @@
-//! irx: inverted-pair regex fuzzer for d8.
+//! irx: inverted-pair regex fuzzer for many regex engines (see README.md).
 //!
-//!   irx [fuzz] --d8 ./d8 --config weights.toml --jobs 0 --seed 42 --out findings/
-//!       [--modes interp,native,tierup] [--optional-modes linear,noopt] [--jsc PATH] [--sm PATH]
-//!       [--max-cases N] [--duration SECONDS] [--no-selfcheck]
+//!   irx [fuzz] (--d8 PATH | --shell CMD | --perl CMD) --dialect NAME --config weights.toml
+//!       --jobs 0 --seed 42 --out findings/ [--max-cases N] [--duration SECONDS] [--no-selfcheck]
+//!       [--modes interp,native,tierup] [--optional-modes linear,noopt] [--jsc PATH] [--sm PATH]   (d8)
 //!   irx selfcheck --d8 ./d8 [--config F] [--out DIR] [--sm PATH] [--jsc PATH]
 //!   irx replay FINDING_DIR --d8 ./d8 [--config F]
 //!   irx gate --d8 ./d8 [--out DIR]
@@ -72,9 +72,12 @@ const Options = struct {
 
 fn usage() noreturn {
     sys.stderrPrint(
-        \\usage: irx [fuzz] --d8 PATH [--config FILE] [--jobs N] [--seed N] [--out DIR]
+        \\usage: irx [fuzz] (--d8 PATH | --shell CMD | --perl CMD) [--dialect NAME] [--config FILE]
+        \\           [--jobs N] [--seed N] [--out DIR] [--max-cases N] [--duration SECONDS] [--no-selfcheck]
         \\           [--modes interp,native,tierup] [--optional-modes linear,noopt,nopeephole,fallback0]
-        \\           [--jsc PATH] [--sm PATH] [--max-cases N] [--duration SECONDS] [--no-selfcheck]
+        \\           [--jsc PATH] [--sm PATH]                      (d8 modes and sanity engines)
+        \\       --shell CMD: any host speaking the line protocol ({{driver}}, {{mode}} substituted);
+        \\       modes span/capture are added from the config's [span]/[capture] sections.
         \\       irx selfcheck --d8 PATH [--config FILE] [--out DIR] [--sm PATH] [--jsc PATH]
         \\       irx replay FINDING_DIR --d8 PATH [--config FILE]
         \\       irx gate --d8 PATH [--out DIR]

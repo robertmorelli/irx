@@ -34,7 +34,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 62 | syntax_error | `v` | `"a"` | `""` | `(?:-\|(?:))a` | 04 |
 | 39 | syntax_error | `v` | `"a"` | `""` | `-*a` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END quickjs 1m results -->
 
 <!-- BEGIN quickjs 10m results -->
@@ -56,7 +56,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 321 | syntax_error | `v` | `"a"` | `""` | `(?:(?:)\|-)a` | 04 |
 | 278 | syntax_error | `v` | `"a"` | `""` | `a(?:(?:)\|-)` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END quickjs 10m results -->
 
 <!-- BEGIN quickjs 10m triage -->
@@ -86,5 +86,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 260 | syntax_error | `v` | `""` | `"a"` | `-\|()` | 04 |
 | 259 | syntax_error | `v` | `""` | `"a"` | `()\|-` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END quickjs 5m results -->

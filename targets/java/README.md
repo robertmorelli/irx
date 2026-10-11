@@ -22,7 +22,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | wrong_result | `su` | `""` | `"a\r"` | `(?:.$)*` | 03 |
 | 2 | wrong_result | `u` | `"a\r"` | `""` | `a(?<!$)[^sK]` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END java 1m results -->
 
 <!-- BEGIN java 10m results -->
@@ -44,7 +44,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 22 | syntax_error | `u` | `"a"` | `""` | `a\|(?<!(?:(?:)\|(?:))*)` | 04 |
 | 21 | syntax_error | `u` | `""` | `"a"` | `(?<=(?:aa)*)` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END java 10m results -->
 
 <!-- BEGIN java 10m triage -->
@@ -78,5 +78,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 12 | wrong_span | `u` | `"a"` | `" "` | `(?:a\|^){2,2}` | 00 |
 | 10 | wrong_result | `u` | `"a"` | `" "` | `(?:a\|^){2}` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END java 5m results -->

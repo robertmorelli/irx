@@ -22,7 +22,7 @@ Counts are distinct findings; one bug produces many distinct regexes. Shapes wer
 * 78,848 patterns, 2 tables, 61 distinct findings
 * findings by kind: 61 timeout (batch)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END engine262 1m results -->
 
 <!-- BEGIN engine262 10m results -->
@@ -44,7 +44,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 1 | syntax_error | `v` | `"aaa"` | `""` | `[^\s--\u{17F}]aa` | 04 |
 | 1 | syntax_error | `v` | `"a"` | `""` | `(?:[^s--\u{212A}]\|(?:))a` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END engine262 10m results -->
 
 <!-- BEGIN engine262 10m triage -->
@@ -75,5 +75,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 1 | syntax_error | `v` | `"a"` | `""` | `(?:(?:)\|[^\W--\u{17F}])a` | 04 |
 | 1 | syntax_error | `v` | `"a"` | `""` | `a[^[a-z]&&\u{212A}]?` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END engine262 5m results -->

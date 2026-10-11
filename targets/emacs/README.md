@@ -22,7 +22,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | wrong_result | `u` | `"aaaa"` | `"a"` | `(?:a{1,1}?a)+` | 03 |
 | 2 | wrong_result | `u` | `"Σa"` | `""` | `.\Ba` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END emacs 1m results -->
 
 <!-- BEGIN emacs 10m results -->
@@ -31,7 +31,7 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * 1,975,264 patterns, 21 tables, 1,510 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
 * findings by kind: 1,502 timeout (batch), 8 crash (batch)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END emacs 10m results -->
 
 <!-- BEGIN emacs 10m triage -->
@@ -49,5 +49,5 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * 659,904 patterns, 8 tables, 427 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
 * findings by kind: 425 timeout (batch), 2 crash (batch)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END emacs 5m results -->

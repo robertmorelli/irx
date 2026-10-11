@@ -2,6 +2,13 @@
 
 Oct 9, 2026 · @Robert Morelli
 
+> **Note (2026-10-11):** this is the original single-engine design, written for V8's `d8`. The implementation
+> has since become a multi-engine fuzzer: per-engine dialect models (`src/dialects/`), 32 targets
+> (`targets/`), protocol hosts (`hosts/`), and span and capture checks beyond full-match results. The core
+> described here (span-relation pair grammar, sampling, harness, triage) is unchanged; see
+> [`README.md`](README.md) for the current design and [`docs/phase2-captures.md`](docs/phase2-captures.md)
+> for captures.
+
 ## Overview
 
 The fuzzer picks an accept string A and a reject string R, then samples regexes that provably match A and provably reject R, and reports any case where V8 (via `d8`) disagrees. Each case has an independent model-derived oracle. A mismatch is a candidate bug in V8 or in the fuzzer's model, printer, or harness; triage establishes which. Independent engines are optional sanity checks, not the source of expected answers.

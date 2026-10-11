@@ -9,7 +9,7 @@ Bugs found here are listed in the [bug ledger](../../README.md#bug-ledger).
 * 57,344 patterns, 2 tables, 224 distinct findings; self-check 339,984 probes, 1,664 mismatches, 0 engine failures
 * findings by kind: 224 timeout (batch), 200 selfcheck_mismatch (selfcheck)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END swift-regex 1m results -->
 
 <!-- BEGIN swift-regex 10m results -->
@@ -31,7 +31,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | wrong_result | `u` | `"a"` | `""` | `(?:a\|\b^){2,}` | 00 |
 | 2 | wrong_result | `u` | `"a"` | `" "` | `(?:a\|^){2,}` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END swift-regex 10m results -->
 
 <!-- BEGIN swift-regex 10m triage -->
@@ -57,5 +57,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | wrong_result | `iu` | `"Kk"` | `""` | `(?:[k\x{3A3}]\w{0,}){2}\s*(?:)` | 00 |
 | 2 | wrong_result | `u` | `"aaa"` | `"a"` | `(?:\B\|a(?:a\|$)){3,}` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END swift-regex 5m results -->

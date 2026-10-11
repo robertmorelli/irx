@@ -21,7 +21,7 @@ Counts are distinct findings; one bug produces many distinct regexes. Shapes wer
 * 53,248 patterns, 2 tables, 208 distinct findings; self-check 1,628,352 probes, 9,252 mismatches, 0 engine failures
 * findings by kind: 208 timeout (batch), 182 selfcheck_mismatch (selfcheck)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END boa 1m results -->
 
 <!-- BEGIN boa 10m results -->
@@ -43,7 +43,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 2 | wrong_result | `` | `"aa"` | `""` | `(?:(?:a+){1,1}){2,}` | 00 |
 | 2 | wrong_result | `` | `"aa"` | `""` | `(?:(?:a*a){1,}){2,2}` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END boa 10m results -->
 
 <!-- BEGIN boa 10m triage -->
@@ -69,5 +69,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 |---|---|---|---|---|---|---|
 | 1 | wrong_span | `` | `"aaa"` | `""` | `(?:(?:aa?)+){2,}a` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END boa 5m results -->

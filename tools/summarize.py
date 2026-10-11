@@ -48,5 +48,5 @@ if shapes:
     lines += ["", "Most common minimized shapes (kind, flags, A, R, pattern, observed bits):", "", "| n | kind | flags | A | R | pattern | bits |", "|---|---|---|---|---|---|---|"]
     for (k, fl, a, r, p, b), v in shapes.most_common(8):
         lines.append(f"| {v} | {k} | `{fl}` | `{a}` | `{r}` | `{p.replace('|', chr(92) + '|')}` | {b} |")
-lines += ["", "Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.", f"<!-- END {name} {label} results -->"]
+lines += ["", "Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.", f"<!-- END {name} {label} results -->"]
 print("\n".join(lines))

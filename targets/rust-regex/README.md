@@ -9,7 +9,7 @@ Bugs found here are listed in the [bug ledger](../../README.md#bug-ledger).
 * 1,203,072 patterns, 14 tables, 0 distinct findings; self-check 281,792 probes, 216 mismatches, 0 engine failures
 * findings by kind: 186 selfcheck_mismatch (selfcheck)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END rust-regex 1m results -->
 
 <!-- BEGIN rust-regex 30s results -->
@@ -18,7 +18,7 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * 573,216 patterns, 7 tables, 0 distinct findings; self-check 281,792 probes, 216 mismatches, 0 engine failures
 * findings by kind: 186 selfcheck_mismatch (selfcheck)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END rust-regex 30s results -->
 
 <!-- BEGIN rust-regex 10m results -->
@@ -26,7 +26,7 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 
 * 10,844,032 patterns, 110 tables, 0 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END rust-regex 10m results -->
 
 <!-- BEGIN rust-regex 10m triage -->
@@ -40,5 +40,5 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 
 * 2,947,104 patterns, 31 tables, 0 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END rust-regex 5m results -->

@@ -22,7 +22,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 59 | wrong_result | `u` | `"aſ"` | `""` | `a.` | 00 |
 | 53 | wrong_result | `u` | `"aaaaaaaſ"` | `"a"` | `(?:a\w)*` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END llvm-regex 1m results -->
 
 <!-- BEGIN llvm-regex 10m results -->
@@ -44,7 +44,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 556 | wrong_result | `u` | `""` | `"a"` | `(?:$){2,}` | 00 |
 | 544 | wrong_result | `u` | `""` | `"a"` | `(?:^){2,}` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END llvm-regex 10m results -->
 
 <!-- BEGIN llvm-regex 10m triage -->
@@ -75,5 +75,5 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 146 | wrong_result | `u` | `"a"` | `""` | `a(?:$){2}` | 00 |
 | 141 | wrong_result | `u` | `""` | `"a"` | `(?:^){2,}` | 00 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END llvm-regex 5m results -->

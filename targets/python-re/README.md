@@ -22,7 +22,7 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 | 14 | syntax_error | `u` | `"a"` | `""` | `(?<=(?:)\|a)a` | 04 |
 | 12 | syntax_error | `u` | `""` | `"a"` | `(?<=(?:)\|a)` | 04 |
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END python-re 1m results -->
 
 <!-- BEGIN python-re 10m results -->
@@ -31,7 +31,7 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * 1,867,072 patterns, 20 tables, 1,961 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
 * findings by kind: 1,961 timeout (batch)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END python-re 10m results -->
 
 <!-- BEGIN python-re 10m triage -->
@@ -48,5 +48,5 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * 489,088 patterns, 6 tables, 533 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
 * findings by kind: 533 timeout (batch)
 
-Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END python-re 5m results -->
