@@ -53,3 +53,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * The 986 exceptions are mostly IRX-DOTNET-2 (`(?<=(?:)*?)` and other lazy empty loops in lookarounds), plus IRX-DOTNET-4.
 * 759 timeouts, not investigated: Compiled pays ~1 ms of IL generation per pattern.
 <!-- END dotnet-compiled 10m triage -->
+
+<!-- BEGIN dotnet-compiled 5m results -->
+### .NET 9 Regex (Compiled): 5m campaign
+
+* 255,808 patterns, 4 tables, 1,061 distinct findings; self-check 336,272 probes, 0 mismatches, 0 engine failures
+* findings by kind: 767 exception, 182 timeout (batch), 68 wrong_result, 44 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 12 | exception | `` | `"a"` | `""` | `(?<=(?:)*?)a` | 08 |
+| 4 | exception | `` | `"a"` | `""` | `a(?<=()*?)` | 08 |
+| 4 | exception | `` | `"a"` | `""` | `a(?<=(?:){0,1}?)` | 08 |
+| 4 | wrong_result | `` | `"a"` | `"K"` | `(?:(?:){2,}?a){0,2}` | 00 |
+| 4 | exception | `` | `"a"` | `""` | `(?<=()*?)a` | 08 |
+| 4 | exception | `` | `"a"` | `""` | `a(?<=(?:)??)` | 08 |
+| 3 | exception | `` | `""` | `"a"` | `(?:(?<!(?:)??))*` | 08 |
+| 3 | exception | `` | `"a"` | `""` | `(?<=(?:aa)??)a` | 08 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END dotnet-compiled 5m results -->

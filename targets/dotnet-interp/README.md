@@ -56,3 +56,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * 2,204 timeouts; triage replays reproduced only 252 of 2,435 findings (mostly the wrong results), so the
   timeouts look load-induced. The self-check finished in 1.6 s with 0 mismatches.
 <!-- END dotnet-interp 10m triage -->
+
+<!-- BEGIN dotnet-interp 5m results -->
+### .NET 9 Regex (interpreter): 5m campaign
+
+* 183,456 patterns, 3 tables, 1,354 distinct findings; self-check 336,272 probes, 0 mismatches, 0 engine failures
+* findings by kind: 663 timeout (batch), 529 wrong_span, 154 wrong_result, 7 exception, 1 tier_mismatch
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 6 | wrong_result | `` | `"aa"` | `""` | `(?:a()+?)+` | 00 |
+| 5 | wrong_span | `` | `""` | `"a"` | `(?:(?:)+?)+` | 02 |
+| 4 | wrong_span | `` | `""` | `"a"` | `(?:(?:)+?)*` | 02 |
+| 4 | wrong_span | `` | `""` | `"a"` | `(?:()+?)*` | 02 |
+| 3 | wrong_span | `` | `"aa"` | `"aK"` | `(?:()*?a){2,}` | 03 |
+| 3 | wrong_span | `` | `"a"` | `" a"` | `(?:a()+?)+` | 02 |
+| 3 | wrong_span | `` | `"aa"` | `"aK"` | `(?:a()*?){2,}` | 03 |
+| 3 | wrong_span | `` | `"a"` | `"aK"` | `(?:a(?:)+?)+` | 02 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END dotnet-interp 5m results -->

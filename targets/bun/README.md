@@ -29,3 +29,12 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   case takes more than 0.2 s. They come from machine load (8 jobs plus background processes), not the engine.
   A larger `batch_deadline_per512_ms` would recover the ~27% of batches lost to restarts.
 <!-- END bun 10m triage -->
+
+<!-- BEGIN bun 5m results -->
+### JavaScriptCore (Bun): 5m campaign
+
+* 257,856 patterns, 4 tables, 502 distinct findings; self-check 1,628,352 probes, 0 mismatches, 0 engine failures
+* findings by kind: 502 timeout (batch)
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END bun 5m results -->

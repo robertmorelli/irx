@@ -53,3 +53,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   surrogate-pair family (IRX-V8-3, V8-2).
 * 1,289 timeouts: load-induced, as for Bun.
 <!-- END deno 10m triage -->
+
+<!-- BEGIN deno 5m results -->
+### V8 15.0 (Deno 2.9.7) - older V8, excluded from the ledger: 5m campaign
+
+* 1,001,024 patterns, 12 tables, 10,852 distinct findings; self-check 1,628,352 probes, 80 mismatches, 0 engine failures
+* findings by kind: 10,179 wrong_result, 372 timeout (batch), 301 wrong_span, 80 selfcheck_mismatch (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 1296 | wrong_result | `mu` | `""` | `"😀"` | `(?:)` | 03 |
+| 640 | wrong_result | `mu` | `""` | `"😀"` | `()` | 03 |
+| 100 | wrong_result | `mu` | `""` | `"😀"` | `(?:)` | 33 |
+| 78 | wrong_span | `u` | `""` | `"😀"` | `(?!.)` | 03 |
+| 56 | wrong_span | `u` | `""` | `"😀"` | `(?!\S)` | 03 |
+| 37 | wrong_result | `mu` | `""` | `"😀"` | `()` | 33 |
+| 24 | wrong_span | `u` | `""` | `"😀"` | `(?!\W)` | 03 |
+| 19 | wrong_span | `u` | `""` | `"😀"` | `(?!\D)` | 03 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END deno 5m results -->

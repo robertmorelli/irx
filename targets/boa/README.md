@@ -56,3 +56,18 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   Only ~18% of cases executed because hung batches are killed and restarted.
 * Self-check mismatches are the known IRX-BOA-2/3/4 family.
 <!-- END boa 10m triage -->
+
+<!-- BEGIN boa 5m results -->
+### Boa (boa_cli): 5m campaign
+
+* 139,936 patterns, 3 tables, 822 distinct findings; self-check 1,628,352 probes, 9,252 mismatches, 0 engine failures
+* findings by kind: 821 timeout (batch), 182 selfcheck_mismatch (selfcheck), 1 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 1 | wrong_span | `` | `"aaa"` | `""` | `(?:(?:aa?)+){2,}a` | 00 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END boa 5m results -->
