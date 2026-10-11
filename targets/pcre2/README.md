@@ -72,3 +72,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END pcre2 5m results -->
+
+<!-- BEGIN pcre2 30m results -->
+### PCRE2 10.49 (interpreter; IRX_PCRE2_JIT=1 for the JIT): 30m campaign
+
+* 13,380,896 patterns, 135 tables, 9,275 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 9,093 exception, 95 timeout (batch), 44 wrong_capture, 43 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 4 | exception | `u` | `"aaaaaa"` | `""` | `(?:(?:(?:(?:(?:a*){0,}){0,})+a){3}){2}` | 08 |
+| 4 | exception | `u` | `"aaaaaa"` | `""` | `(?:(?:a(?:(?:(?:)\|())()?){0,3}){2,}){3,3}` | 08 |
+| 4 | exception | `u` | `"aa.aaaa"` | `""` | `(?:(?:(?:.*){0,3})*a{1,}a){3,}` | 08 |
+| 4 | exception | `u` | `". "` | `"-aaa"` | `(?:\W(?:(?:(?:a{0,1})*\|()){0,3})*){2,}` | 08 |
+| 4 | exception | `u` | `"aaaaaa"` | `""` | `(?:a(?:a(?:(?:(?:)?\|())*){0,3})+){3}` | 08 |
+| 4 | exception | `u` | `"aaaaaa"` | `""` | `(?:(?:(?:(?:(?:)\|()){0,3}\|())a){2,}){3,}` | 08 |
+| 4 | exception | `u` | `"aaaaaa"` | `""` | `(?:a(?:(?:(?:a\|)?){0,3})+a){3,3}` | 08 |
+| 4 | exception | `u` | `"aaaaaa"` | `""` | `(?:(?:(?:\|(?:){0,1}){0,3}){0,2}(?:\d\|a+)a){3}` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END pcre2 30m results -->

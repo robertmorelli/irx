@@ -39,3 +39,25 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END icu 5m results -->
+
+<!-- BEGIN icu 30m results -->
+### ICU NSRegularExpression: 30m campaign
+
+* 898,304 patterns, 10 tables, 36,284 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 28,431 wrong_result, 3,711 wrong_span, 3,566 wrong_capture, 576 syntax_error
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 39 | wrong_result | `u` | `"a"` | `"ß"` | `(?:\|a)*?` | 00 |
+| 35 | wrong_result | `u` | `"a"` | `"ß"` | `(?:()\|a)*?` | 00 |
+| 29 | wrong_result | `u` | `"a"` | `"ß"` | `(?:a*?)*?` | 00 |
+| 26 | wrong_result | `u` | `"a"` | `"ß"` | `(?:(?:)\|a)+?` | 00 |
+| 26 | wrong_result | `u` | `"a"` | `"s"` | `(?:(?:)\|a)*?` | 00 |
+| 25 | wrong_result | `u` | `"a"` | `"k"` | `(?:()\|a)*?` | 00 |
+| 25 | wrong_result | `su` | `"a"` | `"a "` | `.+\b` | 03 |
+| 24 | wrong_result | `u` | `"a"` | `"k"` | `(?:(?:)\|a)*?` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END icu 30m results -->

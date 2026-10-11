@@ -93,3 +93,12 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END boa 30m results -->
+
+<!-- BEGIN boa long-10m results -->
+### Boa (boa_cli): long-10m campaign
+
+* 8,448 patterns, 2 tables, 0 distinct findings; self-check 1,628,352 probes, 9,252 mismatches, 0 engine failures
+* findings by kind: 34 selfcheck_mismatch (selfcheck)
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END boa long-10m results -->

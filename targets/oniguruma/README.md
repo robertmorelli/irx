@@ -82,3 +82,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END oniguruma 5m results -->
+
+<!-- BEGIN oniguruma 30m results -->
+### Oniguruma 6.9 (C library): 30m campaign
+
+* 39,534,304 patterns, 397 tables, 24,920 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 10,000 wrong_result, 5,472 wrong_span, 5,280 wrong_capture, 4,168 exception
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 8 | wrong_result | `u` | `"a"` | `""` | `(?:^(?:a\|\b)){2,2}` | 00 |
+| 6 | wrong_result | `u` | `"a"` | `"A"` | `(?:^a*){2,3}` | 00 |
+| 6 | wrong_result | `u` | `"a"` | `""` | `(?:(?:^\|a)\b){3,}` | 00 |
+| 6 | wrong_result | `u` | `"a"` | `""` | `(?:a\|^\b){2,2}` | 00 |
+| 4 | wrong_result | `u` | `"a"` | `""` | `(?:a\|\b(?:a\|^)){2,}` | 00 |
+| 4 | wrong_span | `u` | `"a"` | `""` | `(?:^(?:a\|\b)){2,2}` | 00 |
+| 4 | exception | `u` | `"😀"` | `"aaaaaaa"` | `(?:(?:a{0,1}\|(?:))+){2,}[\x{1F600}]` | 08 |
+| 4 | wrong_result | `u` | `"a"` | `"é"` | `(?:^a*){2,3}` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END oniguruma 30m results -->

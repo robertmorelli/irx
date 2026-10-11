@@ -76,3 +76,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END perl 5m results -->
+
+<!-- BEGIN perl 30m results -->
+### Perl 5.44 (also blead via vendor/perl5): 30m campaign
+
+* 15,646,080 patterns, 158 tables, 6,950 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 3,620 wrong_result, 1,505 timeout (batch), 974 wrong_capture, 851 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 1044 | wrong_result | `mu` | `"a"` | `""` | `^\ba*` | 00 |
+| 243 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:()\|a)` | 00 |
+| 220 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:(?:)\|a)` | 00 |
+| 185 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:\|a)` | 00 |
+| 185 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:a\|)` | 00 |
+| 180 | wrong_result | `mu` | `"a"` | `""` | `^\ba?` | 00 |
+| 164 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:a\|(?:))` | 00 |
+| 162 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:a\|())` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END perl 30m results -->

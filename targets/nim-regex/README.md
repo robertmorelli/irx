@@ -79,3 +79,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END nim-regex 5m results -->
+
+<!-- BEGIN nim-regex 30m results -->
+### nim-regex: 30m campaign
+
+* 3,057,856 patterns, 32 tables, 211,988 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 146,509 exception, 37,637 wrong_result, 11,287 wrong_span, 11,156 wrong_capture, 4,063 timeout (batch), 1,256 syntax_error, 80 crash (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 108 | exception | `u` | `""` | `"a"` | `(?:(?=(?:))){0,}` | 08 |
+| 96 | exception | `u` | `""` | `"a"` | `(?:(?=())){0,}` | 08 |
+| 93 | exception | `u` | `""` | `"a"` | `(?:(?<!(?:))){0,}` | 08 |
+| 92 | exception | `u` | `""` | `"a"` | `(?:(?<!())){0,}` | 08 |
+| 91 | exception | `u` | `""` | `"a"` | `(?:(?!(?:))){0,}` | 08 |
+| 90 | exception | `u` | `""` | `"a"` | `(?:(?!())){0,}` | 08 |
+| 86 | exception | `u` | `""` | `"a"` | `(?:(?<!(?:))){0,1}` | 08 |
+| 85 | exception | `u` | `""` | `"a"` | `(?:(?<!())){0,1}` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END nim-regex 30m results -->

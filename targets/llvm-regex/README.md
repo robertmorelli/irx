@@ -77,3 +77,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END llvm-regex 5m results -->
+
+<!-- BEGIN llvm-regex 30m results -->
+### LLVM Regex (POSIX ERE, translated): 30m campaign
+
+* 53,669,632 patterns, 538 tables, 326,235 distinct findings; self-check 46,080 probes, 0 mismatches, 0 engine failures
+* findings by kind: 193,526 wrong_result, 132,709 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 2818 | wrong_result | `u` | `"a"` | `""` | `(?:^){2,2}a` | 00 |
+| 2666 | wrong_result | `u` | `"a"` | `""` | `a(?:$){2,2}` | 00 |
+| 2530 | wrong_result | `u` | `""` | `"a"` | `(?:^){2,2}` | 00 |
+| 2509 | wrong_result | `u` | `""` | `"a"` | `(?:$){2,2}` | 00 |
+| 1488 | wrong_result | `u` | `"a"` | `""` | `(?:^){2,}a` | 00 |
+| 1379 | wrong_result | `u` | `"a"` | `""` | `a(?:$){2,}` | 00 |
+| 1270 | wrong_result | `u` | `""` | `"a"` | `(?:^){2,}` | 00 |
+| 1169 | wrong_result | `u` | `""` | `"a"` | `(?:$){2,}` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END llvm-regex 30m results -->

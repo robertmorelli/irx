@@ -79,3 +79,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END php-pcre2 5m results -->
+
+<!-- BEGIN php-pcre2 30m results -->
+### PHP 8.5 preg_* (PCRE2 + JIT): 30m campaign
+
+* 53,863,488 patterns, 540 tables, 130,562 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 77,748 exception, 21,552 wrong_result, 16,151 wrong_span, 15,111 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 30 | wrong_result | `u` | `"a"` | `""` | `(?<!a?$)a` | 00 |
+| 21 | wrong_result | `u` | `"a"` | `""` | `(?<!(?:)(?:a\|$))a` | 00 |
+| 17 | wrong_result | `u` | `"a"` | `""` | `(?<=a?\b)a` | 00 |
+| 15 | wrong_result | `u` | `"a"` | `""` | `(?<!(?:\|a)$)a` | 00 |
+| 14 | wrong_result | `u` | `"a"` | `""` | `(?<=\ba?)a` | 00 |
+| 12 | wrong_result | `u` | `"a"` | `""` | `(?<!(?:)(?:$\|a))a` | 00 |
+| 10 | wrong_result | `u` | `"a"` | `""` | `(?<!(?:)(?:a\|\B))a` | 00 |
+| 10 | wrong_result | `u` | `"a"` | `""` | `(?<=(?:)(?:\b\|a))a` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END php-pcre2 30m results -->

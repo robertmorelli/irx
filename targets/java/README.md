@@ -80,3 +80,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END java 5m results -->
+
+<!-- BEGIN java 30m results -->
+### java.util.regex: 30m campaign
+
+* 21,773,216 patterns, 219 tables, 79,401 distinct findings; self-check 339,984 probes, 212 mismatches, 0 engine failures
+* findings by kind: 36,341 wrong_result, 22,129 wrong_capture, 18,819 wrong_span, 1,604 timeout (batch), 508 syntax_error, 200 selfcheck_mismatch (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 31 | wrong_result | `u` | `"a"` | `"\n"` | `(?:^a*){2,2}` | 00 |
+| 24 | wrong_span | `u` | `"aa"` | `"aß"` | `(?:a\|^){2,}` | 03 |
+| 24 | wrong_capture | `u` | `""` | `"a"` | `(?!(a))` | 03 |
+| 19 | wrong_result | `u` | `"a"` | `" "` | `(?:^a*){2,2}` | 00 |
+| 18 | wrong_capture | `u` | `"aa"` | `"aß"` | `(?:a\|^){2,}` | 03 |
+| 18 | wrong_result | `u` | `""` | `"😀"` | `(?:.(?<!\x{1F600}))*` | 03 |
+| 16 | wrong_span | `u` | `"aa"` | `"aK"` | `(?:a\|^){2,}` | 03 |
+| 16 | wrong_result | `u` | `"a"` | `"😀"` | `.(?<!\x{1F600})` | 03 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END java 30m results -->

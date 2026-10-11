@@ -50,3 +50,12 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END python-re 5m results -->
+
+<!-- BEGIN python-re 30m results -->
+### Python re: 30m campaign
+
+* 3,050,176 patterns, 32 tables, 2,982 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 2,982 timeout (batch)
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END python-re 30m results -->

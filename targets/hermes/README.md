@@ -79,3 +79,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END hermes 5m results -->
+
+<!-- BEGIN hermes 30m results -->
+### Hermes (jsvu): 30m campaign
+
+* 14,592 patterns, 2 tables, 103 distinct findings
+* findings by kind: 95 exception, 4 wrong_result, 2 wrong_span, 2 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 2 | wrong_result | `` | `"aa"` | `""` | `(?:(?:a{1,}){1,1}){2,2}` | 00 |
+| 2 | exception | `` | `""` | `"aß"` | `(?:a\|())+?` | 08 |
+| 2 | wrong_result | `` | `"aaaa"` | `""` | `(?:(?:a{3,}?)+)+` | 00 |
+| 1 | wrong_span | `` | `""` | `"aa"` | `(?:(?:(?:a+){1,1})+\|())\B` | 03 |
+| 1 | exception | `` | `""` | `"aß"` | `(?:a\|(?:)())*?` | 08 |
+| 1 | exception | `` | `""` | `"aß"` | `(?:a\|(?:){2})+?` | 08 |
+| 1 | wrong_capture | `` | `""` | `"aa"` | `(?:(?:(?:a+){1,1})+\|())\B` | 03 |
+| 1 | exception | `` | `""` | `"a0"` | `(?:a\|(?:(?:)\|)())+?` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END hermes 30m results -->

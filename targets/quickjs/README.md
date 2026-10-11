@@ -88,3 +88,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END quickjs 5m results -->
+
+<!-- BEGIN quickjs 30m results -->
+### QuickJS: 30m campaign
+
+* 18,074,752 patterns, 182 tables, 396,253 distinct findings; self-check 1,628,352 probes, 392 mismatches, 0 engine failures
+* findings by kind: 394,666 syntax_error, 1,587 timeout (batch), 172 syntax_error (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 7334 | syntax_error | `v` | `""` | `"a"` | `-*` | 04 |
+| 6084 | syntax_error | `v` | `"a"` | `""` | `-\|a` | 04 |
+| 5498 | syntax_error | `v` | `"a"` | `""` | `a\|-` | 04 |
+| 3053 | syntax_error | `v` | `""` | `"a"` | `\|-` | 04 |
+| 3052 | syntax_error | `v` | `""` | `"a"` | `-\|()` | 04 |
+| 3005 | syntax_error | `v` | `""` | `"a"` | `(?:)\|-` | 04 |
+| 3005 | syntax_error | `v` | `""` | `"a"` | `-\|` | 04 |
+| 2851 | syntax_error | `v` | `""` | `"a"` | `()\|-` | 04 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END quickjs 30m results -->
