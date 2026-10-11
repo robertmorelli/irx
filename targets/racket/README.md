@@ -24,3 +24,35 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END racket 1m results -->
+
+<!-- BEGIN racket 10m results -->
+### Racket #px: 10m campaign
+
+* 11,191,648 patterns, 113 tables, 82,940 distinct findings; self-check 339,984 probes, 1,344 mismatches, 0 engine failures
+* findings by kind: 80,012 wrong_result, 2,928 syntax_error, 125 selfcheck_mismatch (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 166 | syntax_error | `u` | `""` | `"a"` | `(?:)(?:)` | 04 |
+| 26 | wrong_result | `u` | `"a"` | `""` | `(?<=(?=a))a` | 00 |
+| 24 | syntax_error | `u` | `"a"` | `""` | `(?:(?:)\|(?:)(?:))a` | 04 |
+| 21 | syntax_error | `u` | `"a"` | `""` | `(?:(?:)(?:)\|(?:))a` | 04 |
+| 17 | syntax_error | `u` | `"a"` | `"aa"` | `(?:(?:)\|(?:)(?:))a` | 04 |
+| 17 | wrong_result | `u` | `"aaa"` | `""` | `a(?<=(?=a))aa` | 00 |
+| 16 | wrong_result | `u` | `"aa"` | `""` | `(?<!(?!a))aa` | 00 |
+| 16 | syntax_error | `u` | `"a"` | `""` | `a(?:(?:)(?:)\|(?:))` | 04 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END racket 10m results -->
+
+<!-- BEGIN racket 10m triage -->
+### racket: 10-minute campaign triage
+
+* New: **IRX-RACKET-2**, a lookahead inside a lookbehind that cannot see past the lookbehind's end
+  (`(?<=(?=a))a` misses `"a"`).
+* Known: IRX-RACKET-1 (the 2,928 syntax errors, `(?:)(?:)` → "invalid memory reference") and RACKET-1 (negated
+  classes with `ſ` miss `İ`, `é`, ...; most wrong results and the 1,344 self-check mismatches).
+* No timeouts; 11.2 M cases.
+<!-- END racket 10m triage -->
