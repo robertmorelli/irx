@@ -19,3 +19,9 @@ units = "utf16"  # index unit of the host's reported spans
 [capture]
 enabled = true
 loop = "reset"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+
+[harness]
+# tools/bridge.py splits a timed-out batch and reports a hanging case as unsupported;
+# small batches and a long deadline leave room for that bisection.
+batch_size = 64
+batch_deadline_base_ms = 90000

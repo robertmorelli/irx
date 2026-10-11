@@ -42,6 +42,23 @@ func parseRequest(_ line: String) -> (String, [[String]])? {
     }
     return (seq, cases)
 }
+/// ICU match with a time limit: NSRegularExpression calls the block periodically during a
+/// long match (.reportProgress), so an attempt can be abandoned. ICU loops forever on lazy
+/// loops over nullable bodies (IRX-ICU-1); such cases are reported as unsupported.
+struct ICUTimeout: Error {}
+let icuLimit: TimeInterval = 0.05
+func icuFirst(_ re: NSRegularExpression, _ s: String) throws -> NSTextCheckingResult? {
+    var result: NSTextCheckingResult? = nil
+    var timedOut = false
+    let deadline = Date().addingTimeInterval(icuLimit)
+    re.enumerateMatches(in: s, options: [.reportProgress], range: NSRange(s.startIndex..., in: s)) { m, _, stop in
+        if let m = m { result = m; stop.pointee = true; return }
+        if Date() > deadline { timedOut = true; stop.pointee = true }
+    }
+    if timedOut { throw ICUTimeout() }
+    return result
+}
+
 /// Span mode: unanchored search; UTF-16 offsets of the first match in A and R (src/span.zig).
 func spanCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
     func hx(_ n: Int) -> String { String(format: "%02x", n) }
@@ -52,9 +69,11 @@ func spanCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
         if f.contains("m") { o.insert(.anchorsMatchLines) }
         if f.contains("s") { o.insert(.dotMatchesLineSeparators) }
         guard let re = try? NSRegularExpression(pattern: p, options: o) else { return "fe040000" }
-        for s in [a, r] {
-            if let m = re.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)) { res += hx(m.range.location) + hx(m.range.location + m.range.length) } else { res += "ffff" }
-        }
+        do {
+            for s in [a, r] {
+                if let mm = try icuFirst(re, s) { res += hx(mm.range.location) + hx(mm.range.location + mm.range.length) } else { res += "ffff" }
+            }
+        } catch { return "fe400000" }
         return res
     }
     guard var re = try? Regex(p) else { return "fe040000" }
@@ -81,7 +100,8 @@ func captureCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
         if f.contains("s") { o.insert(.dotMatchesLineSeparators) }
         guard let re = try? NSRegularExpression(pattern: p, options: o) else { return fail("04") }
         for s in [a, r] {
-            let m = re.firstMatch(in: s, range: NSRange(s.startIndex..., in: s))
+            let m: NSTextCheckingResult?
+            do { m = try icuFirst(re, s) } catch { return fail("40") }
             for g in 0...6 {
                 if let m = m, g < m.numberOfRanges, m.range(at: g).location != NSNotFound { let rg = m.range(at: g); res += hx(rg.location) + hx(rg.location + rg.length) } else { res += "ffff" }
             }
@@ -121,11 +141,13 @@ while let line = readLine(strippingNewline: true) {
             if f.contains("m") { o.insert(.anchorsMatchLines) }
             if f.contains("s") { o.insert(.dotMatchesLineSeparators) }
             guard let re = try? NSRegularExpression(pattern: src, options: o) else { out += "04"; continue }
-            for k in 0..<rep {
-                for (j, s) in [a, r].enumerated() {
-                    if re.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)) != nil { bits |= (1 << j) << (4 * k) }
+            do {
+                for k in 0..<rep {
+                    for (j, s) in [a, r].enumerated() {
+                        if try icuFirst(re, s) != nil { bits |= (1 << j) << (4 * k) }
+                    }
                 }
-            }
+            } catch { out += "40"; continue }
         } else {
             // Unicode-scalar semantics and simple word boundaries: the modes irx models.
             guard var re = try? Regex(src) else { out += "04"; continue }

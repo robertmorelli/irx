@@ -105,6 +105,8 @@ pub const Dialect = struct {
     /// Oniguruma lookbehind: no lookarounds or quantified captures inside, and no captures
     /// inside a negative lookbehind ("invalid pattern in look-behind").
     lookbehind_onig: bool = false,
+    /// No `??`, `*?`, `+?` inside lookbehind (ICU; `{m,n}?` compiles).
+    lookbehind_no_lazy: bool = false,
     /// Which match an unanchored search reports: the first in backtracking priority order
     /// (Perl, JS, Java, ...) or the leftmost-longest (POSIX).
     span_semantics: SpanSemantics = .first,
@@ -248,7 +250,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (d.nullable_quant_opt_only and c.min == 0 and q.form != .opt) ok.* = false;
             if (!d.lookahead_in_star and c.f & (tb.aux_la | tb.aux_md) != 0 and q.max >= 2) ok.* = false;
             if (!d.quantify_assertions and c.f & tb.aux_za != 0) ok.* = false;
-            const f = tb.quantFlags(c.f, q.min, q.max, ast.inf, q.lazy, q.min == 0 and q.max == 1);
+            const f = tb.quantFlags(c.f, q.min, q.max, ast.inf, q.lazy, q.min == 0 and q.max == 1, q.form == .star or q.form == .plus or q.form == .opt);
             return .{ .min = @min(cap, c.min * q.min), .max = if (q.max == ast.inf) cap else @min(cap, c.max * q.max), .f = f };
         },
         .look_ahead, .neg_look_ahead => {
@@ -264,6 +266,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (d.lookbehind_no_unbounded_group and c.f & tb.aux_uq != 0) ok.* = false;
             if (d.lookbehind_no_variable and c.f & (tb.aux_vq | tb.aux_la) != 0) ok.* = false;
             if (d.lookbehind_onig and (c.f & (tb.aux_lk | tb.aux_cq) != 0 or (n.op == .neg_look_behind and c.f & tb.aux_cp != 0))) ok.* = false;
+            if (d.lookbehind_no_lazy and c.f & tb.aux_lz != 0) ok.* = false;
             return .{ .min = 0, .max = 0, .f = tb.aux_lk | tb.aux_za | (c.f & inherit) };
         },
         .group_nc => return lenOf(t, n.a, ok),

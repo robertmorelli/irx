@@ -16,3 +16,9 @@ units = "utf16"  # index unit of the host's reported spans
 enabled = true
 loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)
 lookbehind = false  # lookbehind runs forward here; JS (and the model) match it right to left
+
+[harness]
+# hosts/swift abandons an ICU match after 50 ms (IRX-ICU-1 loops forever) and reports the
+# case as unsupported; smaller batches with a longer deadline absorb those waits.
+batch_size = 128
+batch_deadline_base_ms = 30000

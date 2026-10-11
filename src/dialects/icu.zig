@@ -10,6 +10,10 @@ fn lineTerminator(c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    // "Look-Behind pattern matches must have a bounded maximum length": no unbounded loops.
+    .lookbehind_len_cap = 16,
+    // `(?<=a??)` and `(?<=a+?)` are rejected; `(?<=a{0,1}?)` compiles.
+    .lookbehind_no_lazy = true,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
     .name = "icu",

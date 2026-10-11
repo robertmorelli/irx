@@ -70,12 +70,15 @@ pub const aux_lk: u32 = 1 << 23;
 pub const aux_cp: u32 = 1 << 24;
 /// contains a capture group under a quantifier
 pub const aux_cq: u32 = 1 << 25;
+/// contains a lazy `??`, `*?` or `+?` (ICU rejects them inside lookbehind; `{m,n}?` is fine)
+pub const aux_lz: u32 = 1 << 26;
 /// flags a parent inherits from its children (atom/za are positional)
-pub const aux_inherit: u32 = aux_la | aux_md | aux_vq | aux_uq | aux_cx | aux_lk | aux_cp | aux_cq;
+pub const aux_inherit: u32 = aux_la | aux_md | aux_vq | aux_uq | aux_cx | aux_lk | aux_cp | aux_cq | aux_lz;
 
 /// The quantifier flags of `q` applied to a body with flags `bf` (shared with dialect.treeAllowed).
-pub fn quantFlags(bf: u32, min: u32, max: u32, inf: u32, lazy: bool, opt_like: bool) u32 {
+pub fn quantFlags(bf: u32, min: u32, max: u32, inf: u32, lazy: bool, opt_like: bool, shorthand: bool) u32 {
     var f = (bf & aux_inherit) | aux_cx;
+    if (lazy and shorthand) f |= aux_lz;
     if (min != max) f |= aux_vq;
     if (bf & aux_cp != 0) f |= aux_cq;
     const non_atom = bf & aux_atom == 0;
@@ -114,6 +117,8 @@ pub const Grammar = struct {
     no_quant_assert: bool = false,
     /// Oniguruma lookbehind: no lookarounds or quantified captures inside; no captures in a negative one.
     lb_onig: bool = false,
+    /// No `??`, `*?`, `+?` inside lookbehind (ICU).
+    lb_no_lazy: bool = false,
     /// Only the `?` form may quantify a nullable body (min length 0).
     nullable_opt_only: bool = false,
 
@@ -210,6 +215,7 @@ pub const Grammar = struct {
             .lb_no_var = dialect_mod.active.lookbehind_no_variable,
             .no_quant_assert = !dialect_mod.active.quantify_assertions,
             .lb_onig = dialect_mod.active.lookbehind_onig,
+            .lb_no_lazy = dialect_mod.active.lookbehind_no_lazy,
             .nullable_opt_only = dialect_mod.active.nullable_quant_opt_only,
         };
         try g.indexWeights(gpa);
@@ -253,6 +259,7 @@ pub const Grammar = struct {
         if (self.lb_no_unbounded_group) m |= aux_uq | aux_atom | aux_cx;
         if (self.no_quant_assert) m |= aux_za;
         if (self.lb_onig) m |= aux_lk | aux_cp | aux_cq;
+        if (self.lb_no_lazy) m |= aux_lz;
         return m;
     }
 
@@ -264,7 +271,7 @@ pub const Grammar = struct {
         h.update(&[_]u8{self.flags.bits()});
         h.update(std.mem.asBytes(&self.lookbehind_len_cap));
         h.update(std.mem.asBytes(&self.len_cap));
-        h.update(&[_]u8{ @intFromBool(self.no_empty_quant), @intFromBool(self.lookbehind_fixed), @intFromBool(self.no_la_in_star), @intFromBool(self.nullable_opt_only), @intFromBool(self.lb_no_unbounded_group), @intFromBool(self.lb_no_var), @intFromBool(self.no_quant_assert), @intFromBool(self.lb_onig) });
+        h.update(&[_]u8{ @intFromBool(self.no_empty_quant), @intFromBool(self.lookbehind_fixed), @intFromBool(self.no_la_in_star), @intFromBool(self.nullable_opt_only), @intFromBool(self.lb_no_unbounded_group), @intFromBool(self.lb_no_var), @intFromBool(self.no_quant_assert), @intFromBool(self.lb_onig), @intFromBool(self.lb_no_lazy) });
         for (self.atoms, self.atom_w) |a, w| {
             h.update(std.mem.asBytes(&a.kind));
             h.update(&[_]u8{ a.sub, @intFromBool(a.neg), a.n });
@@ -946,7 +953,7 @@ fn Builder(comptime R: type) type {
                         if (self.g.nullable_opt_only and ymin == 0 and q.form != .opt) return;
                         mx = if (q.max == ast.inf) cap else @min(cap, ymax * @as(u32, q.max));
                         mn = @min(cap, ymin * @as(u32, q.min));
-                        f = quantFlags(yf, q.min, q.max, ast.inf, q.lazy, q.min == 0 and q.max == 1);
+                        f = quantFlags(yf, q.min, q.max, ast.inf, q.lazy, q.min == 0 and q.max == 1, q.form == .star or q.form == .plus or q.form == .opt);
                     },
                     .look_ahead, .neg_look_ahead => f = aux_la | aux_lk | aux_za | (yf & aux_inherit),
                     .look_behind, .neg_look_behind => {
@@ -955,6 +962,7 @@ fn Builder(comptime R: type) type {
                         if (self.g.lb_no_unbounded_group and yf & aux_uq != 0) return;
                         if (self.g.lb_no_var and yf & (aux_vq | aux_la) != 0) return;
                         if (self.g.lb_onig and (yf & (aux_lk | aux_cq) != 0 or (u.op == .neg_look_behind and yf & aux_cp != 0))) return;
+                        if (self.g.lb_no_lazy and yf & aux_lz != 0) return;
                         f = aux_lk | aux_za | (yf & aux_inherit);
                     },
                     .group_nc => {
