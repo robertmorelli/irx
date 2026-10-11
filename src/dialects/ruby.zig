@@ -40,6 +40,8 @@ pub const dialect: D.Dialect = .{
     .lookbehind_no_variable = true,
     .lookbehind_onig = true,
     .lazy_exact_is_optional = true,
+    // Capture mode: with named groups present, unnamed ones don't capture.
+    .named_groups_only = true,
 };
 
 /// Oniguruma C library with ONIG_SYNTAX_RUBY and default options (reference 6.9):
@@ -68,4 +70,6 @@ pub const oniguruma: D.Dialect = .{
     .lookbehind_no_variable = true,
     .lookbehind_onig = true,
     .lazy_exact_is_optional = true,
+    // Capture mode: with named groups present, unnamed ones don't capture.
+    .named_groups_only = true,
 };

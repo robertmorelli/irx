@@ -69,14 +69,50 @@ func spanCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
     }
     return res
 }
+/// Capture mode: whole match + groups 1..6 per subject, UTF-16 offsets (src/capture.zig).
+func captureCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
+    func hx(_ n: Int) -> String { String(format: "%02x", n) }
+    let fail = { (b: String) in "fe" + b + String(repeating: "00", count: 26) }
+    var res = ""
+    if engine == "icu" {
+        var o: NSRegularExpression.Options = []
+        if f.contains("i") { o.insert(.caseInsensitive) }
+        if f.contains("m") { o.insert(.anchorsMatchLines) }
+        if f.contains("s") { o.insert(.dotMatchesLineSeparators) }
+        guard let re = try? NSRegularExpression(pattern: p, options: o) else { return fail("04") }
+        for s in [a, r] {
+            let m = re.firstMatch(in: s, range: NSRange(s.startIndex..., in: s))
+            for g in 0...6 {
+                if let m = m, g < m.numberOfRanges, m.range(at: g).location != NSNotFound { let rg = m.range(at: g); res += hx(rg.location) + hx(rg.location + rg.length) } else { res += "ffff" }
+            }
+        }
+        return res
+    }
+    guard var re = try? Regex(p) else { return fail("04") }
+    re = re.matchingSemantics(.unicodeScalar).wordBoundaryKind(.simple)
+    if f.contains("i") { re = re.ignoresCase() }
+    if f.contains("m") { re = re.anchorsMatchLineEndings() }
+    if f.contains("s") { re = re.dotMatchesNewlines() }
+    for s in [a, r] {
+        let mm = try? re.firstMatch(in: s)
+        for g in 0...6 {
+            if let mm = mm, g < mm.output.count, let rg = mm.output[g].range {
+                let st = s.utf16.distance(from: s.startIndex, to: rg.lowerBound)
+                res += hx(st) + hx(st + s.utf16.distance(from: rg.lowerBound, to: rg.upperBound))
+            } else { res += "ffff" }
+        }
+    }
+    return res
+}
 while let line = readLine(strippingNewline: true) {
     if line.isEmpty { continue }
     guard let (seq, cases) = parseRequest(line) else { FileHandle.standardError.write("bad request\n".data(using: .utf8)!); exit(1) }
     var out = "\(seq) "
     for c in cases {
         let f = c[0], a = c[1], r = c[2], p = c[3]
-        if hasLone(a) || hasLone(r) || hasLone(p) { out += mode == "span" ? "fe400000" : "40"; continue }
+        if hasLone(a) || hasLone(r) || hasLone(p) { out += mode == "span" ? "fe400000" : mode == "capture" ? "fe40" + String(repeating: "00", count: 26) : "40"; continue }
         if mode == "span" { out += spanCase(f, a, r, p); continue }
+        if mode == "capture" { out += captureCase(f, a, r, p); continue }
         let src = "\\A(?:" + p + ")\\z"
         var bits = 0
         if engine == "icu" {

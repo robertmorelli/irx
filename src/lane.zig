@@ -10,6 +10,7 @@ const finding = @import("finding.zig");
 const sample = @import("sample.zig");
 const tablemod = @import("table.zig");
 const spanmod = @import("span.zig");
+const capmod = @import("capture.zig");
 const rngmod = @import("rng.zig");
 const runmod = @import("run.zig");
 
@@ -48,7 +49,7 @@ pub const Lane = struct {
             .bits = try gpa.alloc([]u8, nm + run.sanity_modes.len),
         };
         for (l.cases) |*c| c.* = .{};
-        for (l.bits) |*b| b.* = try gpa.alloc(u8, run.cfg.batch_size * spanmod.width);
+        for (l.bits) |*b| b.* = try gpa.alloc(u8, run.cfg.batch_size * capmod.width);
         for (run.modes, 0..) |m, i| {
             l.mode_index[i] = i;
             l.children[i] = try l.makeChild(m, i);
@@ -256,10 +257,15 @@ pub const Lane = struct {
                 continue;
             }
             const is_span = c.spec.expect == .span;
+            const is_cap = c.spec.expect == .capture;
+            const wd = harness.resultWidth(c.spec.expect);
             for (self.cases[0..count], 0..) |*cs, ci| {
                 var ck: spanmod.Check = .{ .bits = 0 };
-                if (is_span) ck = spanmod.check(cs, b.bits[ci * spanmod.width ..][0..spanmod.width], run.cfg.span_units);
-                const bits = if (is_span) ck.bits else b.bits[ci];
+                var cck: capmod.Check = .{ .bits = 0 };
+                const raw = b.bits[ci * wd ..][0..wd];
+                if (is_span) ck = spanmod.check(cs, raw, run.cfg.span_units);
+                if (is_cap) cck = capmod.check(cs, raw, &run.cfg);
+                const bits = if (is_span) ck.bits else if (is_cap) cck.bits else b.bits[ci];
                 if (bits & harness.Bits.skipped != 0) {
                     if (cs.flags.m) _ = ms.skipped_multiline.fetchAdd(1, .monotonic) else _ = ms.skipped_unsupported.fetchAdd(1, .monotonic);
                     continue;
@@ -267,10 +273,10 @@ pub const Lane = struct {
                 _ = ms.executed.fetchAdd(1, .monotonic);
                 if (finding.classify(c.spec.expect, c.spec.name, bits, cs.exp_a, cs.exp_r)) |pred| {
                     _ = ms.mismatches.fetchAdd(1, .monotonic);
-                    if (pred.kind == .wrong_span) {
+                    if (pred.kind == .wrong_span or pred.kind == .wrong_capture) {
                         var extra: std.ArrayList(u8) = .empty;
                         defer extra.deinit(self.gpa);
-                        try spanmod.extraJson(&extra, self.gpa, ck, b.bits[ci * spanmod.width ..][0..spanmod.width]);
+                        if (is_span) try spanmod.extraJson(&extra, self.gpa, ck, raw) else try capmod.extraJson(&extra, self.gpa, cck, raw);
                         try self.reportExtra(cs, pred, c, extra.items);
                     } else try self.report(cs, pred, c);
                 }

@@ -85,3 +85,8 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
     }
     return 0;
 }
+/* Capture mode is not modelled for this engine: unsupported. */
+int host_capture(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[2][2 * CAP_PAIRS]) {
+    (void)flags; (void)subj; (void)lens; (void)pat; (void)plen; (void)out;
+    return 0x40;
+}

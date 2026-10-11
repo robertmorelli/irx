@@ -21,6 +21,11 @@ int host_case(const char *flags, const char *a, size_t alen, const char *r, size
 const char *host_name(void);
 int host_span(const char *flags, const char *const subj[2], const size_t lens[2],
               const char *pat, size_t plen, long out[4]);
+/* Mode "capture": per subject, whole match then groups 1..6 as byte offsets (-1 = unset /
+ * no match); returns 0 or failure bits (see src/capture.zig). */
+#define CAP_PAIRS 7
+int host_capture(const char *flags, const char *const subj[2], const size_t lens[2],
+                 const char *pat, size_t plen, long out[2][2 * CAP_PAIRS]);
 
 typedef struct { char *buf; size_t len, cap; int bad; } Str;
 
@@ -83,6 +88,7 @@ int main(int argc, char **argv) {
     const char *mode = argc > 1 ? argv[1] : "default";
     int repeat = strcmp(mode, "repeat") == 0 || strcmp(mode, "tierup") == 0;
     int span = strcmp(mode, "span") == 0;
+    int capture = strcmp(mode, "capture") == 0;
     setvbuf(stdout, NULL, _IOFBF, 1 << 16);
     printf("ready %s mode=%s\n", host_name(), mode); fflush(stdout);
     char *line = NULL; size_t cap = 0; ssize_t n;
@@ -106,6 +112,24 @@ int main(int argc, char **argv) {
             int ok = parse_str(&p, &f) && *p++ == ',' && parse_str(&p, &a) && *p++ == ',' &&
                      parse_str(&p, &r) && *p++ == ',' && parse_str(&p, &pat) && *p++ == ']';
             if (!ok) { fprintf(stderr, "bad case\n"); return 1; }
+            if (capture) {
+                char hx[4 * 2 * CAP_PAIRS + 1];
+                if (a.bad || r.bad || pat.bad) { snprintf(hx, sizeof hx, "fe40"); memset(hx + 4, '0', sizeof hx - 5); hx[sizeof hx - 1] = 0; }
+                else {
+                    const char *subj[2] = {a.buf, r.buf}; size_t lens[2] = {a.len, r.len}; long o[2][2 * CAP_PAIRS];
+                    int e = host_capture(f.buf, subj, lens, pat.buf, pat.len, o);
+                    if (e) { snprintf(hx, sizeof hx, "fe%02x", e & 0xff); memset(hx + 4, '0', sizeof hx - 5); hx[sizeof hx - 1] = 0; }
+                    else {
+                        char *q = hx;
+                        for (int k = 0; k < 2; k++) for (int g = 0; g < CAP_PAIRS; g++) {
+                            long s = o[k][2 * g], t = o[k][2 * g + 1];
+                            q += sprintf(q, "%02lx%02lx", s < 0 ? 255 : s, s < 0 ? 255 : t);
+                        }
+                    }
+                }
+                put(&out, hx, 4 * 2 * CAP_PAIRS);
+                continue;
+            }
             if (span) {
                 char hx[9];
                 if (a.bad || r.bad || pat.bad) snprintf(hx, sizeof hx, "fe400000");

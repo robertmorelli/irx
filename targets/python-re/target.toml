@@ -11,3 +11,7 @@ selfcheck = true
 [span]
 enabled = true
 units = "cp"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)

@@ -20,7 +20,23 @@
     (for ([c (cadr msg)])
       (define f (car c)) (define a (cadr c)) (define r (caddr c)) (define p (cadddr c))
       (cond
-        [(for/or ([s (list a r p)]) (string-contains? s "￿")) (write-string (if (string=? mode "span") "fe400000" "40") out)]
+        [(for/or ([s (list a r p)]) (string-contains? s "￿")) (write-string (cond [(string=? mode "span") "fe400000"] [(string=? mode "capture") (string-append "fe40" (make-string 52 #\0))] [else "40"]) out)]
+        [(string=? mode "capture")
+         ;; Whole match + groups 1..6 per subject, character offsets (src/capture.zig).
+         (define modes (string-append (if (string-contains? f "i") "i" "") (if (string-contains? f "s") "s" "") (if (string-contains? f "m") "m" "")))
+         (define src (if (string=? modes "") (fix p) (string-append "(?" modes ":" (fix p) ")")))
+         (define rx (with-handlers ([exn:fail? (lambda (e) #f)]) (pregexp src)))
+         (define (hx n) (string-append (if (< n 16) "0" "") (number->string n 16)))
+         (write-string
+          (cond
+            [(not rx) (string-append "fe04" (make-string 52 #\0))]
+            [else
+             (with-handlers ([exn:fail? (lambda (e) (string-append "fe08" (make-string 52 #\0)))])
+               (apply string-append
+                      (for*/list ([s (list a r)] [m (in-value (regexp-match-positions rx s))] [g 7])
+                        (define x (and m (< g (length m)) (list-ref m g)))
+                        (if x (string-append (hx (car x)) (hx (cdr x))) "ffff"))))])
+          out)]
         [(string=? mode "span")
          ;; Unanchored search, character offsets (src/span.zig).
          (define modes (string-append (if (string-contains? f "i") "i" "") (if (string-contains? f "s") "s" "") (if (string-contains? f "m") "m" "")))

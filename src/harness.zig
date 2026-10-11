@@ -168,11 +168,15 @@ pub fn reapNonblocking(pid: sys.pid_t) ?ExitInfo {
 
 /// shell: any JS shell given as a command template (`--shell "CMD {driver} {mode}"`).
 pub const Engine = enum { d8, sm, jsc, shell, perl };
-pub const Expect = enum { normal, tierup, linear, span };
+pub const Expect = enum { normal, tierup, linear, span, capture };
 
 /// Result bytes per case on the wire: span mode reports four position bytes (span.zig).
 pub fn resultWidth(expect: Expect) usize {
-    return if (expect == .span) 4 else 1;
+    return switch (expect) {
+        .span => 4,
+        .capture => @import("capture.zig").width,
+        else => 1,
+    };
 }
 
 pub const ModeSpec = struct {
@@ -202,6 +206,10 @@ pub const builtin_modes = [_]ModeSpec{
     .{ .name = "span", .flags = &.{}, .driver_mode = "span", .expect = .span },
     .{ .name = "shell-span", .engine = .shell, .flags = &.{}, .driver_mode = "span", .expect = .span },
     .{ .name = "perl-span", .engine = .perl, .flags = &.{}, .driver_mode = "span", .expect = .span },
+    // Unanchored search; the host reports the whole match and the first groups (capture.zig).
+    .{ .name = "capture", .flags = &.{}, .driver_mode = "capture", .expect = .capture },
+    .{ .name = "shell-capture", .engine = .shell, .flags = &.{}, .driver_mode = "capture", .expect = .capture },
+    .{ .name = "perl-capture", .engine = .perl, .flags = &.{}, .driver_mode = "capture", .expect = .capture },
 };
 
 pub fn findMode(name: []const u8) ?*const ModeSpec {
@@ -373,7 +381,8 @@ pub const Child = struct {
         const c = try gpa.create(Child);
         errdefer gpa.destroy(c);
         c.* = .{ .gpa = gpa, .spec = spec, .opts = opts, .err = .{ .buf = try gpa.alloc(u8, opts.cfg.stderr_tail_bytes) } };
-        c.max_line = 2 * @as(usize, opts.cfg.batch_size) * 2 + 4096;
+        // Hex digits per case scale with the mode's result width (span/capture modes are wider).
+        c.max_line = 2 * @as(usize, opts.cfg.batch_size) * 2 * resultWidth(spec.expect) + 4096;
         return c;
     }
 
@@ -905,18 +914,21 @@ pub fn probeMode(gpa: Allocator, spec: *const ModeSpec, opts: ChildOptions) Prob
     const astral_r: []const u16 = if (perl_syntax) &.{'a'} else &.{0xD83D};
     encodeCase(&req, gpa, .{ .flags = "u", .a = &.{ 0xD83D, 0xDE00 }, .r = astral_r, .pattern = astral_pat }) catch return .{ .ok = false, .reason = "alloc" };
     req.appendSlice(gpa, "]]\n") catch return .{ .ok = false, .reason = "alloc" };
-    var buf: [8]u8 = undefined;
+    var buf: [64]u8 = undefined;
     const bits = buf[0 .. 2 * resultWidth(spec.expect)];
     var b: Batch = .{ .seq = 1, .ncases = 2, .req = req.items, .bits = bits };
     if (runSync(c, &b) != .answered) return .{ .ok = false, .reason = gpa.dupe(u8, c.message()) catch "no response" };
     // Response arrived while the child is still alive: output is flushed per line.
     const flushed = c.alive;
-    if (spec.expect == .span) {
+    if (spec.expect == .span or spec.expect == .capture) {
         // a in "a" -> [0,1); no match in R; the astral case starts at 0 (end in host units)
-        // or is unsupported (lone surrogate R on a UTF-8 host).
-        const ok1 = bits[0] == 0 and bits[1] == 1 and bits[2] == 0xFF;
-        const ok2 = (bits[4] == 0 and bits[5] > 0 and bits[6] == 0xFF) or (bits[4] == 0xFE and bits[5] == Bits.skipped);
-        if (!ok1 or !ok2) return .{ .ok = false, .reason = "known-answer mismatch (span)" };
+        // or is unsupported (lone surrogate R on a UTF-8 host). Capture mode: per subject
+        // the whole match comes first, then group slots (none here).
+        const w = resultWidth(spec.expect);
+        const half = w / 2;
+        const ok1 = bits[0] == 0 and bits[1] == 1 and bits[half] == 0xFF;
+        const ok2 = (bits[w] == 0 and bits[w + 1] > 0 and bits[w + half] == 0xFF) or (bits[w] == 0xFE and bits[w + 1] == Bits.skipped);
+        if (!ok1 or !ok2) return .{ .ok = false, .reason = "known-answer mismatch (span/capture)" };
     } else {
         const want: u8 = if (spec.expect == .tierup) 0x11 else 0x01;
         // The linear engine may legitimately mark the u-flag case unsupported.

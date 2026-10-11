@@ -79,7 +79,7 @@ pub fn reference(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16) ?S
     return .{ .found = true, .s = utf16Offset(w, s_model), .e = utf16Offset(w, e_model) };
 }
 
-fn utf16Offset(w: []const u21, pos: usize) u16 {
+pub fn utf16Offset(w: []const u21, pos: usize) u16 {
     var off: u16 = 0;
     for (w[0..pos]) |c| off += if (c > 0xFFFF) 2 else 1;
     return off;

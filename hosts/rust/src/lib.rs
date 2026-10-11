@@ -51,8 +51,16 @@ pub fn serve(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8) {
     serve_span(name, case, |_, _, _, _| Err(0x40));
 }
 
+/// Whole match then groups 1..6 per subject as byte ranges (None = no match / unset).
+pub type CaptureResult = Result<[[Option<(usize, usize)>; 7]; 2], u8>;
+
 /// Like `serve`, plus mode "span": `span(flags, a, r, pattern)` (see src/span.zig).
 pub fn serve_span(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, span: impl Fn(&str, &str, &str, &str) -> SpanResult) {
+    serve_all(name, case, span, |_, _, _, _| Err(0x40));
+}
+
+/// Like `serve_span`, plus mode "capture" (see src/capture.zig).
+pub fn serve_all(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, span: impl Fn(&str, &str, &str, &str) -> SpanResult, capture: impl Fn(&str, &str, &str, &str) -> CaptureResult) {
     let mode = std::env::args().nth(1).unwrap_or_else(|| "default".into());
     let repeat = mode == "repeat" || mode == "tierup";
     let stdout = std::io::stdout();
@@ -79,6 +87,15 @@ pub fn serve_span(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8,
                 if k < 3 { i += 1; }
             }
             i += 1; // ']'
+            if mode == "capture" {
+                let fail = |e: u8| format!("fe{:02x}{}", e, "00".repeat(26));
+                if f.iter().any(|x| x.1) { resp.push_str(&fail(0x40)); continue; }
+                match capture(&f[0].0, &f[1].0, &f[2].0, &f[3].0) {
+                    Err(e) => resp.push_str(&fail(e)),
+                    Ok(subj) => for gs in subj { for g in gs { match g { Some((s, e)) => resp.push_str(&format!("{:02x}{:02x}", s, e)), None => resp.push_str("ffff") } } },
+                }
+                continue;
+            }
             if mode == "span" {
                 if f.iter().any(|x| x.1) { resp.push_str("fe400000"); continue; }
                 match span(&f[0].0, &f[1].0, &f[2].0, &f[3].0) {

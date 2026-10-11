@@ -74,6 +74,14 @@ func main() {
 		for _, raw := range cases {
 			var c [4]string
 			json.Unmarshal(raw, &c)
+			if mode == "capture" {
+				if loneSurrogate(string(raw)) {
+					sb.WriteString("fe40" + strings.Repeat("00", 26))
+				} else {
+					sb.WriteString(capture(c[0], c[1], c[2], c[3]))
+				}
+				continue
+			}
 			if mode == "span" {
 				if loneSurrogate(string(raw)) {
 					sb.WriteString("fe400000")
@@ -154,6 +162,39 @@ func span(flags, a, r, pat string) (res string) {
 			res += fmt.Sprintf("%02x%02x", m[0], m[1])
 		} else {
 			res += "ffff"
+		}
+	}
+	return res
+}
+
+// capture: whole match + groups 1..6 per subject, byte offsets (src/capture.zig).
+func capture(flags, a, r, pat string) (res string) {
+	defer func() {
+		if recover() != nil {
+			res = "fe08" + strings.Repeat("00", 26)
+		}
+	}()
+	pre := ""
+	for _, f := range "ims" {
+		if strings.ContainsRune(flags, f) {
+			pre += string(f)
+		}
+	}
+	if pre != "" {
+		pre = "(?" + pre + ")"
+	}
+	re, err := regexp.Compile(pre + pat)
+	if err != nil {
+		return "fe04" + strings.Repeat("00", 26)
+	}
+	for _, s := range []string{a, r} {
+		m := re.FindStringSubmatchIndex(s)
+		for g := 0; g <= 6; g++ {
+			if m != nil && 2*g+1 < len(m) && m[2*g] >= 0 {
+				res += fmt.Sprintf("%02x%02x", m[2*g], m[2*g+1])
+			} else {
+				res += "ffff"
+			}
 		}
 	}
 	return res

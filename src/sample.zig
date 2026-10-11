@@ -204,6 +204,11 @@ pub const Printer = struct {
     out: *std.ArrayList(u8),
     gpa: Allocator,
     group_counter: u32 = 0,
+    /// Capture groups printed so far (tree captures and `()` empty-atom spellings), and the
+    /// printed group number of each tree capture in opening-parenthesis order.
+    printed_groups: u8 = 0,
+    tree_groups: [ast.max_caps]u8 = undefined,
+    n_tree_groups: u8 = 0,
     limit: usize = std.math.maxInt(usize),
     /// Spelling seed for empty atoms: 0 always prints `(?:)`; otherwise each empty atom
     /// picks `(?:)`, nothing (where the syntax allows) or `()` from (spell, ordinal).
@@ -242,6 +247,14 @@ pub const Printer = struct {
         };
     }
 
+    fn noteTreeGroup(self: *Printer) void {
+        self.printed_groups +|= 1;
+        if (self.n_tree_groups < ast.max_caps) {
+            self.tree_groups[self.n_tree_groups] = self.printed_groups;
+            self.n_tree_groups += 1;
+        }
+    }
+
     /// Print a child where a bare empty atom is syntactically fine (alternative or group body).
     fn bareChild(self: *Printer, t: *const ast.Ast, idx: u8) PrintError!void {
         self.bare_ok = true;
@@ -260,7 +273,10 @@ pub const Printer = struct {
         x ^= x >> 31;
         switch (x % 3) {
             1 => if (bare and dialect.active.bare_empty) return,
-            2 => if (dialect.active.empty_capture and !(self.lb_depth > 0 and dialect.active.lookbehind_onig)) return self.put("()"),
+            2 => if (dialect.active.empty_capture and !(self.lb_depth > 0 and dialect.active.lookbehind_onig)) {
+                self.printed_groups +|= 1;
+                return self.put("()");
+            },
             else => {},
         }
         try self.put("(?:)");
@@ -333,6 +349,7 @@ pub const Printer = struct {
                 if (wrap) try self.putc(')');
             },
             .group_cap => {
+                self.noteTreeGroup();
                 try self.putc('(');
                 try self.bareChild(t, n.a);
                 try self.putc(')');
@@ -343,9 +360,12 @@ pub const Printer = struct {
                 try self.putc(')');
             },
             .group_named => {
+                // Named after the printed group number, so hosts that number named groups
+                // separately (.NET) can put them back in opening-parenthesis order.
+                self.noteTreeGroup();
                 switch (dialect.active.named_group) {
-                    .angle => try self.fmt("(?<g{d}>", .{self.group_counter}),
-                    .p_angle => try self.fmt("(?P<g{d}>", .{self.group_counter}),
+                    .angle => try self.fmt("(?<g{d}>", .{self.printed_groups}),
+                    .p_angle => try self.fmt("(?P<g{d}>", .{self.printed_groups}),
                     .plain_capture => try self.putc('('),
                 }
                 self.group_counter += 1;

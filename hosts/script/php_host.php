@@ -11,8 +11,20 @@ while (($line = fgets(STDIN)) !== false) {
     [$seq, $cases] = $msg;
     $out = "";
     foreach ($cases as [$flags, $a, $r, $pat]) {
-        if (str_contains($a . $r . $pat, "\u{FFFF}")) { $out .= $mode === "span" ? "fe400000" : "40"; continue; }
+        if (str_contains($a . $r . $pat, "\u{FFFF}")) { $out .= $mode === "span" ? "fe400000" : ($mode === "capture" ? "fe40" . str_repeat("00", 26) : "40"); continue; }
         $m = "u" . (str_contains($flags, "i") ? "i" : "") . (str_contains($flags, "m") ? "m" : "") . (str_contains($flags, "s") ? "s" : "");
+        if ($mode === "capture") { // whole match + groups 1..6 per subject, byte offsets (src/capture.zig)
+            $re = "\x01" . $pat . "\x01" . $m; $s = "";
+            foreach ([$a, $r] as $j => $subj) {
+                $res = @preg_match($re, $subj, $mm, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL);
+                if ($res === false) { $s = ((preg_last_error() === PREG_INTERNAL_ERROR && $j == 0) ? "fe04" : "fe08") . str_repeat("00", 26); break; }
+                for ($g = 0; $g < 7; $g++) {
+                    $x = $mm[$g] ?? null;
+                    $s .= ($res === 1 && $x !== null && $x[0] !== null && $x[1] >= 0) ? sprintf("%02x%02x", $x[1], $x[1] + strlen($x[0])) : "ffff";
+                }
+            }
+            $out .= $s; continue;
+        }
         if ($mode === "span") { // unanchored search, byte offsets (src/span.zig)
             $re = "\x01" . $pat . "\x01" . $m; $s = "";
             foreach ([$a, $r] as $j => $subj) {

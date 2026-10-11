@@ -111,6 +111,8 @@ pub const Dialect = struct {
     /// After a loop iteration that matched empty (once min is met): ES rejects that path;
     /// Perl/PCRE accept it and leave the loop.
     empty_iteration: EmptyIteration = .reject,
+    /// When a pattern has named groups, plain `(...)` groups don't capture (Ruby, Oniguruma).
+    named_groups_only: bool = false,
     /// Counted quantifiers are always greedy: the host prints `{m,n}` without the lazy `?`
     /// (Emacs reads `\\{m,n\\}?` as "optional"), so span checks treat them as greedy.
     lazy_counted_is_greedy: bool = false,

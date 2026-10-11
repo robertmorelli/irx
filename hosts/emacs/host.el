@@ -100,7 +100,19 @@
             (setq out
                   (concat out
                           (cond
-                           ((cl-some (lambda (x) (string-search "￿" x)) (list a r p)) (if (equal mode "span") "fe400000" "40"))
+                           ((cl-some (lambda (x) (string-search "￿" x)) (list a r p)) (cond ((equal mode "span") "fe400000") ((equal mode "capture") (concat "fe40" (make-string 52 ?0))) (t "40")))
+                           ((equal mode "capture")
+                            ;; Whole match + groups 1..6 per subject, character offsets (src/capture.zig).
+                            ;; match-data drops unset trailing groups, so pad.
+                            (let ((rx (condition-case nil (irx--translate p (string-search "s" f)) (error nil))))
+                              (if (or (not rx) (condition-case nil (progn (string-match rx "") nil) (invalid-regexp t)))
+                                  (concat "fe04" (make-string 52 ?0))
+                                (let ((case-fold-search (and (string-search "i" f) t)))
+                                  (mapconcat (lambda (s)
+                                               (if (string-match rx s)
+                                                   (mapconcat (lambda (g) (if (match-beginning g) (format "%02x%02x" (match-beginning g) (match-end g)) "ffff")) (number-sequence 0 6) "")
+                                                 (apply #'concat (make-list 7 "ffff"))))
+                                             (list a r) "")))))
                            ((equal mode "span")
                             ;; Unanchored search, character offsets (src/span.zig).
                             (let ((rx (condition-case nil (irx--translate p (string-search "s" f)) (error nil))))

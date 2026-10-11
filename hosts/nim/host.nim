@@ -27,10 +27,31 @@ while readLine(stdin, line):
   for c in msg[1]:
     let f = c[0].getStr; let a = c[1].getStr; let r = c[2].getStr; let p = c[3].getStr
     if "\uFFFF" in a or "\uFFFF" in r or "\uFFFF" in p:
-      outp.add(if mode == "span": "fe400000" else: "40"); continue
+      outp.add(if mode == "span": "fe400000" elif mode == "capture": "fe40" & "0".repeat(52) else: "40"); continue
     var fl = ""
     for ch in "ims":
       if ch in f: fl.add ch
+    if mode == "capture":
+      # Whole match + groups 1..6 per subject, byte offsets (src/capture.zig).
+      var sp = ""
+      try:
+        let rx = re2((if fl.len > 0: "(?" & fl & ")" else: "") & p)
+        for s in [a, r]:
+          var m: RegexMatch2
+          let ok = find(s, rx, m)
+          for g in 0 .. 6:
+            var b = -1 .. -2
+            if ok:
+              if g == 0: b = m.boundaries
+              elif g - 1 < m.groupsCount: b = m.group(g - 1)
+            if b.a < 0: sp.add "ffff"
+            else: sp.add toHex(b.a, 2).toLowerAscii & toHex(b.b + 1, 2).toLowerAscii
+      except RegexError:
+        sp = "fe04" & "0".repeat(52)
+      except CatchableError, Defect:
+        sp = "fe08" & "0".repeat(52)
+      outp.add sp
+      continue
     if mode == "span":
       # Unanchored search, byte offsets of the first match (src/span.zig).
       var sp = ""

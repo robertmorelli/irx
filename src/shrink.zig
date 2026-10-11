@@ -5,6 +5,7 @@
 const std = @import("std");
 const alpha = @import("alphabet.zig");
 const spanmod = @import("span.zig");
+const capmod = @import("capture.zig");
 const ast = @import("ast.zig");
 const atoms = @import("atoms.zig");
 const sys = @import("sys.zig");
@@ -90,9 +91,11 @@ pub const Triage = struct {
         req.appendSlice(self.gpa, "[1,[") catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
         harness.encodeCase(&req, self.gpa, .{ .flags = finding.flagStr(c.flags), .a = c.a.slice(), .r = c.r.slice(), .pattern = c.pattern.items }) catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
         req.appendSlice(self.gpa, "]]\n") catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
-        var bits: [spanmod.width]u8 = undefined;
-        const o = self.runRequest(spec, req.items, 1, bits[0..harness.resultWidth(spec.expect)], fresh);
-        if (spec.expect == .span and o == .bits) return .{ .bits = spanmod.check(c, &bits, self.run.cfg.span_units).bits };
+        var bits: [capmod.width]u8 = undefined;
+        const raw = bits[0..harness.resultWidth(spec.expect)];
+        const o = self.runRequest(spec, req.items, 1, raw, fresh);
+        if (spec.expect == .span and o == .bits) return .{ .bits = spanmod.check(c, raw, self.run.cfg.span_units).bits };
+        if (spec.expect == .capture and o == .bits) return .{ .bits = capmod.check(c, raw, &self.run.cfg).bits };
         return o;
     }
 
@@ -102,11 +105,12 @@ pub const Triage = struct {
         try req.appendSlice(a, "[1,[");
         try harness.encodeCase(&req, a, .{ .flags = finding.flagStr(c.flags), .a = c.a.slice(), .r = c.r.slice(), .pattern = c.pattern.items });
         try req.appendSlice(a, "]]\n");
-        var raw: [spanmod.width]u8 = undefined;
-        switch (self.runRequest(spec, req.items, 1, &raw, false)) {
+        var buf: [capmod.width]u8 = undefined;
+        const raw = buf[0..harness.resultWidth(spec.expect)];
+        switch (self.runRequest(spec, req.items, 1, raw, false)) {
             .bits => {
                 try report.appendSlice(a, ",\n  ");
-                try spanmod.extraJson(report, a, spanmod.check(c, &raw, self.run.cfg.span_units), &raw);
+                if (spec.expect == .span) try spanmod.extraJson(report, a, spanmod.check(c, raw, self.run.cfg.span_units), raw) else try capmod.extraJson(report, a, capmod.check(c, raw, &self.run.cfg), raw);
             },
             .failed => {},
         }
@@ -253,7 +257,7 @@ pub const Triage = struct {
         var mj: std.ArrayList(u8) = .empty;
         try finding.writeCaseJson(&mj, a, &c, pred, "reproduced; minimized");
         try report.appendSlice(a, std.mem.trimEnd(u8, mj.items, "\n"));
-        if (spec.expect == .span) try self.spanDetail(a, spec, &c, report);
+        if (spec.expect == .span or spec.expect == .capture) try self.spanDetail(a, spec, &c, report);
         try report.appendSlice(a, ",\n  \"status\": \"reproduced under the recorded build (not a confirmed V8 bug until reviewed)\"");
 
         var pb: [4096]u8 = undefined;

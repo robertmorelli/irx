@@ -68,6 +68,34 @@ sub span_case {
     return $out;
 }
 
+# Capture mode: whole match then groups 1..6 per subject (ffff = unset; src/capture.zig).
+sub capture_case {
+    my ($c) = @_;
+    my ($flags, $a, $r, $src) = @$c;
+    my $fail = sub { sprintf('fe%02x', $_[0]) . ('00' x 26) };
+    return $fail->(0x04) if $src =~ /\(\?\??\{/;
+    my $mods = '';
+    $mods .= 'i' if $flags =~ /i/;
+    $mods .= 'm' if $flags =~ /m/;
+    $mods .= 's' if $flags =~ /s/;
+    $mods .= 'u' if $flags =~ /[uv]/;
+    my $re = eval { qr/(?^$mods:$src)/ };
+    return $fail->(0x04) unless defined $re;
+    my $out = '';
+    my $ok = eval {
+        for my $s ($a, $r) {
+            if ($s =~ $re) {
+                for my $g (0 .. 6) {
+                    $out .= ($g <= $#- && defined $-[$g]) ? sprintf('%02x%02x', $-[$g], $+[$g]) : 'ffff';
+                }
+            } else { $out .= 'ffff' x 7 }
+        }
+        1;
+    };
+    return $fail->(0x08) unless $ok;
+    return $out;
+}
+
 print "ready perl $^V mode=$mode\n";
 while (defined(my $line = <STDIN>)) {
     chomp $line;
@@ -79,10 +107,11 @@ while (defined(my $line = <STDIN>)) {
         (my $tmp = $line) =~ s/\\u[dD][89a-fA-F][0-9a-fA-F]{2}/?/g;
         my $m = eval { $json->decode($tmp) };
         my ($seq, $n) = $m ? ($m->[0], scalar @{ $m->[1] }) : (0, 0);
-        print $seq, ' ', ($mode eq 'span' ? 'fe400000' : '40') x $n, "\n";
+        print $seq, ' ', ($mode eq 'span' ? 'fe400000' : $mode eq 'capture' ? 'fe40' . ('00' x 26) : '40') x $n, "\n";
         next;
     }
     my ($seq, $cases) = @$msg;
     if ($mode eq 'span') { print $seq, ' ', join('', map { span_case($_) } @$cases), "\n"; next; }
+    if ($mode eq 'capture') { print $seq, ' ', join('', map { capture_case($_) } @$cases), "\n"; next; }
     print $seq, ' ', join('', map { sprintf '%02x', run_case($_) } @$cases), "\n";
 }
