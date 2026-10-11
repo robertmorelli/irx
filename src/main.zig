@@ -68,6 +68,8 @@ const Options = struct {
     duration_s: u64 = 0,
     selfcheck: bool = true,
     quiet: bool = false,
+    /// triage: only these finding ids (one per line), in file order.
+    ids_path: ?[]const u8 = null,
 };
 
 fn usage() noreturn {
@@ -81,7 +83,8 @@ fn usage() noreturn {
         \\       irx selfcheck --d8 PATH [--config FILE] [--out DIR] [--sm PATH] [--jsc PATH]
         \\       irx replay FINDING_DIR --d8 PATH [--config FILE]
         \\       irx gate --d8 PATH [--out DIR]
-        \\       irx triage --d8 PATH --out DIR [--jobs N] [--max-cases N]   (parallel triage of untriaged findings)
+        \\       irx triage (--d8 PATH | --shell CMD | --perl CMD) --out DIR [--jobs N] [--max-cases N] [--ids FILE]
+        \\                  (parallel triage of untriaged findings; --ids: only these finding ids)
         \\       irx sample [--config FILE] [--seed N] [--max-cases N]   (distribution diagnostics, no engine)
         \\
     , .{});
@@ -109,7 +112,7 @@ fn parseArgs(args: []const [:0]const u8) Options {
                 return xs[j.*];
             }
         }.f;
-        if (eq(u8, a, "--d8")) o.d8 = val(args, &i) else if (eq(u8, a, "--config")) o.config_path = val(args, &i) else if (eq(u8, a, "--jobs")) o.jobs = std.fmt.parseInt(u32, val(args, &i), 10) catch usage() else if (eq(u8, a, "--seed")) o.seed = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--out")) o.out = val(args, &i) else if (eq(u8, a, "--modes")) o.modes = val(args, &i) else if (eq(u8, a, "--optional-modes")) o.optional_modes = val(args, &i) else if (eq(u8, a, "--jsc")) o.jsc = val(args, &i) else if (eq(u8, a, "--shell")) o.shell = val(args, &i) else if (eq(u8, a, "--perl")) o.perl = val(args, &i) else if (eq(u8, a, "--dialect")) o.dialect = val(args, &i) else if (eq(u8, a, "--sm")) o.sm = val(args, &i) else if (eq(u8, a, "--max-cases")) o.max_cases = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--duration")) o.duration_s = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--no-selfcheck")) o.selfcheck = false else if (eq(u8, a, "--quiet")) o.quiet = true else if (eq(u8, a, "-h") or eq(u8, a, "--help")) usage() else {
+        if (eq(u8, a, "--d8")) o.d8 = val(args, &i) else if (eq(u8, a, "--config")) o.config_path = val(args, &i) else if (eq(u8, a, "--jobs")) o.jobs = std.fmt.parseInt(u32, val(args, &i), 10) catch usage() else if (eq(u8, a, "--seed")) o.seed = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--out")) o.out = val(args, &i) else if (eq(u8, a, "--modes")) o.modes = val(args, &i) else if (eq(u8, a, "--optional-modes")) o.optional_modes = val(args, &i) else if (eq(u8, a, "--jsc")) o.jsc = val(args, &i) else if (eq(u8, a, "--shell")) o.shell = val(args, &i) else if (eq(u8, a, "--perl")) o.perl = val(args, &i) else if (eq(u8, a, "--dialect")) o.dialect = val(args, &i) else if (eq(u8, a, "--sm")) o.sm = val(args, &i) else if (eq(u8, a, "--max-cases")) o.max_cases = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--duration")) o.duration_s = std.fmt.parseInt(u64, val(args, &i), 10) catch usage() else if (eq(u8, a, "--no-selfcheck")) o.selfcheck = false else if (eq(u8, a, "--quiet")) o.quiet = true else if (eq(u8, a, "--ids")) o.ids_path = val(args, &i) else if (eq(u8, a, "-h") or eq(u8, a, "--help")) usage() else {
             sys.stderrPrint("unknown argument: {s}\n", .{a});
             usage();
         }
@@ -847,6 +850,13 @@ fn cmdTriage(gpa: Allocator, o: *const Options) !u8 {
             } else misses += 1;
         }
     }
+    // --ids: triage only the listed findings (e.g. a sample per signature group).
+    var ids: std.ArrayList(u64) = .empty;
+    if (o.ids_path) |p| {
+        const text = try sys.readFileAlloc(gpa, p, 1 << 24);
+        var it = std.mem.tokenizeAny(u8, text, " \n\r\t,");
+        while (it.next()) |tok| try ids.append(gpa, std.fmt.parseInt(u64, tok, 10) catch continue);
+    }
     const W = struct {
         run: *runmod.Run,
         gpa: Allocator,
@@ -855,12 +865,14 @@ fn cmdTriage(gpa: Allocator, o: *const Options) !u8 {
         done: *std.atomic.Value(u64),
         max_id: u64,
         limit: u64,
+        ids: []const u64,
         fn work(w: @This()) void {
             var triage: shrink.Triage = .{ .run = w.run, .gpa = w.gpa };
             defer triage.deinit();
             while (true) {
-                const id = w.next.fetchAdd(1, .monotonic);
-                if (id > w.max_id) break;
+                const k = w.next.fetchAdd(1, .monotonic);
+                const id = if (w.ids.len > 0) (if (k - 1 < w.ids.len) w.ids[k - 1] else break) else k;
+                if (w.ids.len == 0 and id > w.max_id) break;
                 var pb: [4096]u8 = undefined;
                 const d = std.fmt.bufPrint(&pb, "{s}/{d:0>6}", .{ w.fdir, id }) catch continue;
                 var cb: [4096]u8 = undefined;
@@ -877,7 +889,7 @@ fn cmdTriage(gpa: Allocator, o: *const Options) !u8 {
     var done = std.atomic.Value(u64).init(0);
     const jobs: usize = if (o.jobs == 0) sys.physicalCpu() else o.jobs;
     const threads = try gpa.alloc(std.Thread, jobs);
-    const w: W = .{ .run = run, .gpa = gpa, .fdir = fdir, .next = &next, .done = &done, .max_id = max_id, .limit = o.max_cases };
+    const w: W = .{ .run = run, .gpa = gpa, .fdir = fdir, .next = &next, .done = &done, .max_id = max_id, .limit = o.max_cases, .ids = ids.items };
     for (threads) |*t| t.* = try std.Thread.spawn(.{}, W.work, .{w});
     for (threads) |t| t.join();
     sys.stderrPrint("triaged {d} findings with {d} workers\n", .{ done.load(.monotonic), jobs });
