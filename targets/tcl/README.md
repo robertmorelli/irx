@@ -42,3 +42,12 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   takes more than 0.6 s. Load-induced; a larger `batch_deadline_per512_ms` would help.
 * Cross-check found **IRX-TCL-1**: `k{1}`, `k+`, `k*` with `-nocase` miss the Kelvin sign, which the bare `k` matches.
 <!-- END tcl 10m triage -->
+
+<!-- BEGIN tcl 5m results -->
+### Tcl ARE: 5m campaign
+
+* 356,320 patterns, 5 tables, 156 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 156 timeout (batch)
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END tcl 5m results -->

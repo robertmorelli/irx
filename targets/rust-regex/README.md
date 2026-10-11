@@ -34,3 +34,11 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 
 * Clean: 10.8 M cases, 0 findings, self-check 0 mismatches.
 <!-- END rust-regex 10m triage -->
+
+<!-- BEGIN rust-regex 5m results -->
+### Rust regex: 5m campaign
+
+* 2,947,104 patterns, 31 tables, 0 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END rust-regex 5m results -->

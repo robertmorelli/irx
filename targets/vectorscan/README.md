@@ -26,3 +26,11 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 
 * Clean but thin: 19 K cases (slow compiles), 0 wrong results, self-check clean. The 22 timeouts did not reproduce.
 <!-- END vectorscan 10m triage -->
+
+<!-- BEGIN vectorscan 5m results -->
+### Vectorscan (Hyperscan): 5m campaign
+
+* 9,088 patterns, 2 tables, 0 distinct findings; self-check 272,528 probes, 0 mismatches, 0 engine failures
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END vectorscan 5m results -->

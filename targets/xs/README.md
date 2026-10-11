@@ -71,3 +71,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * The 952 crashes are IRX-XS-3 (`RangeError: buffer overflow`, uncatchable). The 2,172 timeouts are probably
   IRX-XS-7 hangs, which is why only part of the 0.8 M cases executed.
 <!-- END xs 10m triage -->
+
+<!-- BEGIN xs 5m results -->
+### XS (Moddable, jsvu): 5m campaign
+
+* 270,144 patterns, 4 tables, 3,892 distinct findings; self-check 1,628,352 probes, 76,472 mismatches, 0 engine failures
+* findings by kind: 2,367 wrong_span, 819 crash (batch), 706 timeout (batch), 200 syntax_error (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 3 | wrong_span | `` | `"aaaaaa"` | `"aaaa"` | `(?:a{2,}){3}` | 02 |
+| 3 | wrong_span | `` | `"a"` | `"aK"` | `(?:\|a)*` | 02 |
+| 2 | wrong_span | `` | `"aaaaaa"` | `"aaaa"` | `(?:a{2,3}){3}` | 02 |
+| 2 | wrong_span | `` | `"a"` | `"aK"` | `(?:a??){0,}` | 02 |
+| 2 | wrong_span | `` | `"a"` | `"aK"` | `(?:a*?)+` | 02 |
+| 2 | wrong_span | `` | `"aaaaaa"` | `"aaaa"` | `(?:a{2,}?){3,3}` | 03 |
+| 2 | wrong_span | `` | `"a"` | `"aK"` | `(?:a*?)*` | 02 |
+| 2 | wrong_span | `` | `"aaa"` | `"aa"` | `(?:a\|a){3,}` | 03 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END xs 5m results -->

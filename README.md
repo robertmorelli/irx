@@ -219,6 +219,7 @@ reported upstream except IRX-V8-2, IRX-V8-3, and IRX-DOTNET-6–8 (issue links b
 | IRX-XS-7 | XS (jsvu, Moddable) | hang | `/(?:a?)*b/.test("a")` and `/(?:a\|)*b/.test("a")` never return; also `/^(?:^a?)+?$/.test("aa")` | `false` | a star over a nullable body that fails after it loops forever; `(?:\|a)*b` and `(?:)*b` are fine. Found by cross-checking IRX-BOA-8 |
 | IRX-XS-8 | XS (jsvu, Moddable) | wrong result / wrong span | `/(?:a\|a){3}/.exec("aa")` → `"aa"`; `/^(?:a\|a){3}$/.test("aa")` → `true`; `/(?:a{2,}){3}/.exec("aaaa")` → `"aaaa"` | `null`; `false`; `null` | a counted group over alternatives that can match the same text is satisfied too early; `(?:a\|b){3}` is correct. Found by span mode |
 | IRX-XS-9 | XS (jsvu, Moddable) | wrong capture | `/(a\|)*c/.exec("ac")` → `["ac", undefined]`; `/(a*)+/.exec("b")` → `["", undefined]` | `["ac", "a"]`; `["", ""]` (V8, QuickJS, Boa, Hermes) | when a loop's next iteration is rejected, the captures of the last successful iteration are dropped instead of restored. Found while researching phase 2 ([docs/phase2-captures.md](docs/phase2-captures.md)) |
+| IRX-XS-10 | XS (jsvu, Moddable) | wrong span | `/(?:\|a)*/.exec("a")` → `[""]`; `/(?:a*?)*/.exec("a")` → `[""]` | `["a"]` (V8, QuickJS; ES RepeatMatcher rejects an empty iteration once min is met) | XS accepts the empty iteration and leaves the loop, as Perl/PCRE do, instead of rejecting it and trying the other branch. Found by span mode |
 | IRX-E262-1 | engine262 (npm `@engine262/engine262`) | rejects valid pattern | `new RegExp("[\u{17F}--\u{212A}]", "v")` → SyntaxError "Expect a CharacterClassEscape" | accepted | a `\u{…}` escape is not accepted as a `ClassSetOperand` in set operations (~9.7k findings) |
 | IRX-E262-2 | engine262 (npm `@engine262/engine262`) | wrong result | `/^[^[^a]&&\d]$/v.test("ſ")` → `false`; `/^a[^A&&[a-z]]$/v.test("aa")` → `false` | `true`; `true` | negated classes whose contents are a set operation are computed wrongly (~46k findings) |
 | IRX-HERMES-1 | Hermes (jsvu) | wrong result | `/^(?:(?:(?:\W+){1,1})*\s)$/.test("\u2028\n")` → `false` | `true` |; Boa also fails it (cross-check) |
@@ -321,7 +322,7 @@ dialect gaps rather than bugs. Structural matchers (CSS, DOM, FileCheck, macros,
 |---|---|---|---|---|
 | V8 15.5 (d8) | [`v8`](targets/v8) | `driver.js` | ES2024 (exact) | IRX-V8-1…4 |
 | QuickJS | [`quickjs`](targets/quickjs) | `driver.js` (std) | ES2024 | IRX-QJS-1 |
-| XS | [`xs`](targets/xs) | bridge | ES2024 | IRX-XS-1…9 |
+| XS | [`xs`](targets/xs) | bridge | ES2024 | IRX-XS-1…10 |
 | Boa | [`boa`](targets/boa) | bridge | ES2024 | IRX-BOA-1…8 |
 | engine262 | [`engine262`](targets/engine262) | bridge | ES2024 | IRX-E262-1, 2 |
 | Hermes | [`hermes`](targets/hermes) | bridge | ES2024 minus `v` | IRX-HERMES-1…4 |
