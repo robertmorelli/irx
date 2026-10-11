@@ -137,6 +137,17 @@ pub const Check = struct {
     got: [2]?Spans = .{ null, null },
 };
 
+/// Does a quantifier whose body can match empty contain a capture group? Which iteration
+/// records such a group differs between non-ES engines (docs/phase2-captures.md).
+fn groupInNullableLoop(t: *const ast.Ast, idx: u8, in_nullable: bool) bool {
+    const n = t.nodes[idx];
+    if ((n.op == .group_cap or n.op == .group_named) and in_nullable) return true;
+    if (n.op == .atom) return false;
+    const inner = in_nullable or (n.op == .quant and span.minLen(t, n.a) == 0);
+    if (groupInNullableLoop(t, n.a, inner)) return true;
+    return ast.Op.isBinary(n.op) and groupInNullableLoop(t, n.b, inner);
+}
+
 /// Is there a capture group inside a quantifier body (`in_quant`) or a lookbehind?
 fn groupContexts(t: *const ast.Ast, idx: u8, in_quant: bool, in_lb: bool, out: *[2]bool) void {
     const n = t.nodes[idx];
@@ -156,6 +167,7 @@ pub fn check(c: *const finding.Case, raw: []const u8, cfg: *const config.Config)
     const skip: Check = .{ .bits = harness.Bits.skipped };
     if (dialect.active.span_semantics != .first) return skip;
     if (dialect.active.empty_iteration == .unmodeled and span.hasNullableLoop(&c.tree, c.tree.root)) return skip;
+    if (dialect.active.empty_iteration != .reject and groupInNullableLoop(&c.tree, c.tree.root, false)) return skip;
     if (cfg.capture_loop == .unmodeled or !cfg.capture_lookbehind) {
         var ctx = [2]bool{ false, false };
         groupContexts(&c.tree, c.tree.root, false, false, &ctx);

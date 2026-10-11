@@ -126,7 +126,7 @@ pub const Check = struct {
 };
 
 /// Minimum match length of a subtree (assertions and lookarounds are zero-width).
-fn minLen(t: *const ast.Ast, idx: u8) u32 {
+pub fn minLen(t: *const ast.Ast, idx: u8) u32 {
     const n = t.nodes[idx];
     return switch (n.op) {
         .atom => if (n.atom.isConsuming()) 1 else 0,

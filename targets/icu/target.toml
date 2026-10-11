@@ -15,3 +15,4 @@ units = "utf16"  # index unit of the host's reported spans
 [capture]
 enabled = true
 loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+lookbehind = false  # lookbehind runs forward here; JS (and the model) match it right to left

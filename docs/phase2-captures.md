@@ -79,3 +79,25 @@ iteration is rejected: `/(a|)*c/.exec("ac")` gives group 1 `null` (spec: `"a"`).
 6. **Rollout**: 2a = only groups not inside any quantifier (all families agree; no new
    knobs); 2b = groups inside loops with `capture_loop` and the empty-iteration rules,
    validated per family by sweeping as in phase 1.
+
+## Implementation status (2026-10-11)
+
+Implemented as `capture` mode (`src/capture.zig`, `[capture]` in each `target.toml`): 28
+targets. Validation sweeps (20 s each) left only known engine bugs or resource limits on
+every target. Model decisions that came out of the sweeps:
+
+* `[capture] loop`: `reset` (JS), `keep` (PCRE family, automata), `unmodeled` (Perl: 5.38+
+  clears some loop captures per iteration but keeps those of a `*` that iterates zero times;
+  cases with groups inside loops are skipped).
+* Groups inside a loop whose body can match empty are skipped outside ES: which iteration
+  records them differs from engine to engine (`(?:()|a)+?b` on "ab": Python, Ruby,
+  Oniguruma, Emacs give group 1 `[0,0)`; PCRE, Java, .NET, Swift give unset; ICU finds no
+  match; nim-regex reports `[1,2)`).
+* `[capture] lookbehind = false` for every non-JS target: PCRE-style engines run a
+  fixed-length lookbehind forward and Java tries lengths shortest-first, while JS and the
+  model match right to left, so groups inside lookbehinds can differ legitimately.
+* Ruby/Oniguruma: with named groups present, unnamed groups don't capture
+  (`named_groups_only`); hosts report named groups by their printed number.
+* Response lines scale with the mode's result width (a 512-case capture reply is 28 KB).
+
+New bugs: IRX-PERL-3, IRX-JAVA-4 (stale or misplaced loop captures), IRX-XS-9.
