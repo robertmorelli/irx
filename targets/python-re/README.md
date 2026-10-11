@@ -24,3 +24,20 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END python-re 1m results -->
+
+<!-- BEGIN python-re 10m results -->
+### Python re: 10m campaign
+
+* 1,867,072 patterns, 20 tables, 1,961 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 1,961 timeout (batch)
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END python-re 10m results -->
+
+<!-- BEGIN python-re 10m triage -->
+### python-re: 10-minute campaign triage
+
+* No wrong results; self-check clean; 1.9 M cases.
+* 1,961 timeouts. Timing a recorded batch case by case found one genuine exponential case (five nested lazy loops
+  over an 8-character subject) and 511 fast ones: ordinary catastrophic backtracking in a backtracking engine.
+<!-- END python-re 10m triage -->
