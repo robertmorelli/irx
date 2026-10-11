@@ -24,3 +24,33 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END perl 1m results -->
+
+<!-- BEGIN perl 10m results -->
+### Perl 5.44 (also blead via vendor/perl5): 10m campaign
+
+* 5,433,280 patterns, 56 tables, 1,984 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 1,322 timeout (batch), 662 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 183 | wrong_result | `mu` | `"a"` | `""` | `^\ba*` | 00 |
+| 115 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:(?:)\|a)` | 00 |
+| 66 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:a\|(?:))` | 00 |
+| 38 | wrong_result | `mu` | `"a"` | `""` | `^\ba?` | 00 |
+| 14 | wrong_result | `mu` | `"a"` | `""` | `^\ba{0,}` | 00 |
+| 8 | wrong_result | `mu` | `"K"` | `""` | `^\b(?:(?:)\|\x{212A})` | 00 |
+| 8 | wrong_result | `mu` | `"K"` | `""` | `^\b\x{212A}*` | 00 |
+| 4 | wrong_result | `mu` | `"_"` | `""` | `^\b(?:[^as]\|(?:))` | 00 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END perl 10m results -->
+
+<!-- BEGIN perl 10m triage -->
+### perl: 10-minute campaign triage
+
+* Nothing new: all 112 minimized shapes are IRX-PERL-2 (`^\ba*` under `/m`, plus variants with `(?:(?:)|a)` and
+  `K`) or IRX-PERL-1 (`(?=a*)` before a character class: an empty synthetic start class).
+* Self-check clean; 5.4 M cases. 1,322 timeouts: backtracking blowups, not investigated.
+<!-- END perl 10m triage -->
