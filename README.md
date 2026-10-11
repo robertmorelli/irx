@@ -329,7 +329,7 @@ dialect gaps rather than bugs. Structural matchers (CSS, DOM, FileCheck, macros,
 | RE# (`resharp`) | [`resharp`](targets/resharp) | `hosts/rust` | `resharp`: UnicodeMode::Full; no lazy, lookbehind, mid-pattern `^`/`\b`, lookahead under `*` (exact) | 0 self-check mismatches; named groups under quantifiers rejected; IRX-RESHARP-1 |
 | RE2 | [`re2`](targets/re2) | `hosts/c/re2_host` | `re2`: ASCII classes (exact) | IRX-RE2-1 |
 | Go `regexp` | [`go-regexp`](targets/go-regexp) | `hosts/go` | `go`: ASCII classes (exact) | 0 self-check mismatches |
-| Oniguruma 6.9 | [`oniguruma`](targets/oniguruma) | `hosts/c/onig_host` | `oniguruma`: Unicode classes, Ruby anchors (exact) | IRX-ONIG-1, IRX-RUBY-1 |
+| Oniguruma 6.9 | [`oniguruma`](targets/oniguruma) | `hosts/c/onig_host` | `oniguruma`: Unicode classes, Ruby anchors (exact) | IRX-ONIG-1 |
 | Ruby Onigmo | [`ruby-onigmo`](targets/ruby-onigmo) | `hosts/script/rb_host.rb` | `ruby`: ASCII `\w`, Unicode `\b`, always-on line anchors (exact) | IRX-ONIG-1, IRX-RUBY-1 |
 | Python `re` | [`python-re`](targets/python-re) | `hosts/script/py_host.py` | `python`: isalnum `\w`, sre case groups, `(?P<…>)` (exact) | 0 self-check mismatches |
 | Java `java.util.regex` | [`java`](targets/java) | `hosts/java` | `java`: Java line ends, `lower(upper())` fold, range rule (exact) | IRX-JAVA-1…3 |
