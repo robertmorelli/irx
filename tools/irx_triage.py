@@ -68,7 +68,10 @@ def shapes(fdir):
         if not m: continue
         det = t.get("span") or t.get("captures") or {}
         extra = "" if not det else f" A {det.get('expected_a')}->{det.get('observed_a')} R {det.get('expected_r')}->{det.get('observed_r')}"
-        out[(m["kind"], t.get("mode", ""), m["flags"], json.dumps(m["A"], ensure_ascii=False), json.dumps(m["R"], ensure_ascii=False), m["pattern"], m["observed_bits"] + extra)] += 1
+        # Long modes ran on the long pair: show that, not the short pair.
+        long = "long" in t.get("mode", "")
+        sa, sr = (m.get("LA", ""), m.get("LR", "")) if long else (m["A"], m["R"])
+        out[(m["kind"], t.get("mode", ""), m["flags"], json.dumps(sa, ensure_ascii=False), json.dumps(sr, ensure_ascii=False), m["pattern"], m["observed_bits"] + extra)] += 1
     return out
 
 
