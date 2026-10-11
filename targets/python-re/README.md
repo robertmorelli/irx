@@ -41,3 +41,12 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 * 1,961 timeouts. Timing a recorded batch case by case found one genuine exponential case (five nested lazy loops
   over an 8-character subject) and 511 fast ones: ordinary catastrophic backtracking in a backtracking engine.
 <!-- END python-re 10m triage -->
+
+<!-- BEGIN python-re 5m results -->
+### Python re: 5m campaign
+
+* 489,088 patterns, 6 tables, 533 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 533 timeout (batch)
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END python-re 5m results -->

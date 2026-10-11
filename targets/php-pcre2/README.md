@@ -57,3 +57,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   (`(?:(?:.|.){3})+` over long subjects). PHP returns `false` and the host reports an exception.
 * Self-check clean; 10.9 M cases.
 <!-- END php-pcre2 10m triage -->
+
+<!-- BEGIN php-pcre2 5m results -->
+### PHP 8.5 preg_* (PCRE2 + JIT): 5m campaign
+
+* 5,601,024 patterns, 58 tables, 39,377 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 35,367 exception, 2,394 wrong_result, 1,616 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 6 | wrong_result | `u` | `"a"` | `""` | `(?<!$a?)a` | 00 |
+| 4 | wrong_result | `u` | `"a"` | `""` | `(?<!a?$)a` | 00 |
+| 4 | wrong_result | `u` | `"aa"` | `""` | `a(?<!a?\b)a` | 00 |
+| 4 | exception | `u` | `""` | `"aaaaaaaaaK"` | `(?:(?:a*)*)*` | 08 |
+| 4 | exception | `u` | `""` | `"aaaaaaaaaa\n"` | `(?:(?:a\|()){0,2})*` | 08 |
+| 3 | exception | `u` | `""` | `"aaaaaaaaaK"` | `(?:(?:a*)+)*` | 08 |
+| 3 | exception | `u` | `"aaaaa"` | `"a_aaſ"` | `(?:a\|(?:(?:(?:){0,}(?:(?:)\|(?:))?)?\D){3,}){3}` | 08 |
+| 3 | exception | `u` | `"aaaaaaaa"` | `""` | `(?:(?:(?:(?:(?:){0,1})?a)+){3,}a){2}` | 08 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END php-pcre2 5m results -->
