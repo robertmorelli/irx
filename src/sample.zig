@@ -205,6 +205,15 @@ pub const Printer = struct {
     gpa: Allocator,
     group_counter: u32 = 0,
     limit: usize = std.math.maxInt(usize),
+    /// Spelling seed for empty atoms: 0 always prints `(?:)`; otherwise each empty atom
+    /// picks `(?:)`, nothing (where the syntax allows) or `()` from (spell, ordinal).
+    spell: u64 = 0,
+    empty_ordinal: u32 = 0,
+    /// The atom being printed sits directly in an alternative or group body, where an
+    /// empty atom may print as nothing.
+    bare_ok: bool = false,
+    /// Lookbehind nesting depth (Oniguruma/Onigmo reject captures there, so no `()` spelling).
+    lb_depth: u8 = 0,
 
     fn put(self: *Printer, s: []const u8) PrintError!void {
         if (self.out.items.len + s.len > self.limit) return error.PatternTooLong;
@@ -233,19 +242,46 @@ pub const Printer = struct {
         };
     }
 
+    /// Print a child where a bare empty atom is syntactically fine (alternative or group body).
+    fn bareChild(self: *Printer, t: *const ast.Ast, idx: u8) PrintError!void {
+        self.bare_ok = true;
+        defer self.bare_ok = false;
+        try self.node(t, idx, .alt);
+    }
+
+    fn emptyAtom(self: *Printer) PrintError!void {
+        const bare = self.bare_ok;
+        self.bare_ok = false;
+        if (self.spell == 0) return self.put("(?:)");
+        var x = self.spell +% @as(u64, self.empty_ordinal) *% 0x9E3779B97F4A7C15;
+        self.empty_ordinal += 1;
+        x = (x ^ (x >> 30)) *% 0xBF58476D1CE4E5B9;
+        x = (x ^ (x >> 27)) *% 0x94D049BB133111EB;
+        x ^= x >> 31;
+        switch (x % 3) {
+            1 => if (bare and dialect.active.bare_empty) return,
+            2 => if (dialect.active.empty_capture and !(self.lb_depth > 0 and dialect.active.lookbehind_onig)) return self.put("()"),
+            else => {},
+        }
+        try self.put("(?:)");
+    }
+
     fn node(self: *Printer, t: *const ast.Ast, idx: u8, prec: Prec) PrintError!void {
         const n = t.nodes[idx];
+        if (n.op != .atom) self.bare_ok = false;
         switch (n.op) {
             .atom => {
                 // Assertions as quantifier bodies are wrapped by the caller.
+                if (n.atom.kind == .empty) return self.emptyAtom();
+                self.bare_ok = false;
                 try self.atom(&n.atom);
             },
             .alt => {
                 const wrap = @intFromEnum(prec) > @intFromEnum(Prec.alt);
                 if (wrap) try self.put("(?:");
-                try self.node(t, n.a, .alt);
+                try self.bareChild(t, n.a);
                 try self.putc('|');
-                try self.node(t, n.b, .alt);
+                try self.bareChild(t, n.b);
                 if (wrap) try self.putc(')');
             },
             .concat => {
@@ -274,7 +310,8 @@ pub const Printer = struct {
                     .open => try self.fmt("{{{d},}}", .{q.min}),
                     .exact => try self.fmt("{{{d}}}", .{q.min}),
                 }
-                if (q.lazy) try self.putc('?');
+                // Ruby syntax reads `{n}?` as optional; a lazy exact count equals the greedy one.
+                if (q.lazy and !(q.form == .exact and dialect.active.lazy_exact_is_optional)) try self.putc('?');
                 if (wrap) try self.putc(')');
             },
             .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => {
@@ -286,18 +323,23 @@ pub const Printer = struct {
                     .look_behind => "(?<=",
                     else => "(?<!",
                 });
-                try self.node(t, n.a, .alt);
+                const lb = n.op == .look_behind or n.op == .neg_look_behind;
+                if (lb) self.lb_depth += 1;
+                defer if (lb) {
+                    self.lb_depth -= 1;
+                };
+                try self.bareChild(t, n.a);
                 try self.putc(')');
                 if (wrap) try self.putc(')');
             },
             .group_cap => {
                 try self.putc('(');
-                try self.node(t, n.a, .alt);
+                try self.bareChild(t, n.a);
                 try self.putc(')');
             },
             .group_nc => {
                 try self.put("(?:");
-                try self.node(t, n.a, .alt);
+                try self.bareChild(t, n.a);
                 try self.putc(')');
             },
             .group_named => {
@@ -307,7 +349,7 @@ pub const Printer = struct {
                     .plain_capture => try self.putc('('),
                 }
                 self.group_counter += 1;
-                try self.node(t, n.a, .alt);
+                try self.bareChild(t, n.a);
                 try self.putc(')');
             },
         }

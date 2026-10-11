@@ -33,11 +33,18 @@ pub const dialect: D.Dialect = .{
     .any_char = .space_or_nonspace,
     .strings = .code_points,
     .pool_exclude = &.{ 0xDF, 0x130 },
+    // Onigmo lookbehind: fixed length, no variable quantifiers, no lookahead inside.
+    .lookbehind_fixed = true,
+    .lookbehind_no_variable = true,
+    .lookbehind_onig = true,
+    .lazy_exact_is_optional = true,
 };
 
 /// Oniguruma C library with ONIG_SYNTAX_RUBY and default options (reference 6.9):
 /// Unicode \w \d \s (Perl-like), Ruby's always-on line anchors, full case folding.
-/// Rejects quantifiers on zero-width bodies such as (?:\b)*.
+/// Rejects a quantifier whose body is a bare assertion or an alternation offering one,
+/// seen through non-capturing groups: (?:\b)*, (?:a|^)*, (?:a|(?=a))+ (captures and
+/// sequences are fine: (\b)*, (?:a\b)*).
 pub const oniguruma: D.Dialect = .{
     .name = "oniguruma",
     .isLineTerminator = lineTerminator,
@@ -50,5 +57,11 @@ pub const oniguruma: D.Dialect = .{
     .any_char = .space_or_nonspace,
     .strings = .code_points,
     .pool_exclude = &.{ 0xDF, 0x130 },
-    .allow_empty_quant = false,
+    .quantify_assertions = false,
+    // Lookbehind: variable-length support is uneven ((?<=a*) compiles, (?<!aa?) and
+    // (?<=(?:(?:)\b)*) do not), so keep Onigmo's fixed-length rule.
+    .lookbehind_fixed = true,
+    .lookbehind_no_variable = true,
+    .lookbehind_onig = true,
+    .lazy_exact_is_optional = true,
 };

@@ -279,7 +279,7 @@ pub const Triage = struct {
         const mr = ast.oracle(&cand.tree, cand.flags, cand.r.slice()) orelse return false;
         if (ma != c.exp_a or mr != c.exp_r) return false;
         cand.pattern.clearRetainingCapacity();
-        var pr: sample.Printer = .{ .flags = cand.flags, .out = &cand.pattern, .gpa = self.gpa, .limit = self.run.cfg.max_pattern_bytes };
+        var pr: sample.Printer = .{ .flags = cand.flags, .out = &cand.pattern, .gpa = self.gpa, .limit = self.run.cfg.max_pattern_bytes, .spell = cand.spell };
         pr.print(&cand.tree) catch return false;
         if (self.engine_runs >= self.max_engine_runs) return false;
         if (!self.predicateHolds(spec, cand, pred, pred.kind == .crash)) return false;

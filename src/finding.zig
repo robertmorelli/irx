@@ -41,6 +41,8 @@ pub const Case = struct {
     r: Subject = .{},
     tree: ast.Ast = .{},
     pattern: std.ArrayList(u8) = .empty,
+    /// Printer spelling seed for empty atoms (sample.Printer.spell); 0 = canonical.
+    spell: u64 = 0,
     /// Expected (test(A), test(R)) from the model. Fuzz cases are (true, false).
     exp_a: bool = true,
     exp_r: bool = false,
@@ -148,6 +150,7 @@ pub fn writeCaseRecord(out: *std.ArrayList(u8), gpa: Allocator, c: *const Case, 
     try out.print(gpa, "\nexp_a={d}\nexp_r={d}\n", .{ @intFromBool(c.exp_a), @intFromBool(c.exp_r) });
     try out.appendSlice(gpa, "pattern=");
     try out.appendSlice(gpa, c.pattern.items);
+    try out.print(gpa, "\nspell={d}", .{c.spell});
     try out.appendSlice(gpa, "\nast=");
     try ast.serialize(&c.tree, out, gpa);
     try out.print(gpa, "\nsize={d}\ntable_seq={d}\ntable_attempt={d}\ntable_seed={d}\ntable_digest={s}\nglobal_seed={d}\nlane={d}\nindex={d}\nselfcheck={d}\n", .{
@@ -177,7 +180,7 @@ pub fn readCaseRecord(gpa: Allocator, text: []const u8, out: *LoadedCase) !void 
         } else if (e(u8, k, "observed")) out.pred.observed = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "expected")) out.pred.expected = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "diff")) out.pred.diff = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "signal")) out.pred.signal = try std.fmt.parseInt(u8, v, 10) else if (e(u8, k, "exit")) out.pred.exit_code = try std.fmt.parseInt(u8, v, 10) else if (e(u8, k, "flags")) out.case.flags = try Flags.parse(v) else if (e(u8, k, "a")) try parseUnits(v, &out.case.a) else if (e(u8, k, "r")) try parseUnits(v, &out.case.r) else if (e(u8, k, "exp_a")) out.case.exp_a = v.len > 0 and v[0] == '1' else if (e(u8, k, "exp_r")) out.case.exp_r = v.len > 0 and v[0] == '1' else if (e(u8, k, "pattern")) {
             out.case.pattern = .empty;
             try out.case.pattern.appendSlice(gpa, v);
-        } else if (e(u8, k, "ast")) out.case.tree = try ast.parse(v) else if (e(u8, k, "size")) out.case.size = try std.fmt.parseInt(u16, v, 10) else if (e(u8, k, "table_seq")) out.case.table.seq = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "table_attempt")) out.case.table.attempt = try std.fmt.parseInt(u32, v, 10) else if (e(u8, k, "table_seed")) out.case.table.seed = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "table_digest")) {
+        } else if (e(u8, k, "spell")) out.case.spell = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "ast")) out.case.tree = try ast.parse(v) else if (e(u8, k, "size")) out.case.size = try std.fmt.parseInt(u16, v, 10) else if (e(u8, k, "table_seq")) out.case.table.seq = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "table_attempt")) out.case.table.attempt = try std.fmt.parseInt(u32, v, 10) else if (e(u8, k, "table_seed")) out.case.table.seed = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "table_digest")) {
             if (v.len == 64) _ = std.fmt.hexToBytes(&out.case.table.digest, v) catch {};
         } else if (e(u8, k, "global_seed")) out.case.global_seed = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "lane")) out.case.lane = try std.fmt.parseInt(u32, v, 10) else if (e(u8, k, "index")) out.case.index = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "selfcheck")) out.case.selfcheck = v.len > 0 and v[0] == '1';
     }

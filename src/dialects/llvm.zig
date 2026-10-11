@@ -36,6 +36,8 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
 
 pub const dialect: D.Dialect = .{
     .name = "llvm",
+    // POSIX ERE rejects empty branches (`(|a)`, `a|`); `()` is accepted.
+    .bare_empty = false,
     .isLineTerminator = lineTerminator,
     .isSpace = space,
     .isWord = word,

@@ -598,7 +598,8 @@ fn cmdReplay(gpa: Allocator, o: *const Options) !u8 {
                     var smp: sample.Sampler = .{ .tab = tab, .scratch = &scratch, .rng = &rng, .out = &t };
                     _ = try smp.sample();
                     var pat: std.ArrayList(u8) = .empty;
-                    try sample.printAlloc(gpa, &t, c.flags, &pat);
+                    var pr: sample.Printer = .{ .flags = c.flags, .out = &pat, .gpa = gpa, .spell = rng.next() | 1 };
+                    try pr.print(&t);
                     sys.stdoutPrint("case re-derivation from seed triple: {s}\n", .{if (std.mem.eql(u8, pat.items, c.pattern.items)) "identical pattern" else "DIFFERENT pattern (saved pattern/AST remain authoritative)"});
                 }
             },

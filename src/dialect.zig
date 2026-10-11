@@ -74,6 +74,11 @@ pub const Dialect = struct {
     named_group: NamedGroup = .angle,
     word_boundary: []const u8 = "\\b",
     nonword_boundary: []const u8 = "\\B",
+    /// The empty atom may also print as nothing: `(?:|a)`, `a|`, `(?=)` (fuzz cases only;
+    /// self-check keeps `(?:)`). POSIX ERE rejects empty branches.
+    bare_empty: bool = true,
+    /// The empty atom may also print as an empty capture `()`.
+    empty_capture: bool = true,
     /// \W \D \S negate after case folding (no case variant is in the positive
     /// set) instead of complementing before folding as ECMAScript does.
     negated_escapes_invert: bool = false,
@@ -87,8 +92,21 @@ pub const Dialect = struct {
     /// Assertions the engine accepts anywhere in a pattern (resharp compiles ^ \\b \\B as
     /// start-only lookbehinds; Vectorscan rejects embedded anchors and UCP \\b).
     assertions: Assertions = .{},
-    /// Lookaheads (and `$` under m) allowed inside unbounded `*`/`+` (resharp: no).
+    /// Lookaheads (and `$` under m) allowed inside quantifiers that can repeat, max >= 2 (resharp: no).
     lookahead_in_star: bool = true,
+    /// Lookbehind bodies may not hold an unbounded quantifier over anything but a single
+    /// consuming atom (Java: "Look-behind group does not have an obvious maximum length").
+    lookbehind_no_unbounded_group: bool = false,
+    /// Lookbehind bodies may not hold variable quantifiers (min != max) or lookaheads (Onigmo).
+    lookbehind_no_variable: bool = false,
+    /// A quantifier body may be a bare assertion or an alternation offering one, e.g.
+    /// (?:a|\b)+ (Oniguruma: "target of repeat operator is invalid").
+    quantify_assertions: bool = true,
+    /// Oniguruma lookbehind: no lookarounds or quantified captures inside, and no captures
+    /// inside a negative lookbehind ("invalid pattern in look-behind").
+    lookbehind_onig: bool = false,
+    /// `{n}?` means `(?:{n})?` (Ruby syntax), so a lazy exact count prints as `{n}`.
+    lazy_exact_is_optional: bool = false,
     /// Extra ASCII metacharacters, printed as code-point escapes (resharp: _ & ~).
     extra_meta: []const u8 = "",
     allow_lazy: bool = true,
@@ -167,11 +185,12 @@ pub const Assertions = packed struct {
     }
 };
 
-pub const Len = struct { min: u32, max: u32, la: bool = false };
+pub const Len = struct { min: u32, max: u32, f: u32 = 0 };
 pub const len_cap_default: u32 = 16;
 
 /// Does a tree respect the active dialect's grammar restrictions? (Used by the
-/// shrinker so candidates stay inside the grammar the tables generate.)
+/// shrinker so candidates stay inside the grammar the tables generate; mirrors
+/// table.zig's applyUnary/applyBinary.)
 pub fn treeAllowed(t: anytype) bool {
     var ok = true;
     _ = lenOf(t, t.root, &ok);
@@ -180,23 +199,30 @@ pub fn treeAllowed(t: anytype) bool {
 
 fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
     const ast = @import("ast.zig");
+    const tb = @import("table.zig");
+    const inherit = tb.aux_inherit;
     const n = t.nodes[idx];
     const cap = len_cap_default;
     const d = active;
     switch (n.op) {
         .atom => {
             if (!d.assertions.allows(n.atom.kind)) ok.* = false;
-            return if (n.atom.isConsuming()) .{ .min = 1, .max = 1 } else .{ .min = 0, .max = 0, .la = n.atom.kind == .dollar };
+            const k = n.atom.kind;
+            var f: u32 = 0;
+            if (k == .dollar) f |= tb.aux_md;
+            if (k == .caret or k == .dollar or k == .wordb or k == .nwordb) f |= tb.aux_za;
+            if (n.atom.isConsuming()) return .{ .min = 1, .max = 1, .f = tb.aux_atom };
+            return .{ .min = 0, .max = 0, .f = f };
         },
         .concat => {
             const a = lenOf(t, n.a, ok);
             const b = lenOf(t, n.b, ok);
-            return .{ .min = @min(cap, a.min + b.min), .max = @min(cap, a.max + b.max), .la = a.la or b.la };
+            return .{ .min = @min(cap, a.min + b.min), .max = @min(cap, a.max + b.max), .f = (a.f | b.f) & inherit };
         },
         .alt => {
             const a = lenOf(t, n.a, ok);
             const b = lenOf(t, n.b, ok);
-            return .{ .min = @min(a.min, b.min), .max = @max(a.max, b.max), .la = a.la or b.la };
+            return .{ .min = @min(a.min, b.min), .max = @max(a.max, b.max), .f = ((a.f | b.f) & (inherit | tb.aux_za)) | tb.aux_cx };
         },
         .quant => {
             const c = lenOf(t, n.a, ok);
@@ -204,22 +230,31 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (q.lazy and !d.allow_lazy) ok.* = false;
             if (!d.allow_empty_quant and c.max == 0) ok.* = false;
             if (d.nullable_quant_opt_only and c.min == 0 and q.form != .opt) ok.* = false;
-            if (!d.lookahead_in_star and c.la and q.max == ast.inf) ok.* = false;
-            return .{ .min = @min(cap, c.min * q.min), .max = if (q.max == ast.inf) cap else @min(cap, c.max * q.max), .la = c.la };
+            if (!d.lookahead_in_star and c.f & (tb.aux_la | tb.aux_md) != 0 and q.max >= 2) ok.* = false;
+            if (!d.quantify_assertions and c.f & tb.aux_za != 0) ok.* = false;
+            const f = tb.quantFlags(c.f, q.min, q.max, ast.inf, q.lazy, q.min == 0 and q.max == 1);
+            return .{ .min = @min(cap, c.min * q.min), .max = if (q.max == ast.inf) cap else @min(cap, c.max * q.max), .f = f };
         },
         .look_ahead, .neg_look_ahead => {
-            _ = lenOf(t, n.a, ok);
+            const c = lenOf(t, n.a, ok);
             if (!d.allow_lookahead) ok.* = false;
-            return .{ .min = 0, .max = 0, .la = true };
+            return .{ .min = 0, .max = 0, .f = tb.aux_la | tb.aux_lk | tb.aux_za | (c.f & inherit) };
         },
         .look_behind, .neg_look_behind => {
             const c = lenOf(t, n.a, ok);
             if (!d.allow_lookbehind) ok.* = false;
             if (d.lookbehind_len_cap > 0 and c.max >= d.lookbehind_len_cap) ok.* = false;
             if (d.lookbehind_fixed and (c.min != c.max or c.max >= cap)) ok.* = false;
-            return .{ .min = 0, .max = 0 };
+            if (d.lookbehind_no_unbounded_group and c.f & tb.aux_uq != 0) ok.* = false;
+            if (d.lookbehind_no_variable and c.f & (tb.aux_vq | tb.aux_la) != 0) ok.* = false;
+            if (d.lookbehind_onig and (c.f & (tb.aux_lk | tb.aux_cq) != 0 or (n.op == .neg_look_behind and c.f & tb.aux_cp != 0))) ok.* = false;
+            return .{ .min = 0, .max = 0, .f = tb.aux_lk | tb.aux_za | (c.f & inherit) };
         },
-        else => return lenOf(t, n.a, ok),
+        .group_nc => return lenOf(t, n.a, ok),
+        .group_cap, .group_named => {
+            const c = lenOf(t, n.a, ok);
+            return .{ .min = c.min, .max = c.max, .f = (c.f & inherit) | tb.aux_cp };
+        },
     }
 }
 

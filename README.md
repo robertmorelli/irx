@@ -43,6 +43,7 @@ first-seen/repeated counts (transitions unverified), and slow cases.
 ## Layout: dialects, targets, hosts
 
 * `src/dialect.zig` — the **Dialect** component interface; `src/dialects/*.zig` implement it, one model per engine family (es, perl, swift, rust/fancy, re2/go, python, java, ruby/oniguruma, dotnet, icu, resharp, nim, racket, tcl, emacs, vectorscan, llvm)
+* Empty-atom spellings: each fuzz case carries a `spell` seed (recorded in `case.irx`, reused by the shrinker and replay) that prints every empty atom as `(?:)`, as nothing where the syntax allows (`(?:|a)`, `a|`, `(?=)`), or as `()`. Parser bugs often depend on the spelling. Dialects can opt out (`bare_empty`, `empty_capture`); the self-check always uses `(?:)`.
   (character predicates, case rules, anchors, escape syntax, string/flag/grammar constraints). Selected with
   `--dialect`. Semantic only, so a future match-range oracle can reuse it.
 * `targets/<name>/target.toml` — one per engine: how to launch it (`kind`, `command`), which dialect models it,

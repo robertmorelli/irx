@@ -122,7 +122,8 @@ pub const Lane = struct {
             };
             const t1 = sys.nowNs();
             c.pattern.clearRetainingCapacity();
-            var pr: sample.Printer = .{ .flags = tab.id.flags, .out = &c.pattern, .gpa = self.gpa, .limit = run.cfg.max_pattern_bytes };
+            c.spell = rng.next() | 1;
+            var pr: sample.Printer = .{ .flags = tab.id.flags, .out = &c.pattern, .gpa = self.gpa, .limit = run.cfg.max_pattern_bytes, .spell = c.spell };
             pr.print(&c.tree) catch |e| {
                 run.setStop("printer failed ({s}); printed-length bound violated", .{@errorName(e)});
                 return error.ModelFailure;

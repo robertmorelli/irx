@@ -35,6 +35,9 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    // "Look-behind group does not have an obvious maximum length": unbounded repeats of
+    // groups are rejected; `(?<=a*)` compiles (and IRX-JAVA-3 shows it misbehaves).
+    .lookbehind_no_unbounded_group = true,
     .name = "java",
     .isLineTerminator = lineTerminator,
     .isSpace = perl.space,
