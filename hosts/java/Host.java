@@ -48,37 +48,40 @@ public class Host {
                 if (L.charAt(pos) == ',') { pos++; continue; }
                 pos++;
                 String f = str(); pos++; String a = str(); pos++; String r = str(); pos++; String p = str(); pos++;
-                boolean span = mode.equals("span"), capture = mode.equals("capture");
-                String capFail = "00".repeat(26);
-                if (hasLone(a) || hasLone(r) || hasLone(p)) { res.append(span ? "fe400000" : capture ? "fe40" + capFail : "40"); continue; }
+                // Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
+                boolean wide = mode.equals("lspan") || mode.equals("lcapture");
+                boolean span = mode.equals("span") || mode.equals("lspan"), capture = mode.equals("capture") || mode.equals("lcapture");
+                String PF = wide ? "%04x%04x" : "%02x%02x", NONE = wide ? "ffffffff" : "ffff";
+                java.util.function.BiFunction<Integer, Integer, String> failed = (b, rest) -> (wide ? String.format("fffe%04x", b) : String.format("fe%02x", b)) + "0".repeat((wide ? 4 : 2) * rest);
+                if (hasLone(a) || hasLone(r) || hasLone(p)) { res.append(span ? failed.apply(0x40, 2) : capture ? failed.apply(0x40, 26) : "40"); continue; }
                 int fl = Pattern.UNICODE_CASE | Pattern.UNICODE_CHARACTER_CLASS;
                 if (f.indexOf('i') >= 0) fl |= Pattern.CASE_INSENSITIVE;
                 if (f.indexOf('m') >= 0) fl |= Pattern.MULTILINE;
                 if (f.indexOf('s') >= 0) fl |= Pattern.DOTALL;
                 Pattern pat;
                 if (capture) { // whole match + groups 1..6 per subject, UTF-16 offsets (src/capture.zig)
-                    try { pat = Pattern.compile(p, fl); } catch (Exception e) { res.append("fe04" + capFail); continue; }
+                    try { pat = Pattern.compile(p, fl); } catch (Exception e) { res.append(failed.apply(4, 26)); continue; }
                     StringBuilder sp = new StringBuilder();
                     try {
                         for (String s : new String[] { a, r }) {
                             java.util.regex.Matcher m = pat.matcher(s);
                             boolean ok = m.find();
-                            for (int g = 0; g <= 6; g++) sp.append(ok && g <= m.groupCount() && m.start(g) >= 0 ? String.format("%02x%02x", m.start(g), m.end(g)) : "ffff");
+                            for (int g = 0; g <= 6; g++) sp.append(ok && g <= m.groupCount() && m.start(g) >= 0 ? String.format(PF, m.start(g), m.end(g)) : NONE);
                         }
                         res.append(sp);
-                    } catch (Throwable t) { res.append("fe08" + capFail); }
+                    } catch (Throwable t) { res.append(failed.apply(8, 26)); }
                     continue;
                 }
                 if (span) { // unanchored search, UTF-16 offsets (src/span.zig)
-                    try { pat = Pattern.compile(p, fl); } catch (Exception e) { res.append("fe040000"); continue; }
+                    try { pat = Pattern.compile(p, fl); } catch (Exception e) { res.append(failed.apply(4, 2)); continue; }
                     StringBuilder sp = new StringBuilder();
                     try {
                         for (String s : new String[] { a, r }) {
                             java.util.regex.Matcher m = pat.matcher(s);
-                            sp.append(m.find() ? String.format("%02x%02x", m.start(), m.end()) : "ffff");
+                            sp.append(m.find() ? String.format(PF, m.start(), m.end()) : NONE);
                         }
                         res.append(sp);
-                    } catch (Throwable t) { res.append("fe080000"); }
+                    } catch (Throwable t) { res.append(failed.apply(8, 2)); }
                     continue;
                 }
                 try { pat = Pattern.compile("\\A(?:" + p + ")\\z", fl); } catch (Exception e) { res.append("04"); continue; }

@@ -44,6 +44,7 @@ Every batch of cases goes to one engine process per *mode*; a target enables the
 | span (`[span]`) | `[start, end)` of the first match of an unanchored search in A and R | the backtracking matcher's first match in priority order, or the relation's leftmost-longest span (POSIX engines) |
 | capture (`[capture]`) | the whole match plus groups 1–6 | the matcher's capture slots, with per-engine loop and lookbehind rules |
 | long (`[long]`; `shell-long`, `perl-long`, d8 `long`) | does the pattern fully match a long accept string? its near-miss reject? | the relation semantics evaluated as bit vectors over positions (`src/long.zig`) |
+| long span, long capture (`[long]` with `[span]`/`[capture]`; `*-long-span`, `*-long-capture`) | span mode and capture mode on the long pair | the same references as span and capture mode, on subjects of any length; positions on the wire are 4 hex digits (driver modes `lspan`, `lcapture`) |
 
 **Long inputs.** Short subjects never reach the code engines use for long input: SIMD scanning in 16–64-byte
 chunks, DFA state caches, JIT backtracking stacks, 8-bit versus 16-bit string paths, and the 255/256 and 64K
@@ -90,7 +91,7 @@ A campaign's configuration is [`weights.toml`](weights.toml) followed by the tar
 | `[harness]` | batches and deadlines | 512 cases per batch, 2 s + 2 s per 512 cases |
 | `[target]` (target.toml) | how to launch the engine | `kind` (`d8`, `perl`, `shell`), `command`, `dialect`, `selfcheck` |
 | `[span]`, `[capture]` (target.toml) | range checks | `enabled`, `units`; `loop`, `lookbehind` |
-| `[long]` | long-input mode (off unless enabled) | `enabled`, `only` (no other modes), `fraction` 0.25 of cases, `lengths` [64, 256, 1000, 4096], `guard_factor` 50, `deadline_ms_per_kb` 20, `max_request_bytes` 8 MiB |
+| `[long]` | long-input modes (off unless enabled) | `enabled`, `only` (no other modes), `span`/`capture` (long spans and captures where the target supports them; default true), `fraction` 0.25 of cases, `lengths` [64, 256, 1000, 4096] (at most 16000), `guard_factor` 50, `deadline_ms_per_kb` 20, `deadline_ms_per_case` 10, `max_request_bytes` 8 MiB |
 
 The default character pool is chosen for the places engines get wrong: `a b k s A K S 0 _`, space, `\n`,
 `\r`, `-`, `.`, `ſ` (U+017F), `K` (U+212A Kelvin), U+2028, `😀` (U+1F600, an astral character),
@@ -184,6 +185,8 @@ Finding kinds: `wrong_result`, `wrong_span`, `wrong_capture`, `tier_mismatch`, `
   11 flag sets, forward and backward; every generated long pair is accept/reject under it (`long.zig` tests).
   Long-only runs on PCRE2, RE2, Bun and .NET NonBacktracking (about 45k long pairs) show no mismatches, and a
   hand-built IRX-DOTNET-6 case with a 502-character accept string minimizes to its known 4-character repro.
+  Every host answers the wide-format probe (a match at position 300); a 45-second long, long-span and
+  long-capture sweep over all 32 targets found only known bugs plus IRX-JAVA-6 and IRX-XS-11.
 * **Self-check**: every dialect reaches 0 self-check mismatches against its engine, apart from known engine bugs
   (IRX-SWIFT-1, IRX-JAVA-1, RACKET-1, the XS `v`-mode bugs). A one-line injected model bug yields ~1,000
   mismatches, so the check has teeth.
@@ -212,10 +215,11 @@ Finding kinds: `wrong_result`, `wrong_span`, `wrong_capture`, `tier_mismatch`, `
   unsupported; SpiderMonkey via jsvu shares irregexp, so its agreement is not independent; d8 is the Homebrew
   release build, not `dcheck_always_on`.
 * **Finding artifacts** are written atomically (temp + rename) without fsync.
-* **Long mode** checks full match only (no long spans or captures yet). Hosts have no per-case time limit, so a
-  pattern the guard passes but an engine backtracks on for seconds still costs its whole batch. The deadline
-  grows with request size to absorb ordinary slowness. About half of the cases get a long pair; the rest have
-  nothing to pump or no near-miss reject.
+* **Long modes**: most hosts have no per-case time limit, so a pattern the guard passes but an engine backtracks
+  on for seconds still costs its whole batch; the deadline grows with request size to absorb ordinary slowness.
+  .NET (250 ms per match) and fancy-regex (its backtrack limit) report such cases as unsupported. About half of the
+  cases get a long pair; the rest have nothing to pump or no near-miss reject. Engines that compile every
+  pattern from scratch (Vectorscan, RE#) and the slow shells (engine262, Boa, XS, Hermes) run few long cases.
 
 <!-- BEGIN shared bug ledger (identical on every branch) -->
 ## Bug ledger

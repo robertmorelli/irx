@@ -45,26 +45,32 @@ sub run_case {
 }
 
 # Span mode: unanchored search; code-point offsets of the first match in A and R
-# (ff = no match), or fe + bits when the case fails (see src/span.zig).
+# (ff = no match), or fe + bits when the case fails (see src/span.zig). Long modes
+# (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
+my $wide = ($mode eq 'lspan' || $mode eq 'lcapture') ? 1 : 0;
+my $PF = $wide ? '%04x%04x' : '%02x%02x';
+my $NONE = $wide ? 'ffffffff' : 'ffff';
+sub span_fail { $wide ? sprintf('fffe%04x', $_[0]) . ('0' x 8) : sprintf('fe%02x0000', $_[0]) }
+sub cap_fail { $wide ? sprintf('fffe%04x', $_[0]) . ('0000' x 26) : sprintf('fe%02x', $_[0]) . ('00' x 26) }
 sub span_case {
     my ($c) = @_;
     my ($flags, $a, $r, $src) = @$c;
-    return 'fe040000' if $src =~ /\(\?\??\{/;
+    return span_fail(0x04) if $src =~ /\(\?\??\{/;
     my $mods = '';
     $mods .= 'i' if $flags =~ /i/;
     $mods .= 'm' if $flags =~ /m/;
     $mods .= 's' if $flags =~ /s/;
     $mods .= 'u' if $flags =~ /[uv]/;
     my $re = eval { qr/(?^$mods:$src)/ };
-    return 'fe040000' unless defined $re;
+    return span_fail(0x04) unless defined $re;
     my $out = '';
     my $ok = eval {
         for my $s ($a, $r) {
-            $out .= ($s =~ $re) ? sprintf('%02x%02x', $-[0], $+[0]) : 'ffff';
+            $out .= ($s =~ $re) ? sprintf($PF, $-[0], $+[0]) : $NONE;
         }
         1;
     };
-    return 'fe080000' unless $ok;
+    return span_fail(0x08) unless $ok;
     return $out;
 }
 
@@ -72,7 +78,7 @@ sub span_case {
 sub capture_case {
     my ($c) = @_;
     my ($flags, $a, $r, $src) = @$c;
-    my $fail = sub { sprintf('fe%02x', $_[0]) . ('00' x 26) };
+    my $fail = \&cap_fail;
     return $fail->(0x04) if $src =~ /\(\?\??\{/;
     my $mods = '';
     $mods .= 'i' if $flags =~ /i/;
@@ -86,9 +92,9 @@ sub capture_case {
         for my $s ($a, $r) {
             if ($s =~ $re) {
                 for my $g (0 .. 6) {
-                    $out .= ($g <= $#- && defined $-[$g]) ? sprintf('%02x%02x', $-[$g], $+[$g]) : 'ffff';
+                    $out .= ($g <= $#- && defined $-[$g]) ? sprintf($PF, $-[$g], $+[$g]) : $NONE;
                 }
-            } else { $out .= 'ffff' x 7 }
+            } else { $out .= $NONE x 7 }
         }
         1;
     };
@@ -107,11 +113,11 @@ while (defined(my $line = <STDIN>)) {
         (my $tmp = $line) =~ s/\\u[dD][89a-fA-F][0-9a-fA-F]{2}/?/g;
         my $m = eval { $json->decode($tmp) };
         my ($seq, $n) = $m ? ($m->[0], scalar @{ $m->[1] }) : (0, 0);
-        print $seq, ' ', ($mode eq 'span' ? 'fe400000' : $mode eq 'capture' ? 'fe40' . ('00' x 26) : '40') x $n, "\n";
+        print $seq, ' ', ($mode =~ /span$/ ? span_fail(0x40) : $mode =~ /capture$/ ? cap_fail(0x40) : '40') x $n, "\n";
         next;
     }
     my ($seq, $cases) = @$msg;
-    if ($mode eq 'span') { print $seq, ' ', join('', map { span_case($_) } @$cases), "\n"; next; }
-    if ($mode eq 'capture') { print $seq, ' ', join('', map { capture_case($_) } @$cases), "\n"; next; }
+    if ($mode eq 'span' || $mode eq 'lspan') { print $seq, ' ', join('', map { span_case($_) } @$cases), "\n"; next; }
+    if ($mode eq 'capture' || $mode eq 'lcapture') { print $seq, ' ', join('', map { capture_case($_) } @$cases), "\n"; next; }
     print $seq, ' ', join('', map { sprintf '%02x', run_case($_) } @$cases), "\n";
 }

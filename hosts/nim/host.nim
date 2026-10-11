@@ -4,6 +4,14 @@ import regex
 
 let mode = if paramCount() > 0: paramStr(1) else: "default"
 let rep = if mode in ["repeat", "tierup"]: 2 else: 1
+# Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
+let wide = mode in ["lspan", "lcapture"]
+let isSpan = mode in ["span", "lspan"]
+let isCap = mode in ["capture", "lcapture"]
+let D = if wide: 4 else: 2
+let NONE = "f".repeat(2 * D)
+proc hx(n: int): string = toHex(n, D).toLowerAscii
+proc failed(b, rest: int): string = (if wide: "fffe" else: "fe") & hx(b) & "0".repeat(D * rest)
 echo &"ready nim-regex mode={mode}"
 flushFile(stdout)
 var line: string
@@ -27,11 +35,11 @@ while readLine(stdin, line):
   for c in msg[1]:
     let f = c[0].getStr; let a = c[1].getStr; let r = c[2].getStr; let p = c[3].getStr
     if "\uFFFF" in a or "\uFFFF" in r or "\uFFFF" in p:
-      outp.add(if mode == "span": "fe400000" elif mode == "capture": "fe40" & "0".repeat(52) else: "40"); continue
+      outp.add(if isSpan: failed(0x40, 2) elif isCap: failed(0x40, 26) else: "40"); continue
     var fl = ""
     for ch in "ims":
       if ch in f: fl.add ch
-    if mode == "capture":
+    if isCap:
       # Whole match + groups 1..6 per subject, byte offsets (src/capture.zig).
       var sp = ""
       try:
@@ -44,15 +52,15 @@ while readLine(stdin, line):
             if ok:
               if g == 0: b = m.boundaries
               elif g - 1 < m.groupsCount: b = m.group(g - 1)
-            if b.a < 0: sp.add "ffff"
-            else: sp.add toHex(b.a, 2).toLowerAscii & toHex(b.b + 1, 2).toLowerAscii
+            if b.a < 0: sp.add NONE
+            else: sp.add hx(b.a) & hx(b.b + 1)
       except RegexError:
-        sp = "fe04" & "0".repeat(52)
+        sp = failed(4, 26)
       except CatchableError, Defect:
-        sp = "fe08" & "0".repeat(52)
+        sp = failed(8, 26)
       outp.add sp
       continue
-    if mode == "span":
+    if isSpan:
       # Unanchored search, byte offsets of the first match (src/span.zig).
       var sp = ""
       try:
@@ -60,12 +68,12 @@ while readLine(stdin, line):
         for s in [a, r]:
           var m: RegexMatch2
           if find(s, rx, m):
-            sp.add toHex(m.boundaries.a, 2).toLowerAscii & toHex(m.boundaries.b + 1, 2).toLowerAscii
-          else: sp.add "ffff"
+            sp.add hx(m.boundaries.a) & hx(m.boundaries.b + 1)
+          else: sp.add NONE
       except RegexError:
-        sp = "fe040000"
+        sp = failed(4, 2)
       except CatchableError, Defect:
-        sp = "fe080000"
+        sp = failed(8, 2)
       outp.add sp
       continue
     let src = (if fl.len > 0: "(?" & fl & ")" else: "") & "\\A(?:" & p & ")\\z"

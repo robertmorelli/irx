@@ -41,8 +41,9 @@ def run(name, a):
     out = os.path.join(ROOT, "findings", f"{label}-{name}")
     subprocess.run(["rm", "-rf", out]); os.makedirs(out)
     cfg = os.path.join(out, "campaign.toml")
-    # --long: a long-input campaign (only the long mode, every case pumped; src/long.zig).
-    if a.long: text = re.sub(r"^\[long\].*?(?=^\[|\Z)", "", text, flags=re.S | re.M) + f"\n[long]\nonly = true\nfraction = 1.0\nlengths = [{a.long_lengths}]\n"
+    # --long: a long-input campaign (only the long modes, every case pumped; src/long.zig). A later
+    # [long] section overrides these keys and keeps the target's own (e.g. deadline_ms_per_case).
+    if a.long: text += f"\n[long]\nonly = true\nfraction = 1.0\nlengths = [{a.long_lengths}]\n"
     open(cfg, "w").write(open(os.path.join(ROOT, "weights.toml")).read() + "\n" + text)
     irx = [os.path.join(ROOT, "zig-out/bin/irx")]
     if a.selfcheck_only: irx.append("selfcheck")

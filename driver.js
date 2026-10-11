@@ -98,36 +98,43 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
 
   // Span mode: unanchored search; 4 bytes per case (A start, A end, R start, R end) in
   // UTF-16 offsets, ff = no match; fe + bits when the case fails (see src/span.zig).
+  // Long modes (lspan, lcapture): the same with 4 hex digits per position, ffff = none,
+  // fffe + 00bb = failed.
   function hx(n) { return HEX[(n >> 4) & 15] + HEX[n & 15]; }
-  function spanCase(c) {
+  function hx4(n) { return hx((n >> 8) & 255) + hx(n & 255); }
+  function spanCase(c, wide) {
+    var P = wide ? hx4 : hx, NONE = wide ? "ffff" : "ff";
+    function fail(b) { return wide ? "fffe" + hx4(b) + "00000000" : "fe" + hx(b) + "0000"; }
     var re;
-    try { re = new RegExp(c[3], c[0]); } catch (e) { return "fe" + hx((e instanceof SyntaxError) ? 4 : 8) + "0000"; }
+    try { re = new RegExp(c[3], c[0]); } catch (e) { return fail((e instanceof SyntaxError) ? 4 : 8); }
     var s = "";
     try {
       for (var k = 1; k <= 2; k++) {
         var m = re.exec(c[k]);
-        s += m ? hx(m.index) + hx(m.index + m[0].length) : "ffff";
+        s += m ? P(m.index) + P(m.index + m[0].length) : NONE + NONE;
       }
-    } catch (e) { return "fe080000"; }
+    } catch (e) { return fail(8); }
     return s;
   }
 
   // Capture mode: like span mode, plus groups 1..6 (via the d flag's indices) per subject:
   // 7 position pairs each, ffff = unset (see src/capture.zig).
   var CAP_GROUPS = 6;
-  function captureCase(c) {
+  function captureCase(c, wide) {
+    var P = wide ? hx4 : hx, NONE = wide ? "ffff" : "ff";
+    function fail(b) { return wide ? "fffe" + hx4(b) + "0000".repeat(26) : "fe" + hx(b) + "00".repeat(26); }
     var re;
-    try { re = new RegExp(c[3], c[0] + "d"); } catch (e) { return "fe" + hx((e instanceof SyntaxError) ? 4 : 8) + "00".repeat(26); }
+    try { re = new RegExp(c[3], c[0] + "d"); } catch (e) { return fail((e instanceof SyntaxError) ? 4 : 8); }
     var s = "";
     try {
       for (var k = 1; k <= 2; k++) {
         var m = re.exec(c[k]);
         for (var g = 0; g <= CAP_GROUPS; g++) {
           var ix = m && g < m.length ? m.indices[g] : undefined;
-          s += ix ? hx(ix[0]) + hx(ix[1]) : "ffff";
+          s += ix ? P(ix[0]) + P(ix[1]) : NONE + NONE;
         }
       }
-    } catch (e) { return "fe08" + "00".repeat(26); }
+    } catch (e) { return fail(8); }
     return s;
   }
 
@@ -141,8 +148,8 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
     var seq = msg[0], cases = msg[1];
     var parts = new Array(cases.length);
     for (var i = 0; i < cases.length; i++) {
-      if (mode === "span") { parts[i] = spanCase(cases[i]); continue; }
-      if (mode === "capture") { parts[i] = captureCase(cases[i]); continue; }
+      if (mode === "span" || mode === "lspan") { parts[i] = spanCase(cases[i], mode === "lspan"); continue; }
+      if (mode === "capture" || mode === "lcapture") { parts[i] = captureCase(cases[i], mode === "lcapture"); continue; }
       var b = runCase(cases[i]);
       parts[i] = HEX[(b >> 4) & 15] + HEX[b & 15];
     }

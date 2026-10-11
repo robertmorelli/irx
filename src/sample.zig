@@ -217,6 +217,8 @@ pub const Printer = struct {
     /// The atom being printed sits directly in an alternative or group body, where an
     /// empty atom may print as nothing.
     bare_ok: bool = false,
+    /// Inside lookarounds of a dialect without bare empties there (bare_empty_in_lookaround).
+    no_bare_depth: u8 = 0,
     /// Lookbehind nesting depth (Oniguruma/Onigmo reject captures there, so no `()` spelling).
     lb_depth: u8 = 0,
 
@@ -263,7 +265,7 @@ pub const Printer = struct {
     }
 
     fn emptyAtom(self: *Printer) PrintError!void {
-        const bare = self.bare_ok;
+        const bare = self.bare_ok and self.no_bare_depth == 0;
         self.bare_ok = false;
         if (self.spell == 0) return self.put("(?:)");
         var x = self.spell +% @as(u64, self.empty_ordinal) *% 0x9E3779B97F4A7C15;
@@ -343,6 +345,11 @@ pub const Printer = struct {
                 if (lb) self.lb_depth += 1;
                 defer if (lb) {
                     self.lb_depth -= 1;
+                };
+                const nb = !dialect.active.bare_empty_in_lookaround;
+                if (nb) self.no_bare_depth += 1;
+                defer if (nb) {
+                    self.no_bare_depth -= 1;
                 };
                 try self.bareChild(t, n.a);
                 try self.putc(')');

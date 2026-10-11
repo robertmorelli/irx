@@ -293,11 +293,18 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     const span_mode = if (o.shell != null) "shell-span" else if (o.perl != null) "perl-span" else "span";
     const cap_mode = if (o.shell != null) "shell-capture" else if (o.perl != null) "perl-capture" else "capture";
     const long_mode = if (o.shell != null) "shell-long" else if (o.perl != null) "perl-long" else "long";
+    const long_span_mode = if (o.shell != null) "shell-long-span" else if (o.perl != null) "perl-long-span" else "long-span";
+    const long_cap_mode = if (o.shell != null) "shell-long-capture" else if (o.perl != null) "perl-long-capture" else "long-capture";
     var mode_list: []const u8 = base_modes;
     if (run.cfg.span) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, span_mode });
     if (run.cfg.capture) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, cap_mode });
     // [long]: add the long-input mode, or run it alone (`only = true`).
-    if (run.cfg.long_mode or run.cfg.long_mode_only) mode_list = if (run.cfg.long_mode_only) long_mode else try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, long_mode });
+    if (run.cfg.long_mode or run.cfg.long_mode_only) {
+        mode_list = if (run.cfg.long_mode_only) long_mode else try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, long_mode });
+        // Long spans and captures where the target supports spans and captures.
+        if (run.cfg.span and run.cfg.long_mode_span) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, long_span_mode });
+        if (run.cfg.capture and run.cfg.long_mode_capture) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, long_cap_mode });
+    }
     const req_modes = try resolveModes(gpa, mode_list);
     const opt_modes = try resolveModes(gpa, o.optional_modes);
     var active: std.ArrayList(*const harness.ModeSpec) = .empty;
@@ -464,7 +471,7 @@ fn statsLine(run: *runmod.Run, t_start: u64, last_cases: *u64, last_t: *u64) voi
         const st = &run.mode_stats[i];
         put(&buf, &w, " | {s}: exec={d} skip={d}/{d} mism={d} restarts={d}", .{ m.name, st.executed.load(.monotonic), st.skipped_multiline.load(.monotonic), st.skipped_unsupported.load(.monotonic), st.mismatches.load(.monotonic), st.restarts.load(.monotonic) });
         if (m.expect == .tierup) put(&buf, &w, " tier(first-seen={d} repeated={d}, transitions unverified)", .{ st.first_seen.load(.monotonic), st.repeated.load(.monotonic) });
-        if (m.expect == .long) put(&buf, &w, " pairs(made={d} no-pump={d} no-accept={d} no-reject={d} guarded={d} gen={d:.0}us/case: pump {d:.0} accept {d:.0} reject {d:.0} guard {d:.0})", .{ run.long_made.load(.monotonic), run.long_no_pump.load(.monotonic), run.long_no_accept.load(.monotonic), run.long_no_reject.load(.monotonic), run.long_guarded.load(.monotonic), per(run.long_ns.load(.monotonic), cases), per(run.long_phase_ns[0].load(.monotonic), cases), per(run.long_phase_ns[1].load(.monotonic), cases), per(run.long_phase_ns[2].load(.monotonic), cases), per(run.long_phase_ns[3].load(.monotonic), cases) });
+        if (m.expect.isLong() and m.expect == run.modes[0].expect) put(&buf, &w, " pairs(made={d} no-pump={d} no-accept={d} no-reject={d} guarded={d} gen={d:.0}us/case: pump {d:.0} accept {d:.0} reject {d:.0} guard {d:.0})", .{ run.long_made.load(.monotonic), run.long_no_pump.load(.monotonic), run.long_no_accept.load(.monotonic), run.long_no_reject.load(.monotonic), run.long_guarded.load(.monotonic), per(run.long_ns.load(.monotonic), cases), per(run.long_phase_ns[0].load(.monotonic), cases), per(run.long_phase_ns[1].load(.monotonic), cases), per(run.long_phase_ns[2].load(.monotonic), cases), per(run.long_phase_ns[3].load(.monotonic), cases) });
     }
     put(&buf, &w, "\n", .{});
     sys.writeAll(2, buf[0..w]) catch {};

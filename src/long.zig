@@ -253,6 +253,28 @@ pub const Eval = struct {
     }
 };
 
+/// Leftmost-longest match of an unanchored search: the smallest start with some match, and
+/// its largest end. Outer null: work budget exhausted; inner null: no match.
+pub fn leftmostLongest(gpa: Allocator, t: *const ast.Ast, flags: Flags, w: []const u21) ?(?[2]usize) {
+    var ev = Eval.init(gpa, t, flags, w);
+    defer ev.deinit();
+    const every = ev.all() catch return null;
+    defer ev.release(every);
+    const starts = ev.bwd(t.root, every) catch return null;
+    defer ev.release(starts);
+    var s: usize = 0;
+    while (s <= w.len and !Eval.getBit(starts, s)) s += 1;
+    if (s > w.len) return @as(?[2]usize, null);
+    const one = ev.alloc() catch return null;
+    defer ev.release(one);
+    Eval.setBit(one, s);
+    const ends = ev.fwd(t.root, one) catch return null;
+    defer ev.release(ends);
+    var e: usize = w.len;
+    while (!Eval.getBit(ends, e)) e -= 1;
+    return @as(?[2]usize, .{ s, e });
+}
+
 /// Full-match reference on a subject of any length (model symbols). Null if the work budget
 /// ran out.
 pub fn accepts(gpa: Allocator, t: *const ast.Ast, flags: Flags, w: []const u21) ?bool {

@@ -1,6 +1,11 @@
 <?php
 // irx host: PHP preg_* (PCRE2, UTF + UCP). Perl-dialect patterns pass through unchanged.
 $mode = $argv[1] ?? "default"; $rep = in_array($mode, ["repeat", "tierup"]) ? 2 : 1;
+// Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
+$wide = in_array($mode, ["lspan", "lcapture"]); $D = $wide ? 4 : 2; $NONE = str_repeat("f", 2 * $D);
+$isSpan = in_array($mode, ["span", "lspan"]); $isCap = in_array($mode, ["capture", "lcapture"]);
+function pair($s, $e) { global $D; return sprintf("%0{$D}x%0{$D}x", $s, $e); }
+function failed($b, $rest) { global $wide, $D; return ($wide ? sprintf("fffe%04x", $b) : sprintf("fe%02x", $b)) . str_repeat("0", $D * $rest); }
 echo "ready php-pcre-" . PCRE_VERSION . " mode=$mode\n"; fflush(STDOUT);
 while (($line = fgets(STDIN)) !== false) {
     if (trim($line) === "") continue;
@@ -11,26 +16,26 @@ while (($line = fgets(STDIN)) !== false) {
     [$seq, $cases] = $msg;
     $out = "";
     foreach ($cases as [$flags, $a, $r, $pat]) {
-        if (str_contains($a . $r . $pat, "\u{FFFF}")) { $out .= $mode === "span" ? "fe400000" : ($mode === "capture" ? "fe40" . str_repeat("00", 26) : "40"); continue; }
+        if (str_contains($a . $r . $pat, "\u{FFFF}")) { $out .= $isSpan ? failed(0x40, 2) : ($isCap ? failed(0x40, 26) : "40"); continue; }
         $m = "u" . (str_contains($flags, "i") ? "i" : "") . (str_contains($flags, "m") ? "m" : "") . (str_contains($flags, "s") ? "s" : "");
-        if ($mode === "capture") { // whole match + groups 1..6 per subject, byte offsets (src/capture.zig)
+        if ($isCap) { // whole match + groups 1..6 per subject, byte offsets (src/capture.zig)
             $re = "\x01" . $pat . "\x01" . $m; $s = "";
             foreach ([$a, $r] as $j => $subj) {
                 $res = @preg_match($re, $subj, $mm, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL);
-                if ($res === false) { $s = ((preg_last_error() === PREG_INTERNAL_ERROR && $j == 0) ? "fe04" : "fe08") . str_repeat("00", 26); break; }
+                if ($res === false) { $s = failed((preg_last_error() === PREG_INTERNAL_ERROR && $j == 0) ? 4 : 8, 26); break; }
                 for ($g = 0; $g < 7; $g++) {
                     $x = $mm[$g] ?? null;
-                    $s .= ($res === 1 && $x !== null && $x[0] !== null && $x[1] >= 0) ? sprintf("%02x%02x", $x[1], $x[1] + strlen($x[0])) : "ffff";
+                    $s .= ($res === 1 && $x !== null && $x[0] !== null && $x[1] >= 0) ? pair($x[1], $x[1] + strlen($x[0])) : $NONE;
                 }
             }
             $out .= $s; continue;
         }
-        if ($mode === "span") { // unanchored search, byte offsets (src/span.zig)
+        if ($isSpan) { // unanchored search, byte offsets (src/span.zig)
             $re = "\x01" . $pat . "\x01" . $m; $s = "";
             foreach ([$a, $r] as $j => $subj) {
                 $res = @preg_match($re, $subj, $mm, PREG_OFFSET_CAPTURE);
-                if ($res === false) { $s = (preg_last_error() === PREG_INTERNAL_ERROR && $j == 0) ? "fe040000" : "fe080000"; break; }
-                $s .= $res === 1 ? sprintf("%02x%02x", $mm[0][1], $mm[0][1] + strlen($mm[0][0])) : "ffff";
+                if ($res === false) { $s = failed((preg_last_error() === PREG_INTERNAL_ERROR && $j == 0) ? 4 : 8, 2); break; }
+                $s .= $res === 1 ? pair($mm[0][1], $mm[0][1] + strlen($mm[0][0])) : $NONE;
             }
             $out .= $s; continue;
         }

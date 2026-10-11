@@ -88,7 +88,7 @@ pub fn expectedBits(expect: harness.Expect, exp_a: bool, exp_r: bool) u8 {
     if (exp_r) b |= harness.Bits.test_r;
     if (expect == .tierup) b |= b << 4;
     // Span mode (span.check): test_a = A's span agrees, test_r = R's span disagrees.
-    if (expect == .span or expect == .capture) b = harness.Bits.test_a;
+    if (expect.isSpan() or expect.isCapture()) b = harness.Bits.test_a;
     return b;
 }
 
@@ -99,8 +99,8 @@ pub fn classify(expect: harness.Expect, mode: []const u8, bits: u8, exp_a: bool,
     if (bits & harness.Bits.syntax != 0) return .{ .kind = .syntax_error, .mode = mode, .observed = bits, .expected = want };
     if (bits & harness.Bits.exception != 0) return .{ .kind = .exception, .mode = mode, .observed = bits, .expected = want };
     if (bits == want) return null;
-    if (expect == .span) return .{ .kind = .wrong_span, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
-    if (expect == .capture) return .{ .kind = .wrong_capture, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
+    if (expect.isSpan()) return .{ .kind = .wrong_span, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
+    if (expect.isCapture()) return .{ .kind = .wrong_capture, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
     if (expect == .long) return .{ .kind = .long_result, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
     const first = (bits ^ want) & 0x03;
     if (first != 0) return .{ .kind = .wrong_result, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
@@ -244,7 +244,7 @@ pub fn writeRepro(out: *std.ArrayList(u8), gpa: Allocator, c: *const Case, pred:
     try out.appendSlice(gpa, ";\nvar flags = ");
     try harness.jsonAscii(out, gpa, flagStr(c.flags));
     if (spec != null and spec.?.expect == .linear) try out.appendSlice(gpa, " + \"l\"");
-    const long = spec != null and spec.?.expect == .long;
+    const long = spec != null and spec.?.expect.isLong();
     try out.appendSlice(gpa, if (long) ";\n// long mode: A and R are the long pair\nvar A = " else ";\nvar A = ");
     try jsString(out, gpa, if (long) c.la else c.a.slice());
     try out.appendSlice(gpa, ";\nvar R = ");

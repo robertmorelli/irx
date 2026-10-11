@@ -91,29 +91,30 @@ pub const Triage = struct {
         defer req.deinit(self.gpa);
         req.appendSlice(self.gpa, "[1,[") catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
         // Long mode runs on the long pair.
-        const long = spec.expect == .long;
+        const long = spec.expect.isLong();
         harness.encodeCase(&req, self.gpa, .{ .flags = finding.flagStr(c.flags), .a = if (long) c.la else c.a.slice(), .r = if (long) c.lr else c.r.slice(), .pattern = c.pattern.items }) catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
         req.appendSlice(self.gpa, "]]\n") catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
-        var bits: [capmod.width]u8 = undefined;
+        var bits: [harness.max_result_width]u8 = undefined;
         const raw = bits[0..harness.resultWidth(spec.expect)];
         const o = self.runRequest(spec, req.items, 1, raw, fresh);
-        if (spec.expect == .span and o == .bits) return .{ .bits = spanmod.check(c, raw, self.run.cfg.span_units).bits };
-        if (spec.expect == .capture and o == .bits) return .{ .bits = capmod.check(c, raw, &self.run.cfg).bits };
+        if (spec.expect.isSpan() and o == .bits) return .{ .bits = spanmod.check(c, raw, self.run.cfg.span_units, long).bits };
+        if (spec.expect.isCapture() and o == .bits) return .{ .bits = capmod.check(c, raw, &self.run.cfg, long).bits };
         return o;
     }
 
     /// Reference vs reported spans of the minimized case (span mode).
     fn spanDetail(self: *Triage, a: Allocator, spec: *const harness.ModeSpec, c: *const finding.Case, report: *std.ArrayList(u8)) !void {
+        const long = spec.expect.isLong();
         var req: std.ArrayList(u8) = .empty;
         try req.appendSlice(a, "[1,[");
-        try harness.encodeCase(&req, a, .{ .flags = finding.flagStr(c.flags), .a = c.a.slice(), .r = c.r.slice(), .pattern = c.pattern.items });
+        try harness.encodeCase(&req, a, .{ .flags = finding.flagStr(c.flags), .a = if (long) c.la else c.a.slice(), .r = if (long) c.lr else c.r.slice(), .pattern = c.pattern.items });
         try req.appendSlice(a, "]]\n");
-        var buf: [capmod.width]u8 = undefined;
+        var buf: [harness.max_result_width]u8 = undefined;
         const raw = buf[0..harness.resultWidth(spec.expect)];
         switch (self.runRequest(spec, req.items, 1, raw, false)) {
             .bits => {
                 try report.appendSlice(a, ",\n  ");
-                if (spec.expect == .span) try spanmod.extraJson(report, a, spanmod.check(c, raw, self.run.cfg.span_units), raw) else try capmod.extraJson(report, a, capmod.check(c, raw, &self.run.cfg), raw);
+                if (spec.expect.isSpan()) try spanmod.extraJson(report, a, spanmod.check(c, raw, self.run.cfg.span_units, long), raw) else try capmod.extraJson(report, a, capmod.check(c, raw, &self.run.cfg, long), raw);
             },
             .failed => {},
         }
@@ -173,7 +174,7 @@ pub const Triage = struct {
         var c = lc.case;
         // Model check of the saved case itself (guards against corrupted records); long mode
         // checks the long pair with the long-string reference.
-        const long = spec.expect == .long;
+        const long = spec.expect.isLong();
         const ma = if (long) longmod.acceptsUnits(self.gpa, &c.tree, c.flags, c.la) else ast.oracle(&c.tree, c.flags, c.a.slice());
         const mr = if (long) longmod.acceptsUnits(self.gpa, &c.tree, c.flags, c.lr) else ast.oracle(&c.tree, c.flags, c.r.slice());
         try report.print(a, ",\n  \"model_recheck\": {}", .{ma != null and ma.? == c.exp_a and mr != null and mr.? == c.exp_r});
@@ -262,7 +263,7 @@ pub const Triage = struct {
         var mj: std.ArrayList(u8) = .empty;
         try finding.writeCaseJson(&mj, a, &c, pred, "reproduced; minimized");
         try report.appendSlice(a, std.mem.trimEnd(u8, mj.items, "\n"));
-        if (spec.expect == .span or spec.expect == .capture) try self.spanDetail(a, spec, &c, report);
+        if (spec.expect.isSpan() or spec.expect.isCapture()) try self.spanDetail(a, spec, &c, report);
         try report.appendSlice(a, ",\n  \"status\": \"reproduced under the recorded build (not a confirmed V8 bug until reviewed)\"");
 
         var pb: [4096]u8 = undefined;
@@ -304,8 +305,8 @@ pub const Triage = struct {
     /// Model revalidation then engine check. On success the candidate replaces `c`.
     fn tryCandidate(self: *Triage, spec: *const harness.ModeSpec, c: *finding.Case, cand: *finding.Case, pred: finding.Predicate) !bool {
         if (!validFor(&cand.tree, cand.flags)) return false;
-        if (spec.expect == .long) {
-            // Long mode: the long pair must stay accept/reject under the candidate.
+        if (spec.expect.isLong()) {
+            // Long modes: the long pair must stay accept/reject under the candidate.
             if (longmod.acceptsUnits(self.gpa, &cand.tree, cand.flags, cand.la) != true) return false;
             if (longmod.acceptsUnits(self.gpa, &cand.tree, cand.flags, cand.lr) != false) return false;
         } else {

@@ -31,6 +31,11 @@ proc jstr {s idx} {
     incr i
     return $out
 }
+# Long span mode (lspan): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
+set wide [expr {$mode eq "lspan"}]
+set isSpan [expr {$mode eq "span" || $wide}]
+proc failed {b} { if {$::wide} { return [format fffe%04x00000000 $b] } else { return [format fe%02x0000 $b] } }
+proc pair {s e} { if {$::wide} { return [format %04x%04x $s $e] } else { return [format %02x%02x $s $e] } }
 while {[gets stdin line] >= 0} {
     if {[string trim $line] eq ""} continue
     regexp {^\[(\d+),} $line -> seq
@@ -41,7 +46,7 @@ while {[gets stdin line] >= 0} {
         incr i
         set ::lone 0
         set f [jstr $line i]; incr i; set a [jstr $line i]; incr i; set r [jstr $line i]; incr i; set p [jstr $line i]; incr i
-        if {$::lone} { append out [expr {$mode eq "span" ? "fe400000" : "40"}]; continue }
+        if {$::lone} { append out [expr {$isSpan ? [failed 0x40] : "40"}]; continue }
         # Expand \x{H} escapes to raw characters without subst (patterns contain [ ]).
         set p2 ""
         while {[regexp -indices {\\x\{([0-9A-Fa-f]+)\}} $p all hex]} {
@@ -54,16 +59,16 @@ while {[gets stdin line] >= 0} {
         if {[string first i $f] >= 0} { lappend opts -nocase }
         if {[string first m $f] >= 0} { lappend opts -lineanchor }
         if {[string first s $f] < 0} { lappend opts -linestop }
-        if {$mode eq "span"} {
+        if {$isSpan} {
             # Unanchored search, character offsets (src/span.zig). Tcl's overall match
             # preference follows the RE's first quantifier, so only patterns without lazy
             # quantifiers (leftmost-longest) are checked.
-            if {[regexp {[*+?\}]\?} $p]} { append out fe400000; continue }
-            if {[catch {regexp {*}$opts -- $p ""} err]} { append out [expr {[string match "*too complex*" $err] ? "fe400000" : "fe040000"}]; continue }
+            if {[regexp {[*+?\}]\?} $p]} { append out [failed 0x40]; continue }
+            if {[catch {regexp {*}$opts -- $p ""} err]} { append out [failed [expr {[string match "*too complex*" $err] ? 0x40 : 0x04}]]; continue }
             foreach s [list $a $r] {
                 if {[regexp {*}$opts -indices -- $p $s ix]} {
-                    append out [format %02x%02x [lindex $ix 0] [expr {[lindex $ix 1] + 1}]]
-                } else { append out ffff }
+                    append out [pair [lindex $ix 0] [expr {[lindex $ix 1] + 1}]]
+                } else { append out [expr {$wide ? "ffffffff" : "ffff"}] }
             }
             continue
         }

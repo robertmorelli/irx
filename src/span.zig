@@ -10,6 +10,10 @@
 //! Wire format (span mode): 8 hex digits per case, bytes As Ae Rs Re. 0xFF in a start
 //! byte means no match; 0xFE in the first byte means the case failed with the bits in
 //! the second byte (04 syntax error, 08 exception, 40 unsupported).
+//!
+//! Long modes (driver modes lspan/lcapture, on each case's long pair) use the same layout
+//! with 16-bit big-endian positions (4 hex digits): 0xFFFF no match, 0xFFFE in the first
+//! position = failed with the bits in the low byte of the second.
 const std = @import("std");
 const ast = @import("ast.zig");
 const alpha = @import("alphabet.zig");
@@ -18,6 +22,35 @@ const config = @import("config.zig");
 const finding = @import("finding.zig");
 const harness = @import("harness.zig");
 const relmod = @import("rel.zig");
+const longmod = @import("long.zig");
+
+/// Position k of a raw result: one byte, or two (big-endian) in the long modes. No match
+/// and failure markers are normalized to 0xFFFF and 0xFFFE.
+pub fn wirePos(raw: []const u8, wide: bool, k: usize) u16 {
+    if (wide) return (@as(u16, raw[2 * k]) << 8) | raw[2 * k + 1];
+    return switch (raw[k]) {
+        no_match => 0xFFFF,
+        failed => 0xFFFE,
+        else => |b| b,
+    };
+}
+
+/// Failure bits if the raw result reports a failed case.
+pub fn failBits(raw: []const u8, wide: bool) ?u8 {
+    if (wirePos(raw, wide, 0) != 0xFFFE) return null;
+    return if (wide) raw[3] else raw[1];
+}
+
+/// Decode a subject to model symbols: on the stack when short, else allocated (free with
+/// `freeSyms`).
+pub fn decodeAny(subject: []const u16, flags: alpha.Flags, buf: *[31]u21) ?[]u21 {
+    if (alpha.decode(subject, flags, buf)) |n| return buf[0..n];
+    return longmod.decode(std.heap.smp_allocator, subject, flags) catch null;
+}
+
+pub fn freeSyms(w: []u21, buf: *[31]u21) void {
+    if (w.ptr != buf) std.heap.smp_allocator.free(w);
+}
 
 pub const width = 4;
 pub const no_match: u8 = 0xFF;
@@ -34,18 +67,19 @@ pub const Span = struct {
     }
 };
 
-/// Reference span of an unanchored search of `subject` (UTF-16). Null if the subject is
-/// too long or the backtracking reference ran out of steps.
+/// Reference span of an unanchored search of `subject` (UTF-16, any length). Null if the
+/// reference ran out of steps.
 pub fn reference(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16) ?Span {
     var syms: [31]u21 = undefined;
-    const n = alpha.decode(subject, flags, &syms) orelse return null;
-    const w = syms[0..n];
+    const w = decodeAny(subject, flags, &syms) orelse return null;
+    defer freeSyms(w, &syms);
+    const n = w.len;
     var s_model: usize = 0;
     var e_model: usize = 0;
     var found = false;
     switch (dialect.active.span_semantics) {
         .first => {
-            var mt: ast.Matcher = .{ .t = t, .flags = flags, .w = w, .budget = 200_000 };
+            var mt: ast.Matcher = .{ .t = t, .flags = flags, .w = w, .budget = 200_000 + 200 * n };
             var i: usize = 0;
             while (i <= n) : (i += 1) {
                 const r = mt.matchAt(i) orelse return null;
@@ -58,7 +92,12 @@ pub fn reference(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16) ?S
             }
         },
         .longest => {
-            if (n > relmod.Rel16.max_len) return null;
+            if (n > relmod.Rel16.max_len) {
+                // Long subjects: the leftmost start that reaches any end, then its last end.
+                const se = longmod.leftmostLongest(std.heap.smp_allocator, t, flags, w) orelse return null;
+                if (se) |x| return .{ .found = true, .s = utf16Offset(w, x[0]), .e = utf16Offset(w, x[1]) };
+                return .{ .found = false };
+            }
             const rel = ast.evalRel(relmod.Rel16, t, t.root, flags, w);
             var i: usize = 0;
             outer: while (i <= n) : (i += 1) {
@@ -87,7 +126,7 @@ pub fn utf16Offset(w: []const u21, pos: usize) u16 {
 
 /// Map a host offset in `units` to a UTF-16 offset of `subject`; null if it falls inside
 /// a character or past the end.
-pub fn hostToUtf16(subject: []const u16, off: u8, units: config.SpanUnits) ?u16 {
+pub fn hostToUtf16(subject: []const u16, off: u16, units: config.SpanUnits) ?u16 {
     if (units == .utf16) return if (off <= subject.len) off else null;
     var native: usize = 0;
     var i: usize = 0;
@@ -106,8 +145,8 @@ pub fn hostToUtf16(subject: []const u16, off: u8, units: config.SpanUnits) ?u16 
     }
 }
 
-fn hostSpan(subject: []const u16, s: u8, e: u8, units: config.SpanUnits) ?Span {
-    if (s == no_match) return .{ .found = false };
+fn hostSpan(subject: []const u16, s: u16, e: u16, units: config.SpanUnits) ?Span {
+    if (s == 0xFFFF) return .{ .found = false };
     const hs = hostToUtf16(subject, s, units) orelse return null;
     const he = hostToUtf16(subject, e, units) orelse return null;
     if (he < hs) return null;
@@ -149,13 +188,16 @@ pub fn hasNullableLoop(t: *const ast.Ast, idx: u8) bool {
     };
 }
 
-pub fn check(c: *const finding.Case, raw: []const u8, units: config.SpanUnits) Check {
-    if (raw[0] == failed) return .{ .bits = raw[1] };
+/// Check one case's raw span result; `long`: the long pair, with 16-bit positions.
+pub fn check(c: *const finding.Case, raw: []const u8, units: config.SpanUnits, long: bool) Check {
+    if (failBits(raw, long)) |b| return .{ .bits = b };
     if (dialect.active.empty_iteration == .unmodeled and hasNullableLoop(&c.tree, c.tree.root)) return .{ .bits = harness.Bits.skipped };
-    const ra = reference(&c.tree, c.flags, c.a.slice()) orelse return .{ .bits = harness.Bits.skipped };
-    const rr = reference(&c.tree, c.flags, c.r.slice()) orelse return .{ .bits = harness.Bits.skipped };
-    const ga = hostSpan(c.a.slice(), raw[0], raw[1], units);
-    const gr = hostSpan(c.r.slice(), raw[2], raw[3], units);
+    const sa = if (long) c.la else c.a.slice();
+    const sr = if (long) c.lr else c.r.slice();
+    const ra = reference(&c.tree, c.flags, sa) orelse return .{ .bits = harness.Bits.skipped };
+    const rr = reference(&c.tree, c.flags, sr) orelse return .{ .bits = harness.Bits.skipped };
+    const ga = hostSpan(sa, wirePos(raw, long, 0), wirePos(raw, long, 1), units);
+    const gr = hostSpan(sr, wirePos(raw, long, 2), wirePos(raw, long, 3), units);
     var bits: u8 = 0;
     if (ga != null and ga.?.eql(ra)) bits |= harness.Bits.test_a;
     if (gr == null or !gr.?.eql(rr)) bits |= harness.Bits.test_r;
@@ -178,7 +220,9 @@ pub fn extraJson(out: *std.ArrayList(u8), gpa: std.mem.Allocator, ck: Check, raw
     try writeSpan(out, gpa, ck.ref_r);
     try out.appendSlice(gpa, ", \"observed_r\": ");
     try writeSpan(out, gpa, ck.got_r);
-    try out.print(gpa, ", \"raw\": \"{x:0>2}{x:0>2}{x:0>2}{x:0>2}\"}}", .{ raw[0], raw[1], raw[2], raw[3] });
+    try out.appendSlice(gpa, ", \"raw\": \"");
+    for (raw) |b| try out.print(gpa, "{x:0>2}", .{b});
+    try out.appendSlice(gpa, "\"}");
 }
 
 test "host offsets map to UTF-16 offsets" {

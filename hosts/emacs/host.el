@@ -88,6 +88,13 @@
     (apply #'concat (nreverse out))))
 (let* ((mode (or (car command-line-args-left) "default"))
        (rep (if (member mode '("repeat" "tierup")) 2 1))
+       ;; Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
+       (wide (member mode '("lspan" "lcapture")))
+       (is-span (member mode '("span" "lspan")))
+       (is-cap (member mode '("capture" "lcapture")))
+       (pf (if wide "%04x%04x" "%02x%02x"))
+       (none (if wide "ffffffff" "ffff"))
+       (failed (lambda (b rest) (concat (format (if wide "fffe%04x" "fe%02x") b) (make-string (* (if wide 4 2) rest) ?0))))
        line)
   (princ (format "ready emacs-%s mode=%s\n" emacs-version mode))
   (while (setq line (ignore-errors (read-from-minibuffer "")))
@@ -100,26 +107,26 @@
             (setq out
                   (concat out
                           (cond
-                           ((cl-some (lambda (x) (string-search "￿" x)) (list a r p)) (cond ((equal mode "span") "fe400000") ((equal mode "capture") (concat "fe40" (make-string 52 ?0))) (t "40")))
-                           ((equal mode "capture")
+                           ((cl-some (lambda (x) (string-search "￿" x)) (list a r p)) (cond (is-span (funcall failed #x40 2)) (is-cap (funcall failed #x40 26)) (t "40")))
+                           (is-cap
                             ;; Whole match + groups 1..6 per subject, character offsets (src/capture.zig).
                             ;; match-data drops unset trailing groups, so pad.
                             (let ((rx (condition-case nil (irx--translate p (string-search "s" f)) (error nil))))
                               (if (or (not rx) (condition-case nil (progn (string-match rx "") nil) (invalid-regexp t)))
-                                  (concat "fe04" (make-string 52 ?0))
+                                  (funcall failed 4 26)
                                 (let ((case-fold-search (and (string-search "i" f) t)))
                                   (mapconcat (lambda (s)
                                                (if (string-match rx s)
-                                                   (mapconcat (lambda (g) (if (match-beginning g) (format "%02x%02x" (match-beginning g) (match-end g)) "ffff")) (number-sequence 0 6) "")
-                                                 (apply #'concat (make-list 7 "ffff"))))
+                                                   (mapconcat (lambda (g) (if (match-beginning g) (format pf (match-beginning g) (match-end g)) none)) (number-sequence 0 6) "")
+                                                 (apply #'concat (make-list 7 none))))
                                              (list a r) "")))))
-                           ((equal mode "span")
+                           (is-span
                             ;; Unanchored search, character offsets (src/span.zig).
                             (let ((rx (condition-case nil (irx--translate p (string-search "s" f)) (error nil))))
                               (if (or (not rx) (condition-case nil (progn (string-match rx "") nil) (invalid-regexp t)))
-                                  "fe040000"
+                                  (funcall failed 4 2)
                                 (let ((case-fold-search (and (string-search "i" f) t)))
-                                  (mapconcat (lambda (s) (if (string-match rx s) (format "%02x%02x" (match-beginning 0) (match-end 0)) "ffff"))
+                                  (mapconcat (lambda (s) (if (string-match rx s) (format pf (match-beginning 0) (match-end 0)) none))
                                              (list a r) "")))))
                            (t
                             (let ((rx (condition-case nil
