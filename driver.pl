@@ -44,6 +44,30 @@ sub run_case {
     return $bits;
 }
 
+# Span mode: unanchored search; code-point offsets of the first match in A and R
+# (ff = no match), or fe + bits when the case fails (see src/span.zig).
+sub span_case {
+    my ($c) = @_;
+    my ($flags, $a, $r, $src) = @$c;
+    return 'fe040000' if $src =~ /\(\?\??\{/;
+    my $mods = '';
+    $mods .= 'i' if $flags =~ /i/;
+    $mods .= 'm' if $flags =~ /m/;
+    $mods .= 's' if $flags =~ /s/;
+    $mods .= 'u' if $flags =~ /[uv]/;
+    my $re = eval { qr/(?^$mods:$src)/ };
+    return 'fe040000' unless defined $re;
+    my $out = '';
+    my $ok = eval {
+        for my $s ($a, $r) {
+            $out .= ($s =~ $re) ? sprintf('%02x%02x', $-[0], $+[0]) : 'ffff';
+        }
+        1;
+    };
+    return 'fe080000' unless $ok;
+    return $out;
+}
+
 print "ready perl $^V mode=$mode\n";
 while (defined(my $line = <STDIN>)) {
     chomp $line;
@@ -55,9 +79,10 @@ while (defined(my $line = <STDIN>)) {
         (my $tmp = $line) =~ s/\\u[dD][89a-fA-F][0-9a-fA-F]{2}/?/g;
         my $m = eval { $json->decode($tmp) };
         my ($seq, $n) = $m ? ($m->[0], scalar @{ $m->[1] }) : (0, 0);
-        print $seq, ' ', '40' x $n, "\n";
+        print $seq, ' ', ($mode eq 'span' ? 'fe400000' : '40') x $n, "\n";
         next;
     }
     my ($seq, $cases) = @$msg;
+    if ($mode eq 'span') { print $seq, ' ', join('', map { span_case($_) } @$cases), "\n"; next; }
     print $seq, ' ', join('', map { sprintf '%02x', run_case($_) } @$cases), "\n";
 }

@@ -8,3 +8,6 @@ command = "/opt/homebrew/bin/emacs -Q --batch -l {root}/hosts/emacs/host.el {mod
 dialect = "emacs"   # src/dialects/
 selfcheck = true
 
+[span]
+enabled = true
+units = "cp"  # index unit of the host's reported spans

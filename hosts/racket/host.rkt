@@ -20,7 +20,23 @@
     (for ([c (cadr msg)])
       (define f (car c)) (define a (cadr c)) (define r (caddr c)) (define p (cadddr c))
       (cond
-        [(for/or ([s (list a r p)]) (string-contains? s "￿")) (write-string "40" out)]
+        [(for/or ([s (list a r p)]) (string-contains? s "￿")) (write-string (if (string=? mode "span") "fe400000" "40") out)]
+        [(string=? mode "span")
+         ;; Unanchored search, character offsets (src/span.zig).
+         (define modes (string-append (if (string-contains? f "i") "i" "") (if (string-contains? f "s") "s" "") (if (string-contains? f "m") "m" "")))
+         (define src (if (string=? modes "") (fix p) (string-append "(?" modes ":" (fix p) ")")))
+         (define rx (with-handlers ([exn:fail? (lambda (e) #f)]) (pregexp src)))
+         (define (hx n) (string-append (if (< n 16) "0" "") (number->string n 16)))
+         (write-string
+          (cond
+            [(not rx) "fe040000"]
+            [else
+             (with-handlers ([exn:fail? (lambda (e) "fe080000")])
+               (apply string-append
+                      (for/list ([s (list a r)])
+                        (define m (regexp-match-positions rx s))
+                        (if m (string-append (hx (caar m)) (hx (cdar m))) "ffff"))))])
+          out)]
         [else
          (define modes (string-append (if (string-contains? f "i") "i" "") (if (string-contains? f "s") "s" "") (if (string-contains? f "m") "m" "")))
          (define src (string-append "^(?:" (if (string=? modes "") "" (string-append "(?" modes ":")) (fix p) (if (string=? modes "") "" ")") ")$"))

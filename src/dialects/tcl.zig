@@ -58,7 +58,11 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    // An empty loop iteration ends the loop (span mode; checked against the engine).
+    .empty_iteration = .stop,
     .name = "tcl",
+    // Span mode: ARE without lazy quantifiers: leftmost-longest (the host skips lazy patterns in span mode).
+    .span_semantics = .longest,
     .isLineTerminator = lineTerminator,
     .isSpace = space,
     .isWord = word,

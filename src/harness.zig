@@ -168,7 +168,12 @@ pub fn reapNonblocking(pid: sys.pid_t) ?ExitInfo {
 
 /// shell: any JS shell given as a command template (`--shell "CMD {driver} {mode}"`).
 pub const Engine = enum { d8, sm, jsc, shell, perl };
-pub const Expect = enum { normal, tierup, linear };
+pub const Expect = enum { normal, tierup, linear, span };
+
+/// Result bytes per case on the wire: span mode reports four position bytes (span.zig).
+pub fn resultWidth(expect: Expect) usize {
+    return if (expect == .span) 4 else 1;
+}
 
 pub const ModeSpec = struct {
     name: []const u8,
@@ -193,6 +198,10 @@ pub const builtin_modes = [_]ModeSpec{
     .{ .name = "shell-repeat", .engine = .shell, .flags = &.{}, .driver_mode = "tierup", .expect = .tierup },
     .{ .name = "perl", .engine = .perl, .flags = &.{}, .driver_mode = "perl" },
     .{ .name = "perl-repeat", .engine = .perl, .flags = &.{}, .driver_mode = "repeat", .expect = .tierup },
+    // Unanchored search; the host reports the first match's [start, end) in A and R.
+    .{ .name = "span", .flags = &.{}, .driver_mode = "span", .expect = .span },
+    .{ .name = "shell-span", .engine = .shell, .flags = &.{}, .driver_mode = "span", .expect = .span },
+    .{ .name = "perl-span", .engine = .perl, .flags = &.{}, .driver_mode = "span", .expect = .span },
 };
 
 pub fn findMode(name: []const u8) ?*const ModeSpec {
@@ -674,6 +683,7 @@ pub const Child = struct {
         return switch (c) {
             '0'...'9' => c - '0',
             'a'...'f' => c - 'a' + 10,
+            'A'...'F' => c - 'A' + 10,
             else => null,
         };
     }
@@ -697,13 +707,15 @@ pub const Child = struct {
             const sp = std.mem.indexOfScalar(u8, l, ' ') orelse return self.fail(.protocol, "missing separator: {s}", .{l[0..@min(l.len, 120)]});
             const seq = std.fmt.parseInt(u64, l[0..sp], 10) catch return self.fail(.protocol, "bad sequence: {s}", .{l[0..@min(sp, 60)]});
             if (seq != b.seq) return self.fail(.protocol, "sequence {d}, expected {d}", .{ seq, b.seq });
-            const hex = l[sp + 1 ..];
-            if (hex.len != 2 * @as(usize, b.ncases)) return self.fail(.protocol, "hex length {d}, expected {d}", .{ hex.len, 2 * b.ncases });
-            for (0..b.ncases) |i| {
+            const hex = std.mem.trimEnd(u8, l[sp + 1 ..], " \r");
+            const wd = resultWidth(self.spec.expect);
+            const nbytes = wd * @as(usize, b.ncases);
+            if (hex.len != 2 * nbytes) return self.fail(.protocol, "hex length {d}, expected {d}", .{ hex.len, 2 * nbytes });
+            for (0..nbytes) |i| {
                 const hi = hexVal(hex[2 * i]) orelse return self.fail(.protocol, "bad hex digit", .{});
                 const lo = hexVal(hex[2 * i + 1]) orelse return self.fail(.protocol, "bad hex digit", .{});
                 const v = hi * 16 + lo;
-                if (!validBits(self.spec.expect, v)) return self.fail(.protocol, "disallowed result bits {x:0>2} for mode {s}", .{ v, self.spec.name });
+                if (wd == 1 and !validBits(self.spec.expect, v)) return self.fail(.protocol, "disallowed result bits {x:0>2} for mode {s}", .{ v, self.spec.name });
                 b.bits[i] = v;
             }
             b.state = .answered;
@@ -893,19 +905,28 @@ pub fn probeMode(gpa: Allocator, spec: *const ModeSpec, opts: ChildOptions) Prob
     const astral_r: []const u16 = if (perl_syntax) &.{'a'} else &.{0xD83D};
     encodeCase(&req, gpa, .{ .flags = "u", .a = &.{ 0xD83D, 0xDE00 }, .r = astral_r, .pattern = astral_pat }) catch return .{ .ok = false, .reason = "alloc" };
     req.appendSlice(gpa, "]]\n") catch return .{ .ok = false, .reason = "alloc" };
-    var bits: [2]u8 = undefined;
-    var b: Batch = .{ .seq = 1, .ncases = 2, .req = req.items, .bits = &bits };
+    var buf: [8]u8 = undefined;
+    const bits = buf[0 .. 2 * resultWidth(spec.expect)];
+    var b: Batch = .{ .seq = 1, .ncases = 2, .req = req.items, .bits = bits };
     if (runSync(c, &b) != .answered) return .{ .ok = false, .reason = gpa.dupe(u8, c.message()) catch "no response" };
     // Response arrived while the child is still alive: output is flushed per line.
     const flushed = c.alive;
-    const want: u8 = if (spec.expect == .tierup) 0x11 else 0x01;
-    // The linear engine may legitimately mark the u-flag case unsupported.
-    const second_ok = bits[1] == want or (spec.expect == .linear and bits[1] == Bits.skipped);
-    if (bits[0] != want or !second_ok) return .{ .ok = false, .reason = "known-answer mismatch" };
+    if (spec.expect == .span) {
+        // a in "a" -> [0,1); no match in R; the astral case starts at 0 (end in host units)
+        // or is unsupported (lone surrogate R on a UTF-8 host).
+        const ok1 = bits[0] == 0 and bits[1] == 1 and bits[2] == 0xFF;
+        const ok2 = (bits[4] == 0 and bits[5] > 0 and bits[6] == 0xFF) or (bits[4] == 0xFE and bits[5] == Bits.skipped);
+        if (!ok1 or !ok2) return .{ .ok = false, .reason = "known-answer mismatch (span)" };
+    } else {
+        const want: u8 = if (spec.expect == .tierup) 0x11 else 0x01;
+        // The linear engine may legitimately mark the u-flag case unsupported.
+        const second_ok = bits[1] == want or (spec.expect == .linear and bits[1] == Bits.skipped);
+        if (bits[0] != want or !second_ok) return .{ .ok = false, .reason = "known-answer mismatch" };
+    }
     // A second batch must also be answered on the same process.
-    bits = .{ 0, 0 };
+    @memset(bits, 0);
     req.items[1] = '2';
-    var b2: Batch = .{ .seq = 2, .ncases = 2, .req = req.items, .bits = &bits };
+    var b2: Batch = .{ .seq = 2, .ncases = 2, .req = req.items, .bits = bits };
     if (runSync(c, &b2) != .answered) return .{ .ok = false, .reason = "second batch unanswered" };
     const v = gpa.dupe(u8, c.versionStr()) catch &.{};
     const st = c.startup_ns;

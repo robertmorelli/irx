@@ -105,6 +105,15 @@ pub const Dialect = struct {
     /// Oniguruma lookbehind: no lookarounds or quantified captures inside, and no captures
     /// inside a negative lookbehind ("invalid pattern in look-behind").
     lookbehind_onig: bool = false,
+    /// Which match an unanchored search reports: the first in backtracking priority order
+    /// (Perl, JS, Java, ...) or the leftmost-longest (POSIX).
+    span_semantics: SpanSemantics = .first,
+    /// After a loop iteration that matched empty (once min is met): ES rejects that path;
+    /// Perl/PCRE accept it and leave the loop.
+    empty_iteration: EmptyIteration = .reject,
+    /// Counted quantifiers are always greedy: the host prints `{m,n}` without the lazy `?`
+    /// (Emacs reads `\\{m,n\\}?` as "optional"), so span checks treat them as greedy.
+    lazy_counted_is_greedy: bool = false,
     /// `{n}?` means `(?:{n})?` (Ruby syntax), so a lazy exact count prints as `{n}`.
     lazy_exact_is_optional: bool = false,
     /// Extra ASCII metacharacters, printed as code-point escapes (resharp: _ & ~).
@@ -184,6 +193,11 @@ pub const Assertions = packed struct {
         };
     }
 };
+
+pub const SpanSemantics = enum { first, longest };
+/// `unmodeled`: the engine's rule is implementation-specific (automata engines: RE2, Go,
+/// Rust); span checks skip patterns where a quantified body can match empty.
+pub const EmptyIteration = enum { reject, stop, unmodeled };
 
 pub const Len = struct { min: u32, max: u32, f: u32 = 0 };
 pub const len_cap_default: u32 = 16;

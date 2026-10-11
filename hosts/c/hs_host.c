@@ -34,3 +34,8 @@ done:
     hs_free_scratch(scr); hs_free_database(db);
     return bits;
 }
+/* Span mode is not modelled for Vectorscan (it reports match ends only): unsupported. */
+int host_span(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[4]) {
+    (void)flags; (void)subj; (void)lens; (void)pat; (void)plen; (void)out;
+    return 0x40;
+}

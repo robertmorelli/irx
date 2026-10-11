@@ -7,3 +7,7 @@ kind = "shell"   # d8 | perl | shell
 command = "{root}/hosts/bin/pcre2_host {mode}"
 dialect = "perl"   # src/dialects/
 selfcheck = true
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans

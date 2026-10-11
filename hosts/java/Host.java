@@ -48,12 +48,25 @@ public class Host {
                 if (L.charAt(pos) == ',') { pos++; continue; }
                 pos++;
                 String f = str(); pos++; String a = str(); pos++; String r = str(); pos++; String p = str(); pos++;
-                if (hasLone(a) || hasLone(r) || hasLone(p)) { res.append("40"); continue; }
+                boolean span = mode.equals("span");
+                if (hasLone(a) || hasLone(r) || hasLone(p)) { res.append(span ? "fe400000" : "40"); continue; }
                 int fl = Pattern.UNICODE_CASE | Pattern.UNICODE_CHARACTER_CLASS;
                 if (f.indexOf('i') >= 0) fl |= Pattern.CASE_INSENSITIVE;
                 if (f.indexOf('m') >= 0) fl |= Pattern.MULTILINE;
                 if (f.indexOf('s') >= 0) fl |= Pattern.DOTALL;
                 Pattern pat;
+                if (span) { // unanchored search, UTF-16 offsets (src/span.zig)
+                    try { pat = Pattern.compile(p, fl); } catch (Exception e) { res.append("fe040000"); continue; }
+                    StringBuilder sp = new StringBuilder();
+                    try {
+                        for (String s : new String[] { a, r }) {
+                            java.util.regex.Matcher m = pat.matcher(s);
+                            sp.append(m.find() ? String.format("%02x%02x", m.start(), m.end()) : "ffff");
+                        }
+                        res.append(sp);
+                    } catch (Throwable t) { res.append("fe080000"); }
+                    continue;
+                }
                 try { pat = Pattern.compile("\\A(?:" + p + ")\\z", fl); } catch (Exception e) { res.append("04"); continue; }
                 int bits = 0;
                 try {

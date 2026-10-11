@@ -68,6 +68,10 @@ fn boundaryAt(w: []const u21, i: usize, flags: D.Flags) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    // The host drops the lazy `?` after `{m,n}` (Emacs would read it as optional).
+    .lazy_counted_is_greedy = true,
+    // An empty loop iteration ends the loop (span mode; checked against the engine).
+    .empty_iteration = .stop,
     .name = "emacs",
     .isLineTerminator = lineTerminator,
     .isSpace = space,

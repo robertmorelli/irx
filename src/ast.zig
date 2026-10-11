@@ -2,6 +2,7 @@
 //! backtracking matcher used to cross-check the relation model, and a
 //! stable s-expression serialization used by persisted findings.
 const std = @import("std");
+const dialect = @import("dialect.zig");
 const alpha = @import("alphabet.zig");
 const atoms = @import("atoms.zig");
 const relmod = @import("rel.zig");
@@ -152,8 +153,11 @@ pub const Matcher = struct {
     budget: usize = 2_000_000,
     exhausted: bool = false,
 
+    /// End position recorded by a `record` continuation (search).
+    end: usize = 0,
+
     const Dir = enum { fwd, back };
-    const ContKind = enum { done, accept, seq, rep };
+    const ContKind = enum { done, accept, record, seq, rep };
     const Cont = struct {
         kind: ContKind,
         node: u8 = 0,
@@ -172,14 +176,31 @@ pub const Matcher = struct {
         return r;
     }
 
+    /// First match in backtracking priority order starting exactly at `start`; its end
+    /// position is left in `self.end`. Null when the step budget runs out.
+    pub fn matchAt(self: *Matcher, start: usize) ?bool {
+        const rec: Cont = .{ .kind = .record };
+        const r = self.m(self.t.root, start, .fwd, &rec);
+        if (self.exhausted) return null;
+        return r;
+    }
+
     fn run(self: *Matcher, c: *const Cont, pos: usize) bool {
         switch (c.kind) {
             .done => return pos == self.w.len,
             .accept => return true,
+            .record => {
+                self.end = pos;
+                return true;
+            },
             .seq => return self.m(c.node, pos, c.dir, c.next.?),
             .rep => {
-                // RepeatMatcher continuation d: reject an empty iteration once min is met.
-                if (c.min == 0 and pos == c.start) return false;
+                // RepeatMatcher continuation d: an empty iteration once min is met is rejected
+                // (ES) or ends the loop (Perl/PCRE).
+                if (c.min == 0 and pos == c.start) {
+                    if (dialect.active.empty_iteration == .stop) return self.run(c.next.?, pos);
+                    return false;
+                }
                 const nmin: u8 = if (c.min == 0) 0 else c.min - 1;
                 const nmax: u8 = if (c.max == inf) inf else c.max - 1;
                 return self.repeat(c.node, nmin, nmax, c.greedy, pos, c.dir, c.next.?);
@@ -234,7 +255,11 @@ pub const Matcher = struct {
                 }
             },
             .alt => return self.m(n.a, pos, dir, c) or self.m(n.b, pos, dir, c),
-            .quant => return self.repeat(n.a, n.quant.min, n.quant.max, !n.quant.lazy, pos, dir, c),
+            .quant => {
+                const counted = n.quant.form == .range or n.quant.form == .open or n.quant.form == .exact;
+                const lazy = n.quant.lazy and !(counted and dialect.active.lazy_counted_is_greedy);
+                return self.repeat(n.a, n.quant.min, n.quant.max, !lazy, pos, dir, c);
+            },
             .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => {
                 const acc: Cont = .{ .kind = .accept };
                 const ldir: Dir = if (n.op == .look_ahead or n.op == .neg_look_ahead) .fwd else .back;

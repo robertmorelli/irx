@@ -11,6 +11,9 @@ fn lineTerminator(c: u21) bool {
 
 const base: D.Dialect = .{
     .name = "rust",
+    // Span mode: empty-loop handling of the automata (and fancy-regex's delegation to
+    // them) is implementation-specific; not modelled.
+    .empty_iteration = .unmodeled,
     .isLineTerminator = lineTerminator,
     .isSpace = perl.space,
     .isWord = perl.word,

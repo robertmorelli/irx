@@ -41,7 +41,7 @@ while {[gets stdin line] >= 0} {
         incr i
         set ::lone 0
         set f [jstr $line i]; incr i; set a [jstr $line i]; incr i; set r [jstr $line i]; incr i; set p [jstr $line i]; incr i
-        if {$::lone} { append out 40; continue }
+        if {$::lone} { append out [expr {$mode eq "span" ? "fe400000" : "40"}]; continue }
         # Expand \x{H} escapes to raw characters without subst (patterns contain [ ]).
         set p2 ""
         while {[regexp -indices {\\x\{([0-9A-Fa-f]+)\}} $p all hex]} {
@@ -54,6 +54,19 @@ while {[gets stdin line] >= 0} {
         if {[string first i $f] >= 0} { lappend opts -nocase }
         if {[string first m $f] >= 0} { lappend opts -lineanchor }
         if {[string first s $f] < 0} { lappend opts -linestop }
+        if {$mode eq "span"} {
+            # Unanchored search, character offsets (src/span.zig). Tcl's overall match
+            # preference follows the RE's first quantifier, so only patterns without lazy
+            # quantifiers (leftmost-longest) are checked.
+            if {[regexp {[*+?\}]\?} $p]} { append out fe400000; continue }
+            if {[catch {regexp {*}$opts -- $p ""} err]} { append out [expr {[string match "*too complex*" $err] ? "fe400000" : "fe040000"}]; continue }
+            foreach s [list $a $r] {
+                if {[regexp {*}$opts -indices -- $p $s ix]} {
+                    append out [format %02x%02x [lindex $ix 0] [expr {[lindex $ix 1] + 1}]]
+                } else { append out ffff }
+            }
+            continue
+        }
         # \A..\Z, not ^..$: under -lineanchor ^/$ are line anchors.
         set re "\\A(?:$p)\\Z"
         # REG_ETOOBIG ("too complex") is a resource limit, reported as unsupported.

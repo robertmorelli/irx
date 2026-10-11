@@ -44,7 +44,7 @@ def run(name, a):
     irx += ["--dialect", meta.get("dialect", "es"), "--config", cfg, "--out", out]
     if not a.selfcheck_only:
         irx += ["--jobs", str(a.jobs), "--seed", str(a.seed), "--duration", str(a.duration)]
-        if not meta.get("selfcheck", True): irx.append("--no-selfcheck")
+        if not meta.get("selfcheck", True) or a.no_selfcheck: irx.append("--no-selfcheck")
     with open(out + ".log", "w") as log:
         rc = subprocess.run(irx, stdout=log, stderr=subprocess.STDOUT).returncode
     print(f"{name}: rc={rc}", flush=True)
@@ -62,6 +62,7 @@ def main():
     p.add_argument("--duration", type=int, default=60); p.add_argument("--seed", type=int, default=2026)
     p.add_argument("--jobs", type=int, default=8); p.add_argument("--label")
     p.add_argument("--selfcheck-only", action="store_true"); p.add_argument("--no-readme", action="store_true")
+    p.add_argument("--no-selfcheck", action="store_true")
     a = p.parse_args()
     names = sorted(os.listdir(os.path.join(ROOT, "targets"))) if a.all else a.names
     if not names: p.error("give target names or --all")

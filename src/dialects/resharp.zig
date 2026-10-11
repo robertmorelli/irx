@@ -10,7 +10,11 @@ fn lineTerminator(c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    // An empty loop iteration ends the loop (span mode; checked against the engine).
+    .empty_iteration = .stop,
     .name = "resharp",
+    // Span mode: find_all reports leftmost-longest matches.
+    .span_semantics = .longest,
     .isLineTerminator = lineTerminator,
     .isSpace = perl.space,
     .isWord = perl.word,

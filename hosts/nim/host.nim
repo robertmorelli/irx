@@ -27,10 +27,26 @@ while readLine(stdin, line):
   for c in msg[1]:
     let f = c[0].getStr; let a = c[1].getStr; let r = c[2].getStr; let p = c[3].getStr
     if "\uFFFF" in a or "\uFFFF" in r or "\uFFFF" in p:
-      outp.add "40"; continue
+      outp.add(if mode == "span": "fe400000" else: "40"); continue
     var fl = ""
     for ch in "ims":
       if ch in f: fl.add ch
+    if mode == "span":
+      # Unanchored search, byte offsets of the first match (src/span.zig).
+      var sp = ""
+      try:
+        let rx = re2((if fl.len > 0: "(?" & fl & ")" else: "") & p)
+        for s in [a, r]:
+          var m: RegexMatch2
+          if find(s, rx, m):
+            sp.add toHex(m.boundaries.a, 2).toLowerAscii & toHex(m.boundaries.b + 1, 2).toLowerAscii
+          else: sp.add "ffff"
+      except RegexError:
+        sp = "fe040000"
+      except CatchableError, Defect:
+        sp = "fe080000"
+      outp.add sp
+      continue
     let src = (if fl.len > 0: "(?" & fl & ")" else: "") & "\\A(?:" & p & ")\\z"
     var bits = 0
     try:

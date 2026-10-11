@@ -8,3 +8,6 @@ command = "{root}/hosts/bin/dotnet/host nonbacktracking {mode}"
 dialect = "dotnet-nonbacktracking"   # src/dialects/
 selfcheck = true
 
+[span]
+enabled = true
+units = "utf16"  # index unit of the host's reported spans

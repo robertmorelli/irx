@@ -68,3 +68,20 @@ int host_case(const char *flags, const char *a, size_t alen, const char *r, size
         }
     return bits;
 }
+int host_span(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[4]) {
+    std::string ere;
+    if (!translate(std::string(pat, plen), ere)) return 0x04;
+    llvm::Regex::RegexFlags f = llvm::Regex::NoFlags;
+    if (strchr(flags, 'i')) f = (llvm::Regex::RegexFlags)(f | llvm::Regex::IgnoreCase);
+    if (strchr(flags, 'm')) f = (llvm::Regex::RegexFlags)(f | llvm::Regex::Newline);
+    llvm::Regex re(llvm::StringRef("(" + ere + ")"), f);
+    std::string err;
+    if (!re.isValid(err)) return 0x04;
+    for (int k = 0; k < 2; k++) {
+        llvm::SmallVector<llvm::StringRef, 2> ms;
+        llvm::StringRef sr(subj[k], lens[k]);
+        if (re.match(sr, &ms)) { out[2 * k] = ms[0].data() - sr.data(); out[2 * k + 1] = out[2 * k] + (long)ms[0].size(); }
+        else out[2 * k] = out[2 * k + 1] = -1;
+    }
+    return 0;
+}

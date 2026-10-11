@@ -42,13 +42,41 @@ func parseRequest(_ line: String) -> (String, [[String]])? {
     }
     return (seq, cases)
 }
+/// Span mode: unanchored search; UTF-16 offsets of the first match in A and R (src/span.zig).
+func spanCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
+    func hx(_ n: Int) -> String { String(format: "%02x", n) }
+    var res = ""
+    if engine == "icu" {
+        var o: NSRegularExpression.Options = []
+        if f.contains("i") { o.insert(.caseInsensitive) }
+        if f.contains("m") { o.insert(.anchorsMatchLines) }
+        if f.contains("s") { o.insert(.dotMatchesLineSeparators) }
+        guard let re = try? NSRegularExpression(pattern: p, options: o) else { return "fe040000" }
+        for s in [a, r] {
+            if let m = re.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)) { res += hx(m.range.location) + hx(m.range.location + m.range.length) } else { res += "ffff" }
+        }
+        return res
+    }
+    guard var re = try? Regex(p) else { return "fe040000" }
+    re = re.matchingSemantics(.unicodeScalar).wordBoundaryKind(.simple)
+    if f.contains("i") { re = re.ignoresCase() }
+    if f.contains("m") { re = re.anchorsMatchLineEndings() }
+    if f.contains("s") { re = re.dotMatchesNewlines() }
+    for s in [a, r] {
+        guard let mm = try? re.firstMatch(in: s) else { res += "ffff"; continue }
+        let st = s.utf16.distance(from: s.startIndex, to: mm.range.lowerBound)
+        res += hx(st) + hx(st + s.utf16.distance(from: mm.range.lowerBound, to: mm.range.upperBound))
+    }
+    return res
+}
 while let line = readLine(strippingNewline: true) {
     if line.isEmpty { continue }
     guard let (seq, cases) = parseRequest(line) else { FileHandle.standardError.write("bad request\n".data(using: .utf8)!); exit(1) }
     var out = "\(seq) "
     for c in cases {
         let f = c[0], a = c[1], r = c[2], p = c[3]
-        if hasLone(a) || hasLone(r) || hasLone(p) { out += "40"; continue }
+        if hasLone(a) || hasLone(r) || hasLone(p) { out += mode == "span" ? "fe400000" : "40"; continue }
+        if mode == "span" { out += spanCase(f, a, r, p); continue }
         let src = "\\A(?:" + p + ")\\z"
         var bits = 0
         if engine == "icu" {

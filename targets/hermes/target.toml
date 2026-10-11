@@ -11,3 +11,7 @@ selfcheck = false
 # config overlay (merged over weights.toml)
 [flags]
 sets = ["", "i", "m", "s", "u", "iu", "im", "is", "ms", "ims", "imu", "isu", "msu", "imsu", "su", "mu"]
+
+[span]
+enabled = true
+units = "utf16"  # index unit of the host's reported spans

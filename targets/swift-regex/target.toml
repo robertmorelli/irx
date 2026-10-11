@@ -12,3 +12,7 @@ selfcheck = true
 [weights]
 lookbehind = 0
 neg_lookbehind = 0
+
+[span]
+enabled = true
+units = "utf16"  # index unit of the host's reported spans

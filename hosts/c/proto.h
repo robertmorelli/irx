@@ -3,6 +3,10 @@
  * response: "<batch_seq> <2 hex digits per case>"
  * Bits: 0 A matches, 1 R matches, 2 compile error, 3 runtime error,
  *       4/5 second A/R run (mode "repeat"), 6 unsupported (e.g. lone surrogate).
+ * Mode "span": 8 hex digits per case = byte offsets A start, A end, R start, R end of an
+ *   unanchored search (ff = no match), or fe + bits when the case fails (src/span.zig).
+ *   Hosts that support it define host_span (byte offsets in out[0..3], -1 = no match;
+ *   returns 0, or error bits 0x04/0x08).
  * Strings are decoded to UTF-8; a lone surrogate escape marks the case unsupported.
  * Each host provides: int host_case(const char *flags, const char *a, size_t alen,
  *   const char *r, size_t rlen, const char *pat, size_t plen, int repeat);  -> bits
@@ -15,6 +19,8 @@
 int host_case(const char *flags, const char *a, size_t alen, const char *r, size_t rlen,
               const char *pat, size_t plen, int repeat);
 const char *host_name(void);
+int host_span(const char *flags, const char *const subj[2], const size_t lens[2],
+              const char *pat, size_t plen, long out[4]);
 
 typedef struct { char *buf; size_t len, cap; int bad; } Str;
 
@@ -76,6 +82,7 @@ static void skip_ws(const char **p) { while (**p == ' ') (*p)++; }
 int main(int argc, char **argv) {
     const char *mode = argc > 1 ? argv[1] : "default";
     int repeat = strcmp(mode, "repeat") == 0 || strcmp(mode, "tierup") == 0;
+    int span = strcmp(mode, "span") == 0;
     setvbuf(stdout, NULL, _IOFBF, 1 << 16);
     printf("ready %s mode=%s\n", host_name(), mode); fflush(stdout);
     char *line = NULL; size_t cap = 0; ssize_t n;
@@ -99,6 +106,18 @@ int main(int argc, char **argv) {
             int ok = parse_str(&p, &f) && *p++ == ',' && parse_str(&p, &a) && *p++ == ',' &&
                      parse_str(&p, &r) && *p++ == ',' && parse_str(&p, &pat) && *p++ == ']';
             if (!ok) { fprintf(stderr, "bad case\n"); return 1; }
+            if (span) {
+                char hx[9];
+                if (a.bad || r.bad || pat.bad) snprintf(hx, sizeof hx, "fe400000");
+                else {
+                    const char *subj[2] = {a.buf, r.buf}; size_t lens[2] = {a.len, r.len}; long o[4];
+                    int e = host_span(f.buf, subj, lens, pat.buf, pat.len, o);
+                    if (e) snprintf(hx, sizeof hx, "fe%02x0000", e & 0xff);
+                    else snprintf(hx, sizeof hx, "%02lx%02lx%02lx%02lx", o[0] < 0 ? 255 : o[0], o[0] < 0 ? 255 : o[1], o[2] < 0 ? 255 : o[2], o[2] < 0 ? 255 : o[3]);
+                }
+                put(&out, hx, 8);
+                continue;
+            }
             int bits = (a.bad || r.bad || pat.bad) ? 0x40
                      : host_case(f.buf, a.buf, a.len, r.buf, r.len, pat.buf, pat.len, repeat);
             char hx[3]; snprintf(hx, sizeof hx, "%02x", bits & 0xff); put(&out, hx, 2);

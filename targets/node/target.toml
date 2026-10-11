@@ -7,3 +7,7 @@ kind = "shell"   # d8 | perl | shell
 command = "/usr/local/bin/node {driver} {mode}"
 dialect = "es"   # src/dialects/
 selfcheck = true
+
+[span]
+enabled = true
+units = "utf16"  # index unit of the host's reported spans

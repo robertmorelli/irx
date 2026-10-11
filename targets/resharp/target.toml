@@ -12,3 +12,7 @@ selfcheck = true
 [harness]
 batch_size = 128
 batch_deadline_per512_ms = 40000
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans

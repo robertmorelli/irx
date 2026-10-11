@@ -40,6 +40,8 @@ pub const Weights = struct {
 
 pub const max_size_cap = 255;
 
+pub const SpanUnits = enum { utf16, cp, utf8 };
+
 pub const Config = struct {
     // [grammar]
     max_size: u8 = 24,
@@ -104,6 +106,13 @@ pub const Config = struct {
     novelty_bytes: u64 = 16 << 20,
     journal_bytes: u64 = 256 << 20,
     stderr_tail_bytes: u32 = 1 << 20,
+
+    // [span]
+    /// Run the span mode too: an unanchored search on A and R whose reported [start, end)
+    /// is checked against the reference matcher.
+    span: bool = false,
+    /// Index unit the host reports spans in.
+    span_units: SpanUnits = .utf16,
 
     // [adaptive]
     adaptive: bool = false,
@@ -312,6 +321,21 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
         }
         cfg.n_pool = @intCast(arr.len);
         return;
+    }
+    if (eq(u8, section, "span")) {
+        if (eq(u8, key, "enabled")) {
+            cfg.span = try asBool(v);
+            return;
+        }
+        if (eq(u8, key, "units")) {
+            const t = switch (v) {
+                .str => |x| x,
+                else => return error.ExpectedString,
+            };
+            cfg.span_units = std.meta.stringToEnum(SpanUnits, t) orelse return error.BadSpanUnits;
+            return;
+        }
+        return error.UnknownKey;
     }
     if (eq(u8, section, "flags")) {
         if (!eq(u8, key, "sets")) return error.UnknownKey;

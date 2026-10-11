@@ -11,8 +11,19 @@ def main():
         seq, cases = json.loads(line)
         out = []
         for flags, a, r, pat in cases:
-            if any(0xD800 <= ord(ch) <= 0xDFFF for ch in a + r + pat): out.append("40"); continue
+            if any(0xD800 <= ord(ch) <= 0xDFFF for ch in a + r + pat): out.append("fe400000" if mode == "span" else "40"); continue
             f = (re.I if "i" in flags else 0) | (re.M if "m" in flags else 0) | (re.S if "s" in flags else 0)
+            if mode == "span":  # unanchored search, code-point offsets (src/span.zig)
+                try: rx = re.compile(XESC.sub(lambda m: chr(int(m.group(1), 16)), pat), f)
+                except Exception: out.append("fe040000"); continue
+                try:
+                    s = ""
+                    for subj in (a, r):
+                        m = rx.search(subj)
+                        s += f"{m.start():02x}{m.end():02x}" if m else "ffff"
+                    out.append(s)
+                except Exception: out.append("fe080000")
+                continue
             try: rx = re.compile(r"\A(?:" + XESC.sub(lambda m: chr(int(m.group(1), 16)), pat) + r")\Z", f)
             except Exception: out.append("04"); continue
             bits = 0

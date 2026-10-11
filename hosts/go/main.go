@@ -74,6 +74,14 @@ func main() {
 		for _, raw := range cases {
 			var c [4]string
 			json.Unmarshal(raw, &c)
+			if mode == "span" {
+				if loneSurrogate(string(raw)) {
+					sb.WriteString("fe400000")
+				} else {
+					sb.WriteString(span(c[0], c[1], c[2], c[3]))
+				}
+				continue
+			}
 			bits := 0
 			if loneSurrogate(string(raw)) {
 				bits = 0x40
@@ -119,4 +127,34 @@ func run(flags, a, r, pat string, repeat bool) (bits int) {
 		}
 	}
 	return bits
+}
+
+// span: unanchored search, byte offsets of the first match in A and R (src/span.zig).
+func span(flags, a, r, pat string) (res string) {
+	defer func() {
+		if recover() != nil {
+			res = "fe080000"
+		}
+	}()
+	pre := ""
+	for _, f := range "ims" {
+		if strings.ContainsRune(flags, f) {
+			pre += string(f)
+		}
+	}
+	if pre != "" {
+		pre = "(?" + pre + ")"
+	}
+	re, err := regexp.Compile(pre + pat)
+	if err != nil {
+		return "fe040000"
+	}
+	for _, s := range []string{a, r} {
+		if m := re.FindStringIndex(s); m != nil {
+			res += fmt.Sprintf("%02x%02x", m[0], m[1])
+		} else {
+			res += "ffff"
+		}
+	}
+	return res
 }

@@ -10,8 +10,20 @@ $stdin.each_line do |line|
   lone = /\\u[dD][89abAB]\h\h(?!\\u[dD][c-fC-F]\h\h)|(?<!\\u[dD][89abAB]\h\h)\\u[dD][c-fC-F]\h\h/
   seq, cases = JSON.parse(line.gsub(lone, "\\uFFFF"))
   out = cases.map do |flags, a, r, pat|
-    next "40" if [a, r, pat].any? { |s| s.include?("\uFFFF") }
+    next(mode == "span" ? "fe400000" : "40") if [a, r, pat].any? { |s| s.include?("\uFFFF") }
     opt = (flags.include?("i") ? Regexp::IGNORECASE : 0) | (flags.include?("s") ? Regexp::MULTILINE : 0)
+    if mode == "span" # unanchored search, code-point offsets (src/span.zig)
+      begin
+        rx = Regexp.new(pat.gsub(/\\x\{([0-9A-Fa-f]+)\}/) { [$1.hex].pack("U") }, opt)
+      rescue RegexpError, ArgumentError
+        next "fe040000"
+      end
+      begin
+        next [a, r].map { |s| (m = rx.match(s)) ? format("%02x%02x", m.begin(0), m.end(0)) : "ffff" }.join
+      rescue StandardError
+        next "fe080000"
+      end
+    end
     src = "\\A(?:" + pat.gsub(/\\x\{([0-9A-Fa-f]+)\}/) { [$1.hex].pack("U") } + ")\\z"
     begin
       rx = Regexp.new(src, opt)

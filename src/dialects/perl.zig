@@ -28,6 +28,8 @@ fn lineTerminator(c: u21) bool {
 
 pub const dialect: D.Dialect = .{
     .name = "perl",
+    // An empty loop iteration ends the loop (PCRE: "the loop is forcibly broken").
+    .empty_iteration = .stop,
     .isLineTerminator = lineTerminator,
     .isSpace = space,
     .isWord = word,

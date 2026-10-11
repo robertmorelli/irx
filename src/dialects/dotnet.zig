@@ -16,6 +16,8 @@ fn word(c: u21, _: D.Flags) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    // An empty loop iteration ends the loop (span mode; checked against the engine).
+    .empty_iteration = .stop,
     .name = "dotnet",
     .isLineTerminator = lineTerminator,
     .isSpace = perl.space,
@@ -31,6 +33,10 @@ pub const dialect: D.Dialect = .{
 pub const nonbacktracking: D.Dialect = blk: {
     var d = dialect;
     d.name = "dotnet-nonbacktracking";
+    // Span mode: NonBacktracking reports the backtracking engines' match, but loops whose body
+    // can match empty follow neither the ES nor the Perl rule ((?:a??)* on "a" -> [0,0),
+    // (?:(?:\\b)?|aa)+ on "aaaaaa" -> [0,6)); not modelled.
+    d.empty_iteration = .unmodeled;
     d.allow_lookahead = false;
     d.allow_lookbehind = false;
     break :blk d;

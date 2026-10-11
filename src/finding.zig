@@ -54,7 +54,7 @@ pub const Case = struct {
     selfcheck: bool = false,
 };
 
-pub const Kind = enum { wrong_result, syntax_error, exception, tier_mismatch, crash, timeout, protocol, sanity_disagreement, selfcheck_mismatch };
+pub const Kind = enum { wrong_result, syntax_error, exception, tier_mismatch, crash, timeout, protocol, sanity_disagreement, selfcheck_mismatch, wrong_span };
 
 /// The recorded failure predicate that shrinking must preserve.
 pub const Predicate = struct {
@@ -70,7 +70,7 @@ pub const Predicate = struct {
     pub fn eqlShape(self: Predicate, other: Predicate) bool {
         if (self.kind != other.kind or !std.mem.eql(u8, self.mode, other.mode)) return false;
         return switch (self.kind) {
-            .wrong_result, .tier_mismatch, .selfcheck_mismatch, .sanity_disagreement => self.diff == other.diff,
+            .wrong_result, .tier_mismatch, .selfcheck_mismatch, .sanity_disagreement, .wrong_span => self.diff == other.diff,
             .crash => self.signal == other.signal,
             else => true,
         };
@@ -82,6 +82,8 @@ pub fn expectedBits(expect: harness.Expect, exp_a: bool, exp_r: bool) u8 {
     if (exp_a) b |= harness.Bits.test_a;
     if (exp_r) b |= harness.Bits.test_r;
     if (expect == .tierup) b |= b << 4;
+    // Span mode (span.check): test_a = A's span agrees, test_r = R's span disagrees.
+    if (expect == .span) b = harness.Bits.test_a;
     return b;
 }
 
@@ -92,6 +94,7 @@ pub fn classify(expect: harness.Expect, mode: []const u8, bits: u8, exp_a: bool,
     if (bits & harness.Bits.syntax != 0) return .{ .kind = .syntax_error, .mode = mode, .observed = bits, .expected = want };
     if (bits & harness.Bits.exception != 0) return .{ .kind = .exception, .mode = mode, .observed = bits, .expected = want };
     if (bits == want) return null;
+    if (expect == .span) return .{ .kind = .wrong_span, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
     const first = (bits ^ want) & 0x03;
     if (first != 0) return .{ .kind = .wrong_result, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
     return .{ .kind = .tier_mismatch, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };

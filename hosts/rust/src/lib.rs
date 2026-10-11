@@ -43,8 +43,16 @@ fn parse_str(b: &[u8], i: &mut usize) -> Option<(String, bool)> {
     Some((String::from_utf8(s).ok()?, bad))
 }
 
+/// First match of an unanchored search in A and R as byte ranges, or failure bits.
+pub type SpanResult = Result<[Option<(usize, usize)>; 2], u8>;
+
 /// Run the protocol loop. `case(flags, a, r, pattern, repeat) -> bits`.
 pub fn serve(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8) {
+    serve_span(name, case, |_, _, _, _| Err(0x40));
+}
+
+/// Like `serve`, plus mode "span": `span(flags, a, r, pattern)` (see src/span.zig).
+pub fn serve_span(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, span: impl Fn(&str, &str, &str, &str) -> SpanResult) {
     let mode = std::env::args().nth(1).unwrap_or_else(|| "default".into());
     let repeat = mode == "repeat" || mode == "tierup";
     let stdout = std::io::stdout();
@@ -71,6 +79,14 @@ pub fn serve(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8) {
                 if k < 3 { i += 1; }
             }
             i += 1; // ']'
+            if mode == "span" {
+                if f.iter().any(|x| x.1) { resp.push_str("fe400000"); continue; }
+                match span(&f[0].0, &f[1].0, &f[2].0, &f[3].0) {
+                    Err(e) => resp.push_str(&format!("fe{:02x}0000", e)),
+                    Ok(ms) => for m in ms { match m { Some((s, e)) => resp.push_str(&format!("{:02x}{:02x}", s, e)), None => resp.push_str("ffff") } },
+                }
+                continue;
+            }
             let bits = if f.iter().any(|x| x.1) { 0x40 } else { case(&f[0].0, &f[1].0, &f[2].0, &f[3].0, repeat) };
             resp.push_str(&format!("{:02x}", bits));
         }

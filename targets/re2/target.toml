@@ -8,3 +8,6 @@ command = "{root}/hosts/bin/re2_host {mode}"
 dialect = "re2"   # src/dialects/
 selfcheck = true
 
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans

@@ -99,7 +99,17 @@
           (let ((f (nth 0 c)) (a (nth 1 c)) (r (nth 2 c)) (p (nth 3 c)))
             (setq out
                   (concat out
-                          (if (cl-some (lambda (x) (string-search "￿" x)) (list a r p)) "40"
+                          (cond
+                           ((cl-some (lambda (x) (string-search "￿" x)) (list a r p)) (if (equal mode "span") "fe400000" "40"))
+                           ((equal mode "span")
+                            ;; Unanchored search, character offsets (src/span.zig).
+                            (let ((rx (condition-case nil (irx--translate p (string-search "s" f)) (error nil))))
+                              (if (or (not rx) (condition-case nil (progn (string-match rx "") nil) (invalid-regexp t)))
+                                  "fe040000"
+                                (let ((case-fold-search (and (string-search "i" f) t)))
+                                  (mapconcat (lambda (s) (if (string-match rx s) (format "%02x%02x" (match-beginning 0) (match-end 0)) "ffff"))
+                                             (list a r) "")))))
+                           (t
                             (let ((rx (condition-case nil
                                           (concat "\\`\\(?:" (irx--translate p (string-search "s" f)) "\\)\\'")
                                         (error nil))))
@@ -109,5 +119,5 @@
                                   (dotimes (k rep)
                                     (when (string-match rx a) (setq bits (logior bits (ash 1 (* 4 k)))))
                                     (when (string-match rx r) (setq bits (logior bits (ash 2 (* 4 k))))))
-                                  (format "%02x" bits)))))))))
+                                  (format "%02x" bits))))))))))
         (princ (concat out "\n"))))))

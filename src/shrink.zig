@@ -4,6 +4,7 @@
 //! prefix replay for sequence-dependent failures, and sanity classification.
 const std = @import("std");
 const alpha = @import("alphabet.zig");
+const spanmod = @import("span.zig");
 const ast = @import("ast.zig");
 const atoms = @import("atoms.zig");
 const sys = @import("sys.zig");
@@ -89,8 +90,26 @@ pub const Triage = struct {
         req.appendSlice(self.gpa, "[1,[") catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
         harness.encodeCase(&req, self.gpa, .{ .flags = finding.flagStr(c.flags), .a = c.a.slice(), .r = c.r.slice(), .pattern = c.pattern.items }) catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
         req.appendSlice(self.gpa, "]]\n") catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
-        var bits: [1]u8 = undefined;
-        return self.runRequest(spec, req.items, 1, &bits, fresh);
+        var bits: [spanmod.width]u8 = undefined;
+        const o = self.runRequest(spec, req.items, 1, bits[0..harness.resultWidth(spec.expect)], fresh);
+        if (spec.expect == .span and o == .bits) return .{ .bits = spanmod.check(c, &bits, self.run.cfg.span_units).bits };
+        return o;
+    }
+
+    /// Reference vs reported spans of the minimized case (span mode).
+    fn spanDetail(self: *Triage, a: Allocator, spec: *const harness.ModeSpec, c: *const finding.Case, report: *std.ArrayList(u8)) !void {
+        var req: std.ArrayList(u8) = .empty;
+        try req.appendSlice(a, "[1,[");
+        try harness.encodeCase(&req, a, .{ .flags = finding.flagStr(c.flags), .a = c.a.slice(), .r = c.r.slice(), .pattern = c.pattern.items });
+        try req.appendSlice(a, "]]\n");
+        var raw: [spanmod.width]u8 = undefined;
+        switch (self.runRequest(spec, req.items, 1, &raw, false)) {
+            .bits => {
+                try report.appendSlice(a, ",\n  ");
+                try spanmod.extraJson(report, a, spanmod.check(c, &raw, self.run.cfg.span_units), &raw);
+            },
+            .failed => {},
+        }
     }
 
     fn predicateHolds(self: *Triage, spec: *const harness.ModeSpec, c: *const finding.Case, pred: finding.Predicate, fresh: bool) bool {
@@ -234,6 +253,7 @@ pub const Triage = struct {
         var mj: std.ArrayList(u8) = .empty;
         try finding.writeCaseJson(&mj, a, &c, pred, "reproduced; minimized");
         try report.appendSlice(a, std.mem.trimEnd(u8, mj.items, "\n"));
+        if (spec.expect == .span) try self.spanDetail(a, spec, &c, report);
         try report.appendSlice(a, ",\n  \"status\": \"reproduced under the recorded build (not a confirmed V8 bug until reviewed)\"");
 
         var pb: [4096]u8 = undefined;
@@ -556,7 +576,7 @@ pub const Triage = struct {
             }
             try req.appendSlice(a, "]]\n");
         }
-        const bits = try a.alloc(u8, cases.len);
+        const bits = try a.alloc(u8, cases.len * harness.resultWidth(spec.expect));
         const o = self.runRequest(spec, req.items, @intCast(cases.len), bits, true);
         return switch (o) {
             .failed => |f| f.kind == pred.kind and (pred.kind != .crash or f.signal == pred.signal),
@@ -572,7 +592,7 @@ pub const Triage = struct {
             const req = try a.alloc(u8, l.len + 1);
             @memcpy(req[0..l.len], l);
             req[l.len] = '\n';
-            const bits = try a.alloc(u8, n);
+            const bits = try a.alloc(u8, n * harness.resultWidth(spec.expect));
             const o = self.runRequest(spec, req, @intCast(n), bits, false);
             switch (o) {
                 .failed => |f| return f.kind == pred.kind and (pred.kind != .crash or f.signal == pred.signal),

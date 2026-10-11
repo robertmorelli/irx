@@ -19,6 +19,8 @@ fn space(c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    // An empty loop iteration ends the loop (span mode; checked against the engine).
+    .empty_iteration = .stop,
     .name = "ruby",
     .isLineTerminator = lineTerminator,
     .isSpace = space,
@@ -46,6 +48,8 @@ pub const dialect: D.Dialect = .{
 /// seen through non-capturing groups: (?:\b)*, (?:a|^)*, (?:a|(?=a))+ (captures and
 /// sequences are fine: (\b)*, (?:a\b)*).
 pub const oniguruma: D.Dialect = .{
+    // An empty loop iteration ends the loop (span mode; checked against the engine).
+    .empty_iteration = .stop,
     .name = "oniguruma",
     .isLineTerminator = lineTerminator,
     .isSpace = perl.space,

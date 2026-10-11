@@ -96,6 +96,22 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
     return bits;
   }
 
+  // Span mode: unanchored search; 4 bytes per case (A start, A end, R start, R end) in
+  // UTF-16 offsets, ff = no match; fe + bits when the case fails (see src/span.zig).
+  function hx(n) { return HEX[(n >> 4) & 15] + HEX[n & 15]; }
+  function spanCase(c) {
+    var re;
+    try { re = new RegExp(c[3], c[0]); } catch (e) { return "fe" + hx((e instanceof SyntaxError) ? 4 : 8) + "0000"; }
+    var s = "";
+    try {
+      for (var k = 1; k <= 2; k++) {
+        var m = re.exec(c[k]);
+        s += m ? hx(m.index) + hx(m.index + m[0].length) : "ffff";
+      }
+    } catch (e) { return "fe080000"; }
+    return s;
+  }
+
   if (bridge) read = (function () { var done = false; return function () { if (done) return null; done = true; return __IRX_BATCH; }; })();
   else out("ready " + ver + " mode=" + mode);
   for (;;) {
@@ -106,6 +122,7 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
     var seq = msg[0], cases = msg[1];
     var parts = new Array(cases.length);
     for (var i = 0; i < cases.length; i++) {
+      if (mode === "span") { parts[i] = spanCase(cases[i]); continue; }
       var b = runCase(cases[i]);
       parts[i] = HEX[(b >> 4) & 15] + HEX[b & 15];
     }

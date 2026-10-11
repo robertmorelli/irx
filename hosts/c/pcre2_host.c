@@ -27,3 +27,23 @@ done:
     pcre2_match_data_free(md); pcre2_code_free(re);
     return bits;
 }
+int host_span(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[4]) {
+    uint32_t opt = PCRE2_UTF | PCRE2_UCP;
+    if (strchr(flags, 'i')) opt |= PCRE2_CASELESS;
+    if (strchr(flags, 'm')) opt |= PCRE2_MULTILINE;
+    if (strchr(flags, 's')) opt |= PCRE2_DOTALL;
+    int err; PCRE2_SIZE off;
+    pcre2_code *re = pcre2_compile((PCRE2_SPTR)pat, plen, opt, &err, &off, NULL);
+    if (!re) return 0x04;
+    if (getenv("IRX_PCRE2_JIT")) pcre2_jit_compile(re, PCRE2_JIT_COMPLETE);
+    pcre2_match_data *md = pcre2_match_data_create_from_pattern(re, NULL);
+    int e = 0;
+    for (int k = 0; k < 2; k++) {
+        int rc = pcre2_match(re, (PCRE2_SPTR)subj[k], lens[k], 0, 0, md, NULL);
+        if (rc >= 0) { PCRE2_SIZE *ov = pcre2_get_ovector_pointer(md); out[2 * k] = (long)ov[0]; out[2 * k + 1] = (long)ov[1]; }
+        else if (rc == PCRE2_ERROR_NOMATCH) out[2 * k] = out[2 * k + 1] = -1;
+        else { e = 0x08; break; }
+    }
+    pcre2_match_data_free(md); pcre2_code_free(re);
+    return e;
+}

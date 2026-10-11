@@ -18,6 +18,9 @@ fn space(c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    // Span mode: the automaton's handling of loops whose body matches empty is its own
+    // ((?:\\B|a)* on "aa" -> [0,2), (?:a*?)* on "a" -> [0,0)); not modelled.
+    .empty_iteration = .unmodeled,
     .name = "re2",
     .isLineTerminator = lineTerminator,
     .isSpace = space,
