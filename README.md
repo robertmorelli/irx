@@ -5,7 +5,8 @@ accept string A and a reject string R, builds a finite tree grammar whose nonter
 relations over A and R, and samples regexes that *provably* match all of A and none of R. Every pattern
 therefore carries its own expected answer, so a bug is caught even when every engine shares it. On top of
 that yes/no check, irx asks each engine where it matches and what its capture groups hold, and checks
-those answers against a reference backtracking matcher.
+those answers against a reference backtracking matcher. A long-input mode pumps each case's accept string out
+to thousands of characters and checks the full-match answer on that too.
 
 It drives 32 targets covering about 25 engines: V8 (d8, Node, Deno, Bun), QuickJS, Boa, Hermes, XS,
 engine262, Perl, PCRE2 (and PHP), Python `re`, Ruby (Onigmo), Oniguruma, Java, .NET (interpreter,
@@ -25,6 +26,7 @@ zig build -Doptimize=ReleaseFast      # campaign build -> zig-out/bin/irx
 hosts/build.sh                        # build the native protocol hosts into hosts/bin/
 tools/irx_target.py pcre2 --duration 300          # one engine for 5 minutes
 tools/irx_target.py --all --duration 600          # every target, 10 minutes each
+tools/irx_target.py bun --long --duration 600     # long-input campaign (only the long mode)
 ```
 
 `tools/irx_target.py` merges `weights.toml` with the target's overlay, runs irx, writes
@@ -41,6 +43,21 @@ Every batch of cases goes to one engine process per *mode*; a target enables the
 | repeat (`shell-repeat`, `perl-repeat`, d8 `tierup`) | the same, twice on one compiled regex | same; catches state carried between runs and tier-up bugs |
 | span (`[span]`) | `[start, end)` of the first match of an unanchored search in A and R | the backtracking matcher's first match in priority order, or the relation's leftmost-longest span (POSIX engines) |
 | capture (`[capture]`) | the whole match plus groups 1–6 | the matcher's capture slots, with per-engine loop and lookbehind rules |
+| long (`[long]`; `shell-long`, `perl-long`, d8 `long`) | does the pattern fully match a long accept string? its near-miss reject? | the relation semantics evaluated as bit vectors over positions (`src/long.zig`) |
+
+**Long inputs.** Short subjects never reach the code engines use for long input: SIMD scanning in 16–64-byte
+chunks, DFA state caches, JIT backtracking stacks, 8-bit versus 16-bit string paths, and the 255/256 and 64K
+position boundaries. The long mode keeps the short pair as the constraint that selects patterns, then derives a
+long pair from it. A segment of A that the pattern's loops can repeat (A with the segment twice and three times
+is still accepted) is pumped out to a target length (default 64, 256, 1000 or 4096 symbols), one or two segments
+at a time. The reject is a near miss: the long accept with one symbol substituted, deleted or inserted at the
+start, the middle, the end, or a power-of-two boundary. Both are checked by a bit-vector evaluation of the same
+relation semantics: forward and backward position sets per node, lookarounds and assertions as position masks,
+loops closed over their frontier. It costs polynomial time, so it stays exact where engines blow up. A guard runs the
+backtracking reference matcher with a budget of 50 steps per symbol and drops pairs it can't finish, so
+catastrophic backtracking doesn't turn into a stream of timeouts. Cases with nothing to pump, or with no
+near-miss reject (patterns that accept almost anything), get no long pair. Triage shrinks long findings by
+deleting chunks the accept and reject share, largest first, down to the shortest strings that still fail.
 
 Hosts report positions in their native unit (UTF-16, code points or UTF-8 bytes: `[span] units`); irx
 converts them to UTF-16 offsets, so an offset inside a character is itself a finding. A self-check at
@@ -73,6 +90,7 @@ A campaign's configuration is [`weights.toml`](weights.toml) followed by the tar
 | `[harness]` | batches and deadlines | 512 cases per batch, 2 s + 2 s per 512 cases |
 | `[target]` (target.toml) | how to launch the engine | `kind` (`d8`, `perl`, `shell`), `command`, `dialect`, `selfcheck` |
 | `[span]`, `[capture]` (target.toml) | range checks | `enabled`, `units`; `loop`, `lookbehind` |
+| `[long]` | long-input mode (off unless enabled) | `enabled`, `only` (no other modes), `fraction` 0.25 of cases, `lengths` [64, 256, 1000, 4096], `guard_factor` 50, `deadline_ms_per_kb` 20, `max_request_bytes` 8 MiB |
 
 The default character pool is chosen for the places engines get wrong: `a b k s A K S 0 _`, space, `\n`,
 `\r`, `-`, `.`, `ſ` (U+017F), `K` (U+212A Kelvin), U+2028, `😀` (U+1F600, an astral character),
@@ -149,6 +167,7 @@ Finding kinds: `wrong_result`, `wrong_span`, `wrong_capture`, `tier_mismatch`, `
 | `src/budget.zig` | Hard byte accounting on every allocation |
 | `src/sample.zig` | Alias-table sampling and the dialect-aware printer (empty-atom spellings, group numbering) |
 | `src/span.zig`, `src/capture.zig` | Span and capture references, host unit conversion, comparison, finding details |
+| `src/long.zig` | Long-input mode: bit-vector reference for subjects of any length, pumping generator, backtracking guard |
 | `src/harness.zig` | Process spawning, nonblocking transport, deadlines, journals, modes and probes |
 | `src/lane.zig` | Per-lane sample → fan-out → compare → persist loop |
 | `src/run.zig` | Table publication, background builder, string drawing, adaptive weights, triage queue |
@@ -161,6 +180,10 @@ Finding kinds: `wrong_result`, `wrong_span`, `wrong_capture`, `tier_mismatch`, `
 ## Validation status
 
 * **Model vs. backtracking matcher**: >3,000 random trees across 11 flag sets agree (`ast.zig` test).
+* **Long-input reference**: the bit-vector evaluation agrees with the relation model on 6,600 random trees across
+  11 flag sets, forward and backward; every generated long pair is accept/reject under it (`long.zig` tests).
+  Long-only runs on PCRE2, RE2, Bun and .NET NonBacktracking (about 45k long pairs) show no mismatches, and a
+  hand-built IRX-DOTNET-6 case with a 502-character accept string minimizes to its known 4-character repro.
 * **Self-check**: every dialect reaches 0 self-check mismatches against its engine, apart from known engine bugs
   (IRX-SWIFT-1, IRX-JAVA-1, RACKET-1, the XS `v`-mode bugs). A one-line injected model bug yields ~1,000
   mismatches, so the check has teeth.
@@ -189,6 +212,10 @@ Finding kinds: `wrong_result`, `wrong_span`, `wrong_capture`, `tier_mismatch`, `
   unsupported; SpiderMonkey via jsvu shares irregexp, so its agreement is not independent; d8 is the Homebrew
   release build, not `dcheck_always_on`.
 * **Finding artifacts** are written atomically (temp + rename) without fsync.
+* **Long mode** checks full match only (no long spans or captures yet). Hosts have no per-case time limit, so a
+  pattern the guard passes but an engine backtracks on for seconds still costs its whole batch. The deadline
+  grows with request size to absorb ordinary slowness. About half of the cases get a long pair; the rest have
+  nothing to pump or no near-miss reject.
 
 <!-- BEGIN shared bug ledger (identical on every branch) -->
 ## Bug ledger

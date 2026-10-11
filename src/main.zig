@@ -43,6 +43,7 @@ test {
     _ = @import("harness.zig");
     _ = @import("finding.zig");
     _ = @import("span.zig");
+    _ = @import("long.zig");
     _ = @import("capture.zig");
     _ = @import("shrink.zig");
     _ = @import("run.zig");
@@ -79,7 +80,7 @@ fn usage() noreturn {
         \\           [--modes interp,native,tierup] [--optional-modes linear,noopt,nopeephole,fallback0]
         \\           [--jsc PATH] [--sm PATH]                      (d8 modes and sanity engines)
         \\       --shell CMD: any host speaking the line protocol ({{driver}}, {{mode}} substituted);
-        \\       modes span/capture are added from the config's [span]/[capture] sections.
+        \\       modes span/capture/long are added from the config's [span]/[capture]/[long] sections.
         \\       irx selfcheck --d8 PATH [--config FILE] [--out DIR] [--sm PATH] [--jsc PATH]
         \\       irx replay FINDING_DIR --d8 PATH [--config FILE]
         \\       irx gate --d8 PATH [--out DIR]
@@ -291,9 +292,12 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     const base_modes = if (o.shell != null and default_modes) "shell,shell-repeat" else if (o.perl != null and default_modes) "perl,perl-repeat" else o.modes;
     const span_mode = if (o.shell != null) "shell-span" else if (o.perl != null) "perl-span" else "span";
     const cap_mode = if (o.shell != null) "shell-capture" else if (o.perl != null) "perl-capture" else "capture";
+    const long_mode = if (o.shell != null) "shell-long" else if (o.perl != null) "perl-long" else "long";
     var mode_list: []const u8 = base_modes;
     if (run.cfg.span) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, span_mode });
     if (run.cfg.capture) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, cap_mode });
+    // [long]: add the long-input mode, or run it alone (`only = true`).
+    if (run.cfg.long_mode or run.cfg.long_mode_only) mode_list = if (run.cfg.long_mode_only) long_mode else try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, long_mode });
     const req_modes = try resolveModes(gpa, mode_list);
     const opt_modes = try resolveModes(gpa, o.optional_modes);
     var active: std.ArrayList(*const harness.ModeSpec) = .empty;
@@ -460,6 +464,7 @@ fn statsLine(run: *runmod.Run, t_start: u64, last_cases: *u64, last_t: *u64) voi
         const st = &run.mode_stats[i];
         put(&buf, &w, " | {s}: exec={d} skip={d}/{d} mism={d} restarts={d}", .{ m.name, st.executed.load(.monotonic), st.skipped_multiline.load(.monotonic), st.skipped_unsupported.load(.monotonic), st.mismatches.load(.monotonic), st.restarts.load(.monotonic) });
         if (m.expect == .tierup) put(&buf, &w, " tier(first-seen={d} repeated={d}, transitions unverified)", .{ st.first_seen.load(.monotonic), st.repeated.load(.monotonic) });
+        if (m.expect == .long) put(&buf, &w, " pairs(made={d} no-pump={d} no-accept={d} no-reject={d} guarded={d} gen={d:.0}us/case: pump {d:.0} accept {d:.0} reject {d:.0} guard {d:.0})", .{ run.long_made.load(.monotonic), run.long_no_pump.load(.monotonic), run.long_no_accept.load(.monotonic), run.long_no_reject.load(.monotonic), run.long_guarded.load(.monotonic), per(run.long_ns.load(.monotonic), cases), per(run.long_phase_ns[0].load(.monotonic), cases), per(run.long_phase_ns[1].load(.monotonic), cases), per(run.long_phase_ns[2].load(.monotonic), cases), per(run.long_phase_ns[3].load(.monotonic), cases) });
     }
     put(&buf, &w, "\n", .{});
     sys.writeAll(2, buf[0..w]) catch {};
@@ -516,7 +521,8 @@ fn cmdFuzz(gpa: Allocator, o: *const Options) !u8 {
             return 3;
         };
     }
-    for (0..lanes) |i| threads[i] = try std.Thread.spawn(.{}, lanemod.Lane.loop, .{lane_objs[i]});
+    // Large stacks: the long mode's guard runs the recursive reference matcher on long subjects.
+    for (0..lanes) |i| threads[i] = try std.Thread.spawn(.{ .stack_size = 256 << 20 }, lanemod.Lane.loop, .{lane_objs[i]});
 
     const t_start = sys.nowNs();
     var last_cases: u64 = 0;
@@ -549,6 +555,7 @@ fn cmdFuzz(gpa: Allocator, o: *const Options) !u8 {
         run.cases.load(.monotonic), run.batches.load(.monotonic), run.findings.load(.monotonic), run.findings_new.load(.monotonic), run.store.coalesced, run.triaged.load(.monotonic), run.confirmed.load(.monotonic), run.tables_built.load(.monotonic), run.zero_mass.load(.monotonic), run.resource_rejects.load(.monotonic), run.slow_cases.load(.monotonic), run.overflowed.load(.monotonic), run.host.peak.load(.monotonic), sys.peakRss(),
     });
     try harness.jsonAscii(&sumb, gpa, stop_reason);
+    try sumb.print(gpa, ", \"long_pairs\": {{\"made\": {d}, \"no_pump\": {d}, \"no_accept\": {d}, \"no_reject\": {d}, \"guarded\": {d}}}", .{ run.long_made.load(.monotonic), run.long_no_pump.load(.monotonic), run.long_no_accept.load(.monotonic), run.long_no_reject.load(.monotonic), run.long_guarded.load(.monotonic) });
     try sumb.appendSlice(gpa, ", \"modes\": {");
     for (run.modes, 0..) |m, i| {
         const st = &run.mode_stats[i];

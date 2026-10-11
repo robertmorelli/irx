@@ -43,6 +43,11 @@ pub const Case = struct {
     pattern: std.ArrayList(u8) = .empty,
     /// Printer spelling seed for empty atoms (sample.Printer.spell); 0 = canonical.
     spell: u64 = 0,
+    /// Long-input pair (long mode): pumped from A, checked by the long-string reference
+    /// (long.zig); expected (true, false) like A/R. Empty when the case has none. Memory is
+    /// owned by whoever filled the case (a lane buffer or the triage arena).
+    la: []const u16 = &.{},
+    lr: []const u16 = &.{},
     /// Expected (test(A), test(R)) from the model. Fuzz cases are (true, false).
     exp_a: bool = true,
     exp_r: bool = false,
@@ -54,7 +59,7 @@ pub const Case = struct {
     selfcheck: bool = false,
 };
 
-pub const Kind = enum { wrong_result, syntax_error, exception, tier_mismatch, crash, timeout, protocol, sanity_disagreement, selfcheck_mismatch, wrong_span, wrong_capture };
+pub const Kind = enum { wrong_result, syntax_error, exception, tier_mismatch, crash, timeout, protocol, sanity_disagreement, selfcheck_mismatch, wrong_span, wrong_capture, long_result };
 
 /// The recorded failure predicate that shrinking must preserve.
 pub const Predicate = struct {
@@ -70,7 +75,7 @@ pub const Predicate = struct {
     pub fn eqlShape(self: Predicate, other: Predicate) bool {
         if (self.kind != other.kind or !std.mem.eql(u8, self.mode, other.mode)) return false;
         return switch (self.kind) {
-            .wrong_result, .tier_mismatch, .selfcheck_mismatch, .sanity_disagreement, .wrong_span, .wrong_capture => self.diff == other.diff,
+            .wrong_result, .tier_mismatch, .selfcheck_mismatch, .sanity_disagreement, .wrong_span, .wrong_capture, .long_result => self.diff == other.diff,
             .crash => self.signal == other.signal,
             else => true,
         };
@@ -96,6 +101,7 @@ pub fn classify(expect: harness.Expect, mode: []const u8, bits: u8, exp_a: bool,
     if (bits == want) return null;
     if (expect == .span) return .{ .kind = .wrong_span, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
     if (expect == .capture) return .{ .kind = .wrong_capture, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
+    if (expect == .long) return .{ .kind = .long_result, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
     const first = (bits ^ want) & 0x03;
     if (first != 0) return .{ .kind = .wrong_result, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
     return .{ .kind = .tier_mismatch, .mode = mode, .observed = bits, .expected = want, .diff = bits ^ want };
@@ -119,6 +125,14 @@ pub fn parseUnits(text: []const u8, out: *Subject) !void {
         out.units[out.len] = try std.fmt.parseInt(u16, t, 16);
         out.len += 1;
     }
+}
+
+/// Hex units of any length (long-mode subjects). Caller owns the result.
+pub fn parseLong(gpa: Allocator, text: []const u8) ![]const u16 {
+    var out: std.ArrayList(u16) = .empty;
+    var it = std.mem.tokenizeScalar(u8, text, ' ');
+    while (it.next()) |t| try out.append(gpa, try std.fmt.parseInt(u16, t, 16));
+    return out.toOwnedSlice(gpa);
 }
 
 const flag_strs: [32][]const u8 = blk: {
@@ -151,6 +165,12 @@ pub fn writeCaseRecord(out: *std.ArrayList(u8), gpa: Allocator, c: *const Case, 
     try hexUnits(out, gpa, c.a.slice());
     try out.appendSlice(gpa, "\nr=");
     try hexUnits(out, gpa, c.r.slice());
+    if (c.la.len > 0 or c.lr.len > 0) {
+        try out.appendSlice(gpa, "\nla=");
+        try hexUnits(out, gpa, c.la);
+        try out.appendSlice(gpa, "\nlr=");
+        try hexUnits(out, gpa, c.lr);
+    }
     try out.print(gpa, "\nexp_a={d}\nexp_r={d}\n", .{ @intFromBool(c.exp_a), @intFromBool(c.exp_r) });
     try out.appendSlice(gpa, "pattern=");
     try out.appendSlice(gpa, c.pattern.items);
@@ -181,7 +201,7 @@ pub fn readCaseRecord(gpa: Allocator, text: []const u8, out: *LoadedCase) !void 
             const n = @min(v.len, out.mode_buf.len);
             @memcpy(out.mode_buf[0..n], v[0..n]);
             out.pred.mode = out.mode_buf[0..n];
-        } else if (e(u8, k, "observed")) out.pred.observed = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "expected")) out.pred.expected = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "diff")) out.pred.diff = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "signal")) out.pred.signal = try std.fmt.parseInt(u8, v, 10) else if (e(u8, k, "exit")) out.pred.exit_code = try std.fmt.parseInt(u8, v, 10) else if (e(u8, k, "flags")) out.case.flags = try Flags.parse(v) else if (e(u8, k, "a")) try parseUnits(v, &out.case.a) else if (e(u8, k, "r")) try parseUnits(v, &out.case.r) else if (e(u8, k, "exp_a")) out.case.exp_a = v.len > 0 and v[0] == '1' else if (e(u8, k, "exp_r")) out.case.exp_r = v.len > 0 and v[0] == '1' else if (e(u8, k, "pattern")) {
+        } else if (e(u8, k, "observed")) out.pred.observed = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "expected")) out.pred.expected = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "diff")) out.pred.diff = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "signal")) out.pred.signal = try std.fmt.parseInt(u8, v, 10) else if (e(u8, k, "exit")) out.pred.exit_code = try std.fmt.parseInt(u8, v, 10) else if (e(u8, k, "flags")) out.case.flags = try Flags.parse(v) else if (e(u8, k, "a")) try parseUnits(v, &out.case.a) else if (e(u8, k, "r")) try parseUnits(v, &out.case.r) else if (e(u8, k, "la")) out.case.la = try parseLong(gpa, v) else if (e(u8, k, "lr")) out.case.lr = try parseLong(gpa, v) else if (e(u8, k, "exp_a")) out.case.exp_a = v.len > 0 and v[0] == '1' else if (e(u8, k, "exp_r")) out.case.exp_r = v.len > 0 and v[0] == '1' else if (e(u8, k, "pattern")) {
             out.case.pattern = .empty;
             try out.case.pattern.appendSlice(gpa, v);
         } else if (e(u8, k, "spell")) out.case.spell = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "ast")) out.case.tree = try ast.parse(v) else if (e(u8, k, "size")) out.case.size = try std.fmt.parseInt(u16, v, 10) else if (e(u8, k, "table_seq")) out.case.table.seq = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "table_attempt")) out.case.table.attempt = try std.fmt.parseInt(u32, v, 10) else if (e(u8, k, "table_seed")) out.case.table.seed = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "table_digest")) {
@@ -224,13 +244,21 @@ pub fn writeRepro(out: *std.ArrayList(u8), gpa: Allocator, c: *const Case, pred:
     try out.appendSlice(gpa, ";\nvar flags = ");
     try harness.jsonAscii(out, gpa, flagStr(c.flags));
     if (spec != null and spec.?.expect == .linear) try out.appendSlice(gpa, " + \"l\"");
-    try out.appendSlice(gpa, ";\nvar A = ");
-    try jsString(out, gpa, c.a.slice());
+    const long = spec != null and spec.?.expect == .long;
+    try out.appendSlice(gpa, if (long) ";\n// long mode: A and R are the long pair\nvar A = " else ";\nvar A = ");
+    try jsString(out, gpa, if (long) c.la else c.a.slice());
     try out.appendSlice(gpa, ";\nvar R = ");
-    try jsString(out, gpa, c.r.slice());
+    try jsString(out, gpa, if (long) c.lr else c.r.slice());
     try out.appendSlice(gpa, ";\nvar re = new RegExp(src, flags);\nvar got = [re.test(A), re.test(R)");
     if (spec != null and spec.?.expect == .tierup) try out.appendSlice(gpa, ", re.test(A), re.test(R)");
     try out.print(gpa, "];\nprint(JSON.stringify(got), \"expected\", JSON.stringify([{}, {}]));\n", .{ c.exp_a, c.exp_r });
+}
+
+/// Index of the first UTF-16 unit where a and b differ (the reject's edit position).
+pub fn firstDifference(a: []const u16, b: []const u16) usize {
+    const n = @min(a.len, b.len);
+    for (0..n) |i| if (a[i] != b[i]) return i;
+    return n;
 }
 
 pub fn writeCaseJson(out: *std.ArrayList(u8), gpa: Allocator, c: *const Case, pred: Predicate, status: []const u8) !void {
@@ -238,6 +266,13 @@ pub fn writeCaseJson(out: *std.ArrayList(u8), gpa: Allocator, c: *const Case, pr
     try jsString(out, gpa, c.a.slice());
     try out.appendSlice(gpa, ",\n  \"R\": ");
     try jsString(out, gpa, c.r.slice());
+    if (c.la.len > 0 or c.lr.len > 0) {
+        try out.print(gpa, ",\n  \"long\": {{\"la_len\": {d}, \"lr_len\": {d}, \"first_difference\": {d}}}", .{ c.la.len, c.lr.len, firstDifference(c.la, c.lr) });
+        try out.appendSlice(gpa, ",\n  \"LA\": ");
+        try jsString(out, gpa, c.la);
+        try out.appendSlice(gpa, ",\n  \"LR\": ");
+        try jsString(out, gpa, c.lr);
+    }
     try out.appendSlice(gpa, ",\n  \"pattern\": ");
     try harness.jsonAscii(out, gpa, c.pattern.items);
     try out.appendSlice(gpa, ",\n  \"ast\": ");
@@ -284,6 +319,10 @@ pub const Store = struct {
         try out.appendSlice(gpa, std.mem.sliceAsBytes(c.a.slice()));
         try out.append(gpa, 0);
         try out.appendSlice(gpa, std.mem.sliceAsBytes(c.r.slice()));
+        try out.append(gpa, 0);
+        try out.appendSlice(gpa, std.mem.sliceAsBytes(c.la));
+        try out.append(gpa, 0);
+        try out.appendSlice(gpa, std.mem.sliceAsBytes(c.lr));
         try out.append(gpa, 0);
         try out.appendSlice(gpa, c.pattern.items);
         return out.toOwnedSlice(gpa);

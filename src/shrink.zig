@@ -6,6 +6,7 @@ const std = @import("std");
 const alpha = @import("alphabet.zig");
 const spanmod = @import("span.zig");
 const capmod = @import("capture.zig");
+const longmod = @import("long.zig");
 const ast = @import("ast.zig");
 const atoms = @import("atoms.zig");
 const sys = @import("sys.zig");
@@ -89,7 +90,9 @@ pub const Triage = struct {
         var req: std.ArrayList(u8) = .empty;
         defer req.deinit(self.gpa);
         req.appendSlice(self.gpa, "[1,[") catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
-        harness.encodeCase(&req, self.gpa, .{ .flags = finding.flagStr(c.flags), .a = c.a.slice(), .r = c.r.slice(), .pattern = c.pattern.items }) catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
+        // Long mode runs on the long pair.
+        const long = spec.expect == .long;
+        harness.encodeCase(&req, self.gpa, .{ .flags = finding.flagStr(c.flags), .a = if (long) c.la else c.a.slice(), .r = if (long) c.lr else c.r.slice(), .pattern = c.pattern.items }) catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
         req.appendSlice(self.gpa, "]]\n") catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
         var bits: [capmod.width]u8 = undefined;
         const raw = bits[0..harness.resultWidth(spec.expect)];
@@ -168,9 +171,11 @@ pub const Triage = struct {
     fn handleCase(self: *Triage, a: Allocator, dir: []const u8, spec: *const harness.ModeSpec, lc: *finding.LoadedCase, report: *std.ArrayList(u8)) !void {
         const pred = lc.pred;
         var c = lc.case;
-        // Model check of the saved case itself (guards against corrupted records).
-        const ma = ast.oracle(&c.tree, c.flags, c.a.slice());
-        const mr = ast.oracle(&c.tree, c.flags, c.r.slice());
+        // Model check of the saved case itself (guards against corrupted records); long mode
+        // checks the long pair with the long-string reference.
+        const long = spec.expect == .long;
+        const ma = if (long) longmod.acceptsUnits(self.gpa, &c.tree, c.flags, c.la) else ast.oracle(&c.tree, c.flags, c.a.slice());
+        const mr = if (long) longmod.acceptsUnits(self.gpa, &c.tree, c.flags, c.lr) else ast.oracle(&c.tree, c.flags, c.r.slice());
         try report.print(a, ",\n  \"model_recheck\": {}", .{ma != null and ma.? == c.exp_a and mr != null and mr.? == c.exp_r});
 
         const reproduced = self.predicateHolds(spec, &c, pred, true);
@@ -220,7 +225,7 @@ pub const Triage = struct {
                 steps += 1;
             }
             if (self.engine_runs >= self.max_engine_runs) break;
-            if (try self.shrinkStrings(a, spec, &c, pred)) {
+            if (if (long) try self.shrinkLong(a, spec, &c, pred) else try self.shrinkStrings(a, spec, &c, pred)) {
                 improved = true;
                 steps += 1;
             }
@@ -299,9 +304,15 @@ pub const Triage = struct {
     /// Model revalidation then engine check. On success the candidate replaces `c`.
     fn tryCandidate(self: *Triage, spec: *const harness.ModeSpec, c: *finding.Case, cand: *finding.Case, pred: finding.Predicate) !bool {
         if (!validFor(&cand.tree, cand.flags)) return false;
-        const ma = ast.oracle(&cand.tree, cand.flags, cand.a.slice()) orelse return false;
-        const mr = ast.oracle(&cand.tree, cand.flags, cand.r.slice()) orelse return false;
-        if (ma != c.exp_a or mr != c.exp_r) return false;
+        if (spec.expect == .long) {
+            // Long mode: the long pair must stay accept/reject under the candidate.
+            if (longmod.acceptsUnits(self.gpa, &cand.tree, cand.flags, cand.la) != true) return false;
+            if (longmod.acceptsUnits(self.gpa, &cand.tree, cand.flags, cand.lr) != false) return false;
+        } else {
+            const ma = ast.oracle(&cand.tree, cand.flags, cand.a.slice()) orelse return false;
+            const mr = ast.oracle(&cand.tree, cand.flags, cand.r.slice()) orelse return false;
+            if (ma != c.exp_a or mr != c.exp_r) return false;
+        }
         cand.pattern.clearRetainingCapacity();
         var pr: sample.Printer = .{ .flags = cand.flags, .out = &cand.pattern, .gpa = self.gpa, .limit = self.run.cfg.max_pattern_bytes, .spell = cand.spell };
         pr.print(&cand.tree) catch return false;
@@ -311,6 +322,8 @@ pub const Triage = struct {
         c.flags = cand.flags;
         c.a = cand.a;
         c.r = cand.r;
+        c.la = cand.la;
+        c.lr = cand.lr;
         c.pattern.clearRetainingCapacity();
         try c.pattern.appendSlice(self.gpa, cand.pattern.items);
         return true;
@@ -384,6 +397,8 @@ pub const Triage = struct {
                 cand.flags = c.flags;
                 cand.a = c.a;
                 cand.r = c.r;
+                cand.la = c.la;
+                cand.lr = c.lr;
                 const size_ok = smaller(&cand, c) or (v == .quant or (v == .replace_atom and n.atom.kind != .empty));
                 if (!size_ok) continue;
                 if (try self.tryCandidate(spec, c, &cand, pred)) return true;
@@ -434,6 +449,62 @@ pub const Triage = struct {
         return false;
     }
 
+    /// Long mode: delete chunks of the long pair, largest first. Chunks come from the region
+    /// both strings share (their common prefix, then their common suffix) and are removed from
+    /// both, so the reject's edit is kept; greedy at each size. Strings live in the arena.
+    fn shrinkLong(self: *Triage, a: Allocator, spec: *const harness.ModeSpec, c: *finding.Case, pred: finding.Predicate) !bool {
+        var la = try longmod.decode(a, c.la, c.flags);
+        var lr = try longmod.decode(a, c.lr, c.flags);
+        var cand: finding.Case = c.*;
+        cand.pattern = .empty;
+        defer cand.pattern.deinit(self.gpa);
+        var improved = false;
+        var size = @max(la.len, lr.len) / 2;
+        while (size >= 1) : (size /= 2) {
+            for ([_]bool{ true, false }) |from_front| {
+                var off: usize = 0; // chunk offset from the front (prefix) or the back (suffix)
+                while (true) {
+                    const n = @min(la.len, lr.len);
+                    var p: usize = 0;
+                    while (p < n and la[p] == lr[p]) p += 1;
+                    var s: usize = 0;
+                    while (s < n - p and la[la.len - 1 - s] == lr[lr.len - 1 - s]) s += 1;
+                    const region = if (from_front) p else s;
+                    if (off + size > region) break;
+                    const na = try cut(a, la, if (from_front) off else la.len - off - size, size);
+                    const nr = try cut(a, lr, if (from_front) off else lr.len - off - size, size);
+                    var ua: std.ArrayList(u16) = .empty;
+                    var ur: std.ArrayList(u16) = .empty;
+                    try longmod.appendUtf16(&ua, a, na);
+                    try longmod.appendUtf16(&ur, a, nr);
+                    cand.tree = c.tree;
+                    cand.flags = c.flags;
+                    cand.a = c.a;
+                    cand.r = c.r;
+                    cand.la = ua.items;
+                    cand.lr = ur.items;
+                    if (try self.tryCandidate(spec, c, &cand, pred)) {
+                        la = na;
+                        lr = nr;
+                        improved = true;
+                        continue; // same offset: the next chunk slid into place
+                    }
+                    if (self.engine_runs >= self.max_engine_runs) return improved;
+                    off += size;
+                }
+            }
+            if (size == 1) break;
+        }
+        return improved;
+    }
+
+    fn cut(a: Allocator, w: []const u21, at: usize, len: usize) ![]u21 {
+        const out = try a.alloc(u21, w.len - len);
+        @memcpy(out[0..at], w[0..at]);
+        @memcpy(out[at..], w[at + len ..]);
+        return out;
+    }
+
     fn shrinkFlags(self: *Triage, a: Allocator, spec: *const harness.ModeSpec, c: *finding.Case, pred: finding.Predicate) !bool {
         _ = a;
         var cand: finding.Case = c.*;
@@ -465,6 +536,8 @@ pub const Triage = struct {
             cand.flags = g;
             cand.a = c.a;
             cand.r = c.r;
+            cand.la = c.la;
+            cand.lr = c.lr;
             // Semantics, positions and wrappers are all recomputed for g by the oracle and printer.
             if (try self.tryCandidate(spec, c, &cand, pred)) return true;
             if (self.engine_runs >= self.max_engine_runs) return false;
