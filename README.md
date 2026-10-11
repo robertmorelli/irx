@@ -1,19 +1,31 @@
 # irx — inverted-pair regex fuzzer
 
-irx tests regex engines against a model instead of against each other. For each test table it draws an
-accept string A and a reject string R, builds a finite tree grammar whose nonterminals are pairs of span
-relations over A and R, and samples regexes that *provably* match all of A and none of R. Every pattern
-therefore carries its own expected answer, so a bug is caught even when every engine shares it. On top of
-that yes/no check, irx asks each engine where it matches and what its capture groups hold, and checks
-those answers against a reference backtracking matcher. A long-input mode pumps each case's accept string out
-to thousands of characters and checks the full-match answer on that too.
+irx tests regex engines against a model instead of against each other. Each test table starts from an accept
+string A and a reject string R. irx builds a grammar over pairs of span relations on A and R and samples
+regexes that match all of A and none of R *according to its model of the engine's semantics*, so every
+pattern comes with its own expected answer and a bug shows up even when every engine shares it. A
+disagreement means the engine or the model is wrong: triage minimizes the case, and every ledger entry is
+confirmed by hand, usually against other engines too.
+
+For each case irx checks:
+
+* **Full match**: does the pattern match all of A and none of R? (expected answer from the model)
+* **Match position**: the `[start, end)` of an unanchored search's first match in A and R, against a reference
+  backtracking matcher (leftmost-longest for the POSIX engines).
+* **Capture groups**: the whole match and groups 1–6 from the same reference matcher, with per-engine rules for
+  captures inside loops and lookbehinds.
+* **Long inputs**: A is pumped out to 64–4,096 characters by repeating segments the pattern's loops can
+  match, and paired with a near-miss long reject (one edit at the start, middle, end or a power-of-two
+  boundary). Full match, match position and capture groups are checked on the long pair against a bit-vector
+  evaluation of the model that stays exact at any length.
 
 It drives 32 targets covering about 25 engines: V8 (d8, Node, Deno, Bun), QuickJS, Boa, Hermes, XS,
 engine262, Perl, PCRE2 (and PHP), Python `re`, Ruby (Onigmo), Oniguruma, Java, .NET (interpreter,
 Compiled, NonBacktracking), ICU, Swift Regex, Rust `regex`, fancy-regex, RE#, Go, RE2, nim-regex, Racket,
-Tcl, Emacs, Vectorscan and LLVM Regex. Each engine family has an exact semantic model (a *dialect*), and
-each target is a small `target.toml`. The original single-engine design for d8 is [`spec.md`](spec.md);
-everything since generalizes it. Bugs found so far are in the [bug ledger](#bug-ledger).
+Tcl, Emacs, Vectorscan and LLVM Regex. Each engine family has its own semantic model (a *dialect*), checked
+against the engine by a self-check at startup, and each target is a small `target.toml`. Runs are
+deterministic: any case can be regenerated from the run's seed. The original single-engine design for d8 is
+[`spec.md`](spec.md); everything since generalizes it. Bugs found so far are in the [bug ledger](#bug-ledger).
 
 ## Quick start
 
