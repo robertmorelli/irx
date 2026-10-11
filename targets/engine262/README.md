@@ -77,3 +77,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END engine262 5m results -->
+
+<!-- BEGIN engine262 30m results -->
+### engine262: 30m campaign
+
+* 408,064 patterns, 6 tables, 46,588 distinct findings
+* findings by kind: 24,744 syntax_error, 10,838 wrong_result, 5,507 wrong_capture, 5,499 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 4 | syntax_error | `v` | `"àaaaaaa"` | `""` | `[s\u{E0}](?:(?:aa){0,3}\|[[\u{1F600}a]&&\u{212A}])` | 04 |
+| 4 | syntax_error | `v` | `""` | `"aa"` | `[^\w&&\u{212A}]\|` | 04 |
+| 4 | syntax_error | `v` | `"aaaaaa"` | `"aaaaaaa"` | `(?:[^\s&&\u{17F}]a)*` | 04 |
+| 4 | syntax_error | `v` | `""` | `"a"` | `[\d&&\u{17F}]*` | 04 |
+| 4 | syntax_error | `v` | `""` | `"aa"` | `\|[^[a-c]&&\u{17F}]` | 04 |
+| 4 | syntax_error | `v` | `""` | `"à"` | `[[a-z]--\u{212A}]\|` | 04 |
+| 4 | syntax_error | `v` | `"Σ"` | `""` | `[^\w--\u{212A}]` | 04 |
+| 4 | syntax_error | `v` | `""` | `"a"` | `[K--\u{17F}]*` | 04 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END engine262 30m results -->

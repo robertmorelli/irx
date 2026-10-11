@@ -77,3 +77,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END fancy-regex 5m results -->
+
+<!-- BEGIN fancy-regex 30m results -->
+### fancy-regex: 30m campaign
+
+* 8,674,752 patterns, 88 tables, 6,019 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 5,900 exception, 119 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 4 | exception | `u` | `"aaaa"` | `"aa"` | `(?:(?:a(?:(?:()\|(?:\ba)*){0,3}){0,3}){2,2}){2}` | 08 |
+| 4 | exception | `u` | `"aaaaaaa"` | `" "` | `(?:(?=(?:(?:(?:(?:)\|(?<!(?:))\|a*)+){0,2}){0,2})\|a)*` | 08 |
+| 4 | exception | `u` | `"-\n"` | `"-aaa"` | `(?:\W(?:(?:a?\|\b\|(?:)\|a*)+){2,}){2,2}` | 08 |
+| 4 | exception | `u` | `"aaaaaa"` | `""` | `(?:(?:(?:(?:a{0,1}){0,3}\|(?!()))+a){3,3}){2,2}` | 08 |
+| 4 | exception | `u` | `" "` | `""` | `(?:(?:(?:()\|\|a){0,2}){0,3}){0,3}.\B` | 08 |
+| 4 | exception | `u` | `""` | `"Σ"` | `(?:(?:(?:(?:(?:(?:)\|[^_\x{E9}]){0,2}){0,3}){0,2})*a\b)*` | 08 |
+| 4 | exception | `u` | `" -\n"` | `""` | `(?:\W(?:(?:(?:(?:)\|(?:)\|[^\x{E0}])(?:(?:)\|\B)){0,3})*){3,}` | 08 |
+| 4 | exception | `u` | `"aaaaaa"` | `""` | `(?:(?:a(?:(?:(?:a\|\B){0,2})+){0,}){3}){2,2}` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END fancy-regex 30m results -->
