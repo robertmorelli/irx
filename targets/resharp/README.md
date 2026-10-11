@@ -56,3 +56,11 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   (`(?:a$|)(?:|a)`). The dialect only forbids them under `*`/`+`.
 * Self-check clean; 112 K cases (slow compiles).
 <!-- END resharp 10m triage -->
+
+<!-- BEGIN resharp 5m results -->
+### RE# (resharp): 5m campaign
+
+* 28,672 patterns, 2 tables, 0 distinct findings; self-check 289,392 probes, 0 mismatches, 0 engine failures
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END resharp 5m results -->

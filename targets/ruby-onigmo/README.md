@@ -57,3 +57,25 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
   * `{n}?` means `(?:{n})?` in Ruby syntax (`(?:a{3}?a)*` matches `"a"`), as for Oniguruma.
 * Self-check clean. 1,401 timeouts: backtracking blowups.
 <!-- END ruby-onigmo 10m triage -->
+
+<!-- BEGIN ruby-onigmo 5m results -->
+### Ruby Onigmo: 5m campaign
+
+* 1,605,120 patterns, 18 tables, 2,259 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 1,352 wrong_result, 464 wrong_span, 443 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 8 | wrong_result | `u` | `"a"` | `"_"` | `(?:^\|a){2,3}` | 00 |
+| 8 | wrong_result | `u` | `"a"` | `"_"` | `(?:a\|^){2,3}` | 00 |
+| 7 | wrong_result | `u` | `"a"` | `""` | `(?:a\|(?=a)){2,3}` | 00 |
+| 6 | wrong_result | `u` | `"a"` | `"-"` | `(?:a\|^){2,3}` | 00 |
+| 6 | wrong_result | `u` | `"a\r"` | `""` | `(?:\b\|a\s){2,2}` | 00 |
+| 6 | wrong_result | `u` | `"a"` | `"-"` | `(?:^\|a){2,3}` | 00 |
+| 4 | wrong_result | `u` | `"aa"` | `""` | `(?:(){1,2}?a)+` | 00 |
+| 4 | wrong_result | `u` | `"a"` | `"_"` | `(?:^(?:a\|(?:))){2,3}` | 00 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END ruby-onigmo 5m results -->
