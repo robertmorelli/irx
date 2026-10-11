@@ -24,3 +24,32 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END re2 1m results -->
+
+<!-- BEGIN re2 10m results -->
+### RE2: 10m campaign
+
+* 18,902,048 patterns, 191 tables, 8 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 8 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 1 | wrong_result | `u` | `"a"` | `"ſ"` | `a\|[sS]` | 03 |
+| 1 | wrong_result | `u` | `""` | `"ſ"` | `(?:[sS]\|a){0,}` | 33 |
+| 1 | wrong_result | `u` | `""` | `"ſ"` | `(?:[sS]\|a)*` | 03 |
+| 1 | wrong_result | `u` | `""` | `"ſ"` | `(?:[sS]\|a)*` | 33 |
+| 1 | wrong_result | `u` | `""` | `"ſ"` | `(?:)\|[sS]\|a` | 33 |
+| 1 | wrong_result | `u` | `""` | `"ſ"` | `(?:[sS]\|a){0,}` | 03 |
+| 1 | wrong_result | `u` | `"a"` | `"ſ"` | `a\|[sS]` | 33 |
+| 1 | wrong_result | `u` | `""` | `"ſ"` | `(?:)\|[sS]\|a` | 03 |
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END re2 10m results -->
+
+<!-- BEGIN re2 10m triage -->
+### re2: 10-minute campaign triage
+
+* New: **IRX-RE2-1**. All 8 findings: without the `i` flag, `a|[sS]` matches `"ſ"` and `b|[kK]` matches `"K"`.
+* Self-check clean; 18.9 M cases; no timeouts.
+<!-- END re2 10m triage -->
