@@ -69,7 +69,7 @@ public class Host {
                             for (int g = 0; g <= 6; g++) sp.append(ok && g <= m.groupCount() && m.start(g) >= 0 ? String.format(PF, m.start(g), m.end(g)) : NONE);
                         }
                         res.append(sp);
-                    } catch (Throwable t) { res.append(failed.apply(8, 26)); }
+                    } catch (StackOverflowError t) { res.append(failed.apply(0x40, 26)); } catch (Throwable t) { res.append(failed.apply(8, 26)); }
                     continue;
                 }
                 if (span) { // unanchored search, UTF-16 offsets (src/span.zig)
@@ -81,7 +81,7 @@ public class Host {
                             sp.append(m.find() ? String.format(PF, m.start(), m.end()) : NONE);
                         }
                         res.append(sp);
-                    } catch (Throwable t) { res.append(failed.apply(8, 2)); }
+                    } catch (StackOverflowError t) { res.append(failed.apply(0x40, 2)); } catch (Throwable t) { res.append(failed.apply(8, 2)); }
                     continue;
                 }
                 try { pat = Pattern.compile("\\A(?:" + p + ")\\z", fl); } catch (Exception e) { res.append("04"); continue; }
@@ -91,7 +91,7 @@ public class Host {
                         if (pat.matcher(a).find()) bits |= 1 << (4 * k);
                         if (pat.matcher(r).find()) bits |= 2 << (4 * k);
                     }
-                } catch (Throwable t) { bits = 8; }
+                } catch (StackOverflowError t) { bits = 0x40; } catch (Throwable t) { bits = 8; }
                 res.append(String.format("%02x", bits));
             }
             out.println(res); out.flush();
