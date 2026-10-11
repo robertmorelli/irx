@@ -20,3 +20,17 @@ Smoke run: mismatches can be model gaps (semantics not yet adapted for this dial
 
 Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
 <!-- END rust-regex 30s results -->
+
+<!-- BEGIN rust-regex 10m results -->
+### Rust regex: 10m campaign
+
+* 10,844,032 patterns, 110 tables, 0 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+
+Smoke run: mismatches can be model gaps (semantics not yet adapted for this dialect) as well as engine bugs; see the bug ledger for confirmed ones.
+<!-- END rust-regex 10m results -->
+
+<!-- BEGIN rust-regex 10m triage -->
+### rust-regex: 10-minute campaign triage
+
+* Clean: 10.8 M cases, 0 findings, self-check 0 mismatches.
+<!-- END rust-regex 10m triage -->
