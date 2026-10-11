@@ -183,8 +183,9 @@ reported upstream except IRX-V8-2, IRX-V8-3, and IRX-DOTNET-6–8 (issue links b
 | IRX-V8-1 | V8 15.5.35.20 (d8) | wrong result | `/(?:.*?B^\|a)/s.test("a")` → `false` | `true` | quick-check family; fixed by `--no-regexp-quick-check` and `--no-regexp-optimization`. Same family as [V8-3](../regex_comparison/bugs/BUGS.md#v8-3) |
 | IRX-V8-2 | V8 15.5.35.20 (d8) | wrong result | `/^(?:.*?a^)*$/s.test("")` → `false` | `true` | [Chromium #572154295](https://issues.chromium.org/issues/572154295), user-provided link (mapping inferred from filing order); fixed by `--no-regexp-quick-check`, not by `--no-regexp-optimization` |
 | IRX-V8-3 | V8 15.5.35.20 (d8) | wrong result | `/(?<![\s\S])(?:(?:^)*)(?![\s\S])/mu.test("😀")` → `true` | `false` | [Chromium #572331418](https://issues.chromium.org/issues/572331418), user-provided link (mapping inferred from filing order); match starts inside a surrogate pair; related to [V8-1](../regex_comparison/bugs/BUGS.md#v8-1) / [V8-2](../regex_comparison/bugs/BUGS.md#v8-2) |
-| IRX-PERL-1 | Perl 5.34.1, 5.44.0, blead 5.45.4 | wrong result | `"0a" =~ /\A(?=a*)[0-9]a\z/` → false | true | optimizer builds an empty start class (`re 'debug'`: `synthetic stclass "ANYOF[]"`); also in loops: `"b" =~ /\A(?:(?=a*).)+\z/` |
-| IRX-PERL-2 | Perl 5.34.1, 5.44.0, blead 5.45.4 | wrong result | `"a" =~ /\A^\ba*\z/m` → false | true | also reduces to `"a" =~ /^\ba*$/m` → false (expected true); needs `/m`, `^`, `\b` and an optional quantifier (`*` or `?`), but not `\A` |
+| IRX-V8-4 | V8 15.5.35.20 (d8) | wrong span (inside a surrogate pair) | `/(?!.)\|a^/u.exec("😀").index` → `1`; also `/\n\|(?!^)/u` | `2` (`/(?!.)/u` alone gives `2`) | the V8-2 surrogate-pair problem is still reachable in current V8 when the zero-width branch sits in an alternation; Node 25 (V8 14.1) also fails the single-branch form. Found by span mode |
+| IRX-PERL-1 | Perl 5.34.1, 5.44.0, blead 5.45.4 | wrong result | `"0a" =~ /\A(?=a*)[0-9]a\z/` → false | true | Rechecked on freshly built upstream blead `23257acb8515` (2026-10-10): still reproduces. Optimizer builds an empty start class (`re 'debug'`: `synthetic stclass "ANYOF[]"`); also in loops: `"b" =~ /\A(?:(?=a*).)+\z/` |
+| IRX-PERL-2 | Perl 5.34.1, 5.44.0, blead 5.45.4 | wrong result | `"a" =~ /\A^\ba*\z/m` → false | true | Rechecked on freshly built upstream blead `23257acb8515` (2026-10-10): still reproduces. Also reduces to `"a" =~ /^\ba*$/m` → false (expected true); needs `/m`, `^`, `\b` and an optional quantifier (`*` or `?`), but not `\A` |
 | IRX-XS-1 | XS (jsvu, Moddable) | rejects valid pattern | `new RegExp("[]", "v")`, `new RegExp("[^]", "v")` → SyntaxError | accepted (ES2024) | empty `ClassContents` is legal in UnicodeSets mode |
 | IRX-BOA-1 | Boa (`boa_cli`, cargo) | rejects valid input (JSON) | `JSON.parse('"\\ud83d"')` → SyntaxError | 1-unit string | lone-surrogate escapes are valid JSON; not a regex bug, found while wiring the harness |
 | IRX-BOA-2 | Boa (`boa_cli`, cargo) | wrong result | `/^[\uD83D\uDE00]$/.test("\ud83d")` → `false` | `true` | without `u`, an escaped high surrogate followed by another escape in a class is mishandled (also `[\uD83D\u03A3]`) |
@@ -318,7 +319,7 @@ dialect gaps rather than bugs. Structural matchers (CSS, DOM, FileCheck, macros,
 
 | Target | Directory | Host | Model | Status |
 |---|---|---|---|---|
-| V8 15.5 (d8) | [`v8`](targets/v8) | `driver.js` | ES2024 (exact) | IRX-V8-1…3 |
+| V8 15.5 (d8) | [`v8`](targets/v8) | `driver.js` | ES2024 (exact) | IRX-V8-1…4 |
 | QuickJS | [`quickjs`](targets/quickjs) | `driver.js` (std) | ES2024 | IRX-QJS-1 |
 | XS | [`xs`](targets/xs) | bridge | ES2024 | IRX-XS-1…9 |
 | Boa | [`boa`](targets/boa) | bridge | ES2024 | IRX-BOA-1…8 |
