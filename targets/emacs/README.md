@@ -51,3 +51,25 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END emacs 5m results -->
+
+<!-- BEGIN emacs 30m results -->
+### Emacs Lisp regexps (translated): 30m campaign
+
+* 4,078,848 patterns, 42 tables, 2,266 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 2,117 timeout (batch), 61 wrong_span, 57 wrong_capture, 31 crash (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 3 | wrong_capture | `su` | `"\naaa"` | `"aaaa"` | `(?:(?:.\|()){0,3}\b)+` | 00 |
+| 3 | wrong_span | `su` | `"\naaa"` | `"aaaa"` | `(?:(?:.\|()){0,3}\b)+` | 00 |
+| 2 | wrong_span | `su` | `"\naaa"` | `"aaaa"` | `(?:(?:.\|){0,3}\b)*` | 00 |
+| 2 | wrong_capture | `su` | `"\naaa"` | `"aaaa"` | `(?:(?:.\|()){0,3}\b)*` | 00 |
+| 2 | wrong_span | `su` | `"\naaa"` | `"aaaa"` | `(?:(?:.?){0,3}\b){0,}` | 00 |
+| 2 | wrong_span | `su` | `"\naaa"` | `"aaaa"` | `(?:(?:.?){0,3}\b)*` | 00 |
+| 2 | wrong_capture | `su` | `"\naaa"` | `"aaaa"` | `(?:(?:.?){0,3}\b){0,}` | 00 |
+| 2 | wrong_span | `u` | `"a"` | `"a "` | `(?:^(?:a\|)*){2,2}` | 02 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END emacs 30m results -->
