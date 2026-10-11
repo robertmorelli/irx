@@ -47,3 +47,26 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
     pcre2_match_data_free(md); pcre2_code_free(re);
     return e;
 }
+int host_capture(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[2][2 * CAP_PAIRS]) {
+    uint32_t opt = PCRE2_UTF | PCRE2_UCP;
+    if (strchr(flags, 'i')) opt |= PCRE2_CASELESS;
+    if (strchr(flags, 'm')) opt |= PCRE2_MULTILINE;
+    if (strchr(flags, 's')) opt |= PCRE2_DOTALL;
+    int err; PCRE2_SIZE off;
+    pcre2_code *re = pcre2_compile((PCRE2_SPTR)pat, plen, opt, &err, &off, NULL);
+    if (!re) return 0x04;
+    if (getenv("IRX_PCRE2_JIT")) pcre2_jit_compile(re, PCRE2_JIT_COMPLETE);
+    pcre2_match_data *md = pcre2_match_data_create_from_pattern(re, NULL);
+    int e = 0;
+    for (int k = 0; k < 2 && !e; k++) {
+        for (int g = 0; g < 2 * CAP_PAIRS; g++) out[k][g] = -1;
+        int rc = pcre2_match(re, (PCRE2_SPTR)subj[k], lens[k], 0, 0, md, NULL);
+        if (rc >= 0) {
+            PCRE2_SIZE *ov = pcre2_get_ovector_pointer(md); uint32_t n = pcre2_get_ovector_count(md);
+            for (uint32_t g = 0; g < n && g < CAP_PAIRS; g++)
+                if (ov[2 * g] != PCRE2_UNSET) { out[k][2 * g] = (long)ov[2 * g]; out[k][2 * g + 1] = (long)ov[2 * g + 1]; }
+        } else if (rc != PCRE2_ERROR_NOMATCH) e = 0x08;
+    }
+    pcre2_match_data_free(md); pcre2_code_free(re);
+    return e;
+}

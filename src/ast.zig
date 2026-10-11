@@ -155,9 +155,13 @@ pub const Matcher = struct {
 
     /// End position recorded by a `record` continuation (search).
     end: usize = 0,
+    /// Capture tracking (optional): slot per capture group in opening-parenthesis order.
+    caps: ?*Caps = null,
+    /// Clear a loop body's captures at the start of each iteration (ES, Perl >= 5.38).
+    reset_loop_captures: bool = false,
 
     const Dir = enum { fwd, back };
-    const ContKind = enum { done, accept, record, seq, rep };
+    const ContKind = enum { done, accept, record, seq, rep, close };
     const Cont = struct {
         kind: ContKind,
         node: u8 = 0,
@@ -194,6 +198,14 @@ pub const Matcher = struct {
                 return true;
             },
             .seq => return self.m(c.node, pos, c.dir, c.next.?),
+            .close => {
+                const caps = self.caps.?;
+                const old = caps.slot[c.node];
+                caps.slot[c.node] = if (c.dir == .fwd) .{ .s = @intCast(c.start), .e = @intCast(pos) } else .{ .s = @intCast(pos), .e = @intCast(c.start) };
+                if (self.run(c.next.?, pos)) return true;
+                caps.slot[c.node] = old;
+                return false;
+            },
             .rep => {
                 // RepeatMatcher continuation d: an empty iteration once min is met is rejected
                 // (ES) or ends the loop (Perl/PCRE).
@@ -211,13 +223,28 @@ pub const Matcher = struct {
     fn repeat(self: *Matcher, node: u8, min: u8, max: u8, greedy: bool, pos: usize, dir: Dir, c: *const Cont) bool {
         if (max == 0) return self.run(c, pos);
         const d: Cont = .{ .kind = .rep, .node = node, .dir = dir, .min = min, .max = max, .greedy = greedy, .start = pos, .next = c };
-        if (min != 0) return self.m(node, pos, dir, &d);
+        if (min != 0) return self.iteration(node, pos, dir, &d);
         if (!greedy) {
             if (self.run(c, pos)) return true;
-            return self.m(node, pos, dir, &d);
+            return self.iteration(node, pos, dir, &d);
         }
-        if (self.m(node, pos, dir, &d)) return true;
+        if (self.iteration(node, pos, dir, &d)) return true;
         return self.run(c, pos);
+    }
+
+    /// One loop iteration, clearing the body's captures first when the dialect resets them.
+    fn iteration(self: *Matcher, node: u8, pos: usize, dir: Dir, d: *const Cont) bool {
+        const caps = self.caps orelse return self.m(node, pos, dir, d);
+        if (!self.reset_loop_captures) return self.m(node, pos, dir, d);
+        const lo = caps.first[node];
+        const hi = caps.end[node];
+        if (lo >= hi) return self.m(node, pos, dir, d);
+        var saved: [max_caps]Caps.Span = undefined;
+        @memcpy(saved[lo..hi], caps.slot[lo..hi]);
+        @memset(caps.slot[lo..hi], Caps.Span.unset);
+        if (self.m(node, pos, dir, d)) return true;
+        @memcpy(caps.slot[lo..hi], saved[lo..hi]);
+        return false;
     }
 
     fn m(self: *Matcher, idx: u8, pos: usize, dir: Dir, c: *const Cont) bool {
@@ -263,13 +290,73 @@ pub const Matcher = struct {
             .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => {
                 const acc: Cont = .{ .kind = .accept };
                 const ldir: Dir = if (n.op == .look_ahead or n.op == .neg_look_ahead) .fwd else .back;
-                const r = self.m(n.a, pos, ldir, &acc);
                 const neg = n.op == .neg_look_ahead or n.op == .neg_look_behind;
+                if (self.caps) |caps| {
+                    // Captures made inside a positive lookaround stay set; a negative one leaves none.
+                    const saved = caps.slot;
+                    const r = self.m(n.a, pos, ldir, &acc);
+                    if (neg) caps.slot = saved;
+                    if (r == neg) return false;
+                    if (self.run(c, pos)) return true;
+                    caps.slot = saved;
+                    return false;
+                }
+                const r = self.m(n.a, pos, ldir, &acc);
                 if (r == neg) return false;
                 return self.run(c, pos);
             },
-            .group_cap, .group_nc, .group_named => return self.m(n.a, pos, dir, c),
+            .group_cap, .group_named => {
+                const caps = self.caps orelse return self.m(n.a, pos, dir, c);
+                const k: Cont = .{ .kind = .close, .node = caps.ordinal[idx], .dir = dir, .start = pos, .next = c };
+                return self.m(n.a, pos, dir, &k);
+            },
+            .group_nc => return self.m(n.a, pos, dir, c),
         }
+    }
+};
+
+pub const max_caps = 32;
+
+/// Capture state for Matcher: slots in opening-parenthesis order, plus per-node indexes
+/// (ordinal of a capture node; range of capture ordinals inside each subtree).
+pub const Caps = struct {
+    pub const Span = struct {
+        s: i16,
+        e: i16,
+        pub const unset: Span = .{ .s = -1, .e = -1 };
+    };
+    slot: [max_caps]Span = [_]Span{Span.unset} ** max_caps,
+    ordinal: [256]u8 = [_]u8{0} ** 256,
+    first: [256]u8 = [_]u8{0} ** 256,
+    end: [256]u8 = [_]u8{0} ** 256,
+    count: u8 = 0,
+
+    /// Number the capture groups of `t` in opening-parenthesis (pre-)order. Null if there
+    /// are more than max_caps.
+    pub fn init(t: *const Ast) ?Caps {
+        var c: Caps = .{};
+        if (!c.walk(t, t.root)) return null;
+        return c;
+    }
+
+    fn walk(self: *Caps, t: *const Ast, idx: u8) bool {
+        const n = t.nodes[idx];
+        self.first[idx] = self.count;
+        if (n.op == .group_cap or n.op == .group_named) {
+            if (self.count >= max_caps) return false;
+            self.ordinal[idx] = self.count;
+            self.count += 1;
+        }
+        if (n.op != .atom) {
+            if (!self.walk(t, n.a)) return false;
+            if (Op.isBinary(n.op) and !self.walk(t, n.b)) return false;
+        }
+        self.end[idx] = self.count;
+        return true;
+    }
+
+    pub fn clear(self: *Caps) void {
+        @memset(&self.slot, Span.unset);
     }
 };
 

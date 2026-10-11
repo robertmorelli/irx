@@ -43,6 +43,7 @@ test {
     _ = @import("harness.zig");
     _ = @import("finding.zig");
     _ = @import("span.zig");
+    _ = @import("capture.zig");
     _ = @import("shrink.zig");
     _ = @import("run.zig");
 }
@@ -283,7 +284,11 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     const default_modes = std.mem.eql(u8, o.modes, "interp,native,tierup");
     const base_modes = if (o.shell != null and default_modes) "shell,shell-repeat" else if (o.perl != null and default_modes) "perl,perl-repeat" else o.modes;
     const span_mode = if (o.shell != null) "shell-span" else if (o.perl != null) "perl-span" else "span";
-    const req_modes = try resolveModes(gpa, if (run.cfg.span) try std.fmt.allocPrint(gpa, "{s},{s}", .{ base_modes, span_mode }) else base_modes);
+    const cap_mode = if (o.shell != null) "shell-capture" else if (o.perl != null) "perl-capture" else "capture";
+    var mode_list: []const u8 = base_modes;
+    if (run.cfg.span) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, span_mode });
+    if (run.cfg.capture) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, cap_mode });
+    const req_modes = try resolveModes(gpa, mode_list);
     const opt_modes = try resolveModes(gpa, o.optional_modes);
     var active: std.ArrayList(*const harness.ModeSpec) = .empty;
     const child_opts: harness.ChildOptions = .{ .exe = d8, .driver_path = driver_path, .journal_path = null, .cfg = &run.cfg };

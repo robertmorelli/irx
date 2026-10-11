@@ -42,5 +42,35 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
     onig_region_free(rg, 1); onig_free(re);
     return e;
 }
+int host_capture(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[2][2 * CAP_PAIRS]) {
+    OnigOptionType opt = ONIG_OPTION_NONE;
+    if (strchr(flags, 'i')) opt |= ONIG_OPTION_IGNORECASE;
+    if (strchr(flags, 's')) opt |= ONIG_OPTION_MULTILINE;
+    regex_t *re; OnigErrorInfo ei;
+    if (onig_new(&re, (const UChar *)pat, (const UChar *)pat + plen, opt, ONIG_ENCODING_UTF8, ONIG_SYNTAX_RUBY, &ei) != ONIG_NORMAL) return 0x04;
+    OnigRegion *rg = onig_region_new();
+    int e = 0;
+    for (int k = 0; k < 2 && !e; k++) {
+        for (int g = 0; g < 2 * CAP_PAIRS; g++) out[k][g] = -1;
+        const UChar *s = (const UChar *)subj[k], *end = s + lens[k];
+        int m = onig_search(re, s, end, s, end, rg, ONIG_OPTION_NONE);
+        if (m >= 0) {
+            if (onig_number_of_names(re) == 0) {
+                for (int g = 0; g < rg->num_regs && g < CAP_PAIRS; g++) if (rg->beg[g] >= 0) { out[k][2 * g] = rg->beg[g]; out[k][2 * g + 1] = rg->end[g]; }
+            } else {
+                /* With named groups only they capture; report group gN at slot N. */
+                out[k][0] = rg->beg[0]; out[k][1] = rg->end[0];
+                for (int g = 1; g < CAP_PAIRS; g++) {
+                    char nm[8]; snprintf(nm, sizeof nm, "g%d", g);
+                    int num = onig_name_to_backref_number(re, (const UChar *)nm, (const UChar *)nm + strlen(nm), rg);
+                    if (num > 0 && rg->beg[num] >= 0) { out[k][2 * g] = rg->beg[num]; out[k][2 * g + 1] = rg->end[num]; }
+                }
+            }
+        }
+        else if (m != ONIG_MISMATCH) e = 0x08;
+    }
+    onig_region_free(rg, 1); onig_free(re);
+    return e;
+}
 int onig_init_once(void) __attribute__((constructor));
 int onig_init_once(void) { OnigEncoding e[1] = {ONIG_ENCODING_UTF8}; onig_initialize(e, 1); return 0; }

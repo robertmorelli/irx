@@ -11,3 +11,8 @@ selfcheck = true
 [span]
 enabled = true
 units = "cp"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "unmodeled"  # Perl >= 5.38 clears some (not all) loop captures per iteration; loop bodies' captures per iteration (docs/phase2-captures.md)
+lookbehind = false  # lookbehind runs forward here; JS (and the model) match it right to left

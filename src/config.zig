@@ -41,6 +41,7 @@ pub const Weights = struct {
 pub const max_size_cap = 255;
 
 pub const SpanUnits = enum { utf16, cp, utf8 };
+pub const CaptureLoop = enum { keep, reset, unmodeled };
 
 pub const Config = struct {
     // [grammar]
@@ -113,6 +114,16 @@ pub const Config = struct {
     span: bool = false,
     /// Index unit the host reports spans in.
     span_units: SpanUnits = .utf16,
+
+    // [capture]
+    /// Run the capture mode too: like span mode, plus the spans of the first groups.
+    capture: bool = false,
+    /// Loop bodies' captures: cleared at the start of each iteration (`reset`: ES,
+    /// Perl >= 5.38) or kept until overwritten (`keep`: PCRE, Python, Java, .NET, ...).
+    capture_loop: CaptureLoop = .keep,
+    /// Check groups inside lookbehinds (false: engines whose lookbehind tries lengths in
+    /// their own order, e.g. Java's shortest-first; such cases are skipped).
+    capture_lookbehind: bool = true,
 
     // [adaptive]
     adaptive: bool = false,
@@ -333,6 +344,25 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
                 else => return error.ExpectedString,
             };
             cfg.span_units = std.meta.stringToEnum(SpanUnits, t) orelse return error.BadSpanUnits;
+            return;
+        }
+        return error.UnknownKey;
+    }
+    if (eq(u8, section, "capture")) {
+        if (eq(u8, key, "enabled")) {
+            cfg.capture = try asBool(v);
+            return;
+        }
+        if (eq(u8, key, "lookbehind")) {
+            cfg.capture_lookbehind = try asBool(v);
+            return;
+        }
+        if (eq(u8, key, "loop")) {
+            const t = switch (v) {
+                .str => |x| x,
+                else => return error.ExpectedString,
+            };
+            cfg.capture_loop = std.meta.stringToEnum(CaptureLoop, t) orelse return error.BadCaptureLoop;
             return;
         }
         return error.UnknownKey;

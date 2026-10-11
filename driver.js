@@ -112,6 +112,25 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
     return s;
   }
 
+  // Capture mode: like span mode, plus groups 1..6 (via the d flag's indices) per subject:
+  // 7 position pairs each, ffff = unset (see src/capture.zig).
+  var CAP_GROUPS = 6;
+  function captureCase(c) {
+    var re;
+    try { re = new RegExp(c[3], c[0] + "d"); } catch (e) { return "fe" + hx((e instanceof SyntaxError) ? 4 : 8) + "00".repeat(26); }
+    var s = "";
+    try {
+      for (var k = 1; k <= 2; k++) {
+        var m = re.exec(c[k]);
+        for (var g = 0; g <= CAP_GROUPS; g++) {
+          var ix = m && g < m.length ? m.indices[g] : undefined;
+          s += ix ? hx(ix[0]) + hx(ix[1]) : "ffff";
+        }
+      }
+    } catch (e) { return "fe08" + "00".repeat(26); }
+    return s;
+  }
+
   if (bridge) read = (function () { var done = false; return function () { if (done) return null; done = true; return __IRX_BATCH; }; })();
   else out("ready " + ver + " mode=" + mode);
   for (;;) {
@@ -123,6 +142,7 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
     var parts = new Array(cases.length);
     for (var i = 0; i < cases.length; i++) {
       if (mode === "span") { parts[i] = spanCase(cases[i]); continue; }
+      if (mode === "capture") { parts[i] = captureCase(cases[i]); continue; }
       var b = runCase(cases[i]);
       parts[i] = HEX[(b >> 4) & 15] + HEX[b & 15];
     }
