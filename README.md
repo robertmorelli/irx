@@ -9,14 +9,14 @@ confirmed by hand, usually against other engines too.
 
 ### Confirmed findings
 
-The [bug ledger](#bug-ledger) has **63 confirmed bug IDs**, **59 unique reported bugs**
-(distinct upstream issue links), **55 distinct bug shapes**, and **63 candidates**
+The [bug ledger](#bug-ledger) has **66 confirmed bug IDs**, **62 unique reported bugs**
+(distinct upstream issue links), **58 distinct bug shapes**, and **60 candidates**
 still to audit or report. Bug IDs count
 separate ledger rows, including confirmed repros linked to an existing report.
 Unique bugs count each upstream issue once; shapes group the same failure pattern
 even across engines. Findings with no report or confirmed link to one are excluded.
 Fixed reported bugs remain in these all-time counts.
-Candidates are 62 open, unreported IDs and IRX-JAVA-2, whose recorded examples
+Candidates are 59 open, unreported IDs and IRX-JAVA-2, whose recorded examples
 were fixed but a different counted-loop form still fails in current OpenJDK.
 Resolved, documented, and older-version-only unreported findings are excluded
 from the candidate count.
@@ -32,12 +32,13 @@ from the candidate count.
 | V8 | 6 | 4 | 4 |
 | Racket | 5 | 5 | 5 |
 | Hermes | 4 | 4 | 4 |
+| engine262 | 3 | 3 | 3 |
 | Ruby | 2 | 1 | 2 |
 | Java | 1 | 1 | 1 |
 | RE# | 1 | 1 | 1 |
 | QuickJS | 1 | 1 | 1 |
 | Shared shapes across engines | — | — | −5 |
-| **Total** | **63** | **59** | **55** |
+| **Total** | **66** | **62** | **58** |
 
 IRX-V8-1 maps to V8-3's report, IRX-V8-4 to IRX-V8-3's report, and
 IRX-PERL-5 to PERL-3's report. DOTNET-8 and DOTNET-6 also share a report and shape;
@@ -380,9 +381,9 @@ recorded in the tables below. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 =
 | IRX-XS-9 | XS | Open · [#1759](https://github.com/Moddable-OpenSource/moddable/issues/1759) | wrong capture: `/(a\|)*c/.exec("ac")` → `["ac", undefined]`; `/(a*)+/.exec("b")` → `["", undefined]` → expected `["ac", "a"]`; `["", ""]` (V8, QuickJS, Boa, Hermes) | Tested: XS (jsvu, Moddable). when a loop's next iteration is rejected, the captures of the last successful iteration are dropped instead of restored. Found while researching phase 2 ([docs/phase2-captures.md](docs/phase2-captures.md)) |
 | IRX-XS-10 | XS | Open · [#1760](https://github.com/Moddable-OpenSource/moddable/issues/1760) | wrong span: `/(?:\|a)*/.exec("a")` → `[""]`; `/(?:a*?)*/.exec("a")` → `[""]` → expected `["a"]` (V8, QuickJS; ES RepeatMatcher rejects an empty iteration once min is met) | Tested: XS (jsvu, Moddable). XS accepts the empty iteration and leaves the loop, as Perl/PCRE do, instead of rejecting it and trying the other branch. Found by span mode |
 | IRX-XS-11 | XS | Open · not filed | wrong match indices: `/A/d.exec("éA").indices[0]` → `[1,1]`; `/A/d.exec("\u212AA").indices[0]` → `[1,0]` (end before start); `/A/d.exec("😀A").indices[0]` → `[2,2]` → expected `[1,2]`; `[1,2]`; `[2,3]` (V8) | Reproduces in jsvu XS 17.9.3 and in `xst` built from current Moddable `public` source at `5f215f7` (2026-10-09). With `d`, end offsets are wrong after non-ASCII text; `m.index` and `m[0]` are correct |
-| IRX-E262-1 | engine262 | Open · not filed | rejects valid pattern: `new RegExp("[\\u{17F}--\\u{212A}]", "v")` → SyntaxError "Expect a CharacterClassEscape" → expected accepted | Tested: npm `@engine262/engine262` commit `678c2c0` (2026-10-03), which matches current upstream `main`. The doubled backslashes in the JS string pass literal Unicode escapes to the RegExp parser; the previous single-backslash example was accepted because JS decoded it before RegExp construction. A `\u{…}` escape is rejected as a `ClassSetOperand` in set operations |
-| IRX-E262-2 | engine262 | Open · not filed | wrong result: `/^[^[^a]&&\d]$/v.test("ſ")` → `false`; `/^a[^A&&[a-z]]$/v.test("aa")` → `false` → expected `true`; `true` | Tested: engine262 (npm `@engine262/engine262`). negated classes whose contents are a set operation are computed wrongly (~46k findings) |
-| IRX-E262-3 | engine262 | Open · not filed | wrong result: `/\u{1F600}\B/u.exec("😀k")` → match `[0,2)`; `/\W\b/u.exec("😀k")` → `null` → expected `null`; `[0,2)` (V8) | Tested: engine262 (npm `@engine262/engine262`). In `u` mode a word boundary right after an astral character is evaluated wrongly (it behaves as if there were no boundary between `😀` and `k`); BMP characters (`é`) and the `v` flag are fine. Found by the long-input campaign (span mode), minimized to `(?:\W\B|[A-Z])*` on `"😀k"` |
+| IRX-E262-1 | engine262 | Open · [#370](https://github.com/engine262/engine262/issues/370) | rejects valid pattern: `new RegExp("[\\u{17F}--\\u{212A}]", "v")` → SyntaxError "Expect a CharacterClassEscape" → expected accepted | Tested: npm `@engine262/engine262` commit `678c2c0` (2026-10-03), which matches current upstream `main`. The doubled backslashes in the JS string pass literal Unicode escapes to the RegExp parser; the previous single-backslash example was accepted because JS decoded it before RegExp construction. A `\u{…}` escape is rejected as a `ClassSetOperand` in set operations. Earlier duplicate filing [#369](https://github.com/engine262/engine262/issues/369) used `print`; #370 has the corrected `console.log` repro |
+| IRX-E262-2 | engine262 | Open · [#371](https://github.com/engine262/engine262/issues/371) | wrong result: `/^[^[^a]&&\d]$/v.test("ſ")` → `false`; `/^a[^A&&[a-z]]$/v.test("aa")` → `false` → expected `true`; `true` | Tested: engine262 (npm `@engine262/engine262`). negated classes whose contents are a set operation are computed wrongly (~46k findings) |
+| IRX-E262-3 | engine262 | Open · [#372](https://github.com/engine262/engine262/issues/372) | wrong result: `/\u{1F600}\B/u.exec("😀k")` → match `[0,2)`; `/\W\b/u.exec("😀k")` → `null` → expected `null`; `[0,2)` (V8) | Tested: engine262 (npm `@engine262/engine262`). In `u` mode a word boundary right after an astral character is evaluated wrongly (it behaves as if there were no boundary between `😀` and `k`); BMP characters (`é`) and the `v` flag are fine. Found by the long-input campaign (span mode), minimized to `(?:\W\B|[A-Z])*` on `"😀k"` |
 | IRX-FANCY-1 | fancy-regex | Open · not filed | wrong capture: `fancy_regex::Regex::new(r"(?:(?:(a)|b)(?=)){2}")?.captures("ab")` → group 1 `None`; also `(?:(?:b|(a))(?=a)a){2}` on `"aaba"` → expected `Some(0..1)`; `Some(1..2)` (fancy-regex without the lookahead, `regex`, PCRE2, Perl) | Tested: fancy-regex 0.14. When a loop body contains a lookaround, the backtracking VM forgets a capture set by an earlier iteration once a later iteration takes a branch without it (ES-style reset); the same pattern without the lookaround is delegated to `regex` and keeps it, so equivalent patterns disagree. Found in capture mode; a second trigger without lookarounds (found by long capture mode): `(?:(?:^(b)|\D)\Ba)*` on `"baba"` → group 1 `None`, expected `Some(0..1)` (needs both `^` and `\B` in the body; `regex` correct) |
 | IRX-HERMES-1 | Hermes | Open · [#2235](https://github.com/facebook/hermes/issues/2235) | wrong result: `/^(?:(?:(?:\W+){1,1})*\s)$/.test("\u2028\n")` → `false` → expected `true` | Reproduces in the v0.13.0 CLI and a source build from current `260318099.0.0-stable` at `09d3bf2` (2026-10-08). Boa also fails it (cross-check) |
 | IRX-HERMES-2 | Hermes | Open · [#2234](https://github.com/facebook/hermes/issues/2234) | exception on tiny input: `/^(?:(?:^a?)+?)$/.test("aa")` → `RangeError: Maximum regex stack depth reached` → expected `false` | Reproduces in the v0.13.0 CLI and current stable source build `09d3bf2`. Also `(?:a*)+?\B` on `"a"`, `(?:(?:(?:)\|(?:)){2,2}){1,2}` on `"a"`: lazy loops over empty-matchable bodies recurse without bound |
