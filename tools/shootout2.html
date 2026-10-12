@@ -127,23 +127,10 @@ a { color: var(--accent); }
     <div class="card"><div class="chart" id="c-speed" role="img" aria-label="Geometric-mean slowdown versus Rust per engine"></div></div>
   </section>
 
-  <section class="wide" aria-labelledby="h-split">
-    <h2 id="h-split">Where the time goes</h2>
-    <p id="p-split">The same ratio, split four ways: ASCII against Unicode patterns and subjects, inputs Rust accepted against inputs it rejected, and four subject sizes (16, 128, 1,024 and 8,192 characters). A cell compares the engine with Rust on that slice only, so a row shows how an engine's speed changes, not which slice is slow overall.</p>
-    <div class="card"><div class="scrollx"><table id="t-split"></table></div>
-      <div class="legend" id="ramp-legend"></div></div>
-  </section>
-
   <section class="wide" aria-labelledby="h-cross">
     <h2 id="h-cross">The full matrix</h2>
     <p id="p-cross">All three splits crossed: for each engine, ASCII or Unicode, an input Rust accepted or rejected, and the subject size. Each cell is the geometric-mean ratio to Rust over the 125–170 inputs in that slice. Reading across a block shows how an engine scales with size; comparing the accept and reject blocks shows whether it is quicker to find a match or to rule one out.</p>
-    <div class="card"><div class="scrollx"><table class="cross" id="t-cross"></table></div></div>
-  </section>
-
-  <section aria-labelledby="h-scale">
-    <h2 id="h-scale">Scaling with input size</h2>
-    <p id="p-scale">Absolute median time per search at each size, ASCII set, for a selection of engines (log scales). A slope of one decade per decade is linear in the input; Rust's lazy DFA and Hyperscan-style engines stay flat on short inputs because per-call overhead dominates.</p>
-    <div class="card"><div class="chart" id="c-scale" role="img" aria-label="Median search time against input size per engine"></div><div class="legend" id="scale-legend"></div></div>
+    <div class="card"><div class="scrollx"><table class="cross" id="t-cross"></table></div><div class="legend" id="ramp-legend"></div></div>
   </section>
 
   <section class="wide" aria-labelledby="h-feat">
@@ -195,8 +182,7 @@ if (M.concise) {
   };
   for (const [id, t] of Object.entries(C)) { const el = document.getElementById(id); if (el) el.innerHTML = t; }
 }
-document.getElementById("fast-x").textContent = M.fast;
-document.getElementById("feat-n").textContent = M.featureful;
+for (const [id, v] of [["fast-x", M.fast], ["feat-n", M.featureful]]) { const el = document.getElementById(id); if (el) el.textContent = v; }
 const counts = TIER_ORDER.map(t => names.filter(n => S[n].tier === t).length);
 document.getElementById("lede").innerHTML = M.concise ? `${names.length} regex engines timed on the same ${M.patterns * 2} patterns, each searched in inputs from 16 to 8,192 characters, then ranked by speed, features and bugs. Rust's <code>regex</code> crate is the 1.0× baseline.` : `Every engine irx fuzzes, timed on one shared workload: ${M.patterns} random patterns in an ASCII and a Unicode set, each against subjects of four sizes, about ${M.inputs.toLocaleString()} timed inputs per engine. <strong>${counts[0] === 1 ? names.filter(n => S[n].tier === "S").map(label)[0] + " is the only engine in S tier" : counts[0] + " engines reach S tier"}</strong>; ${names.filter(n => !S[n].open_bugs.length).length} of ${names.length} have no open bug.`;
 document.getElementById("facts").innerHTML = [["Engines", names.length], ["Patterns", (M.patterns * 2).toLocaleString()], ["Timed inputs / engine", M.inputs.toLocaleString()], ["Size bins", "16 → 8,192"], ["Open bugs found", M.ledger_open]].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
@@ -248,8 +234,8 @@ document.getElementById("tiers").innerHTML = TIER_ORDER.map(t => {
     for (const [, f] of cols) { const v = f(m).geo; h += v ? `<td class="cell" style="background:${rampVar(v)};color:${textOn(v)}">${fmt(v)}</td>` : `<td class="cell">–</td>`; }
     h += `<td class="num">${s.compile_median_ns ? (s.compile_median_ns / 1000).toFixed(s.compile_median_ns < 10000 ? 1 : 0) + " µs" : "–"}</td></tr>`;
   }
-  document.getElementById("t-split").innerHTML = h + "</tbody>";
-  document.getElementById("ramp-legend").innerHTML = `<span>faster than Rust</span><span style="display:inline-flex;gap:0">${RAMP.map(v => `<i style="display:inline-block;width:26px;height:10px;background:var(${v})"></i>`).join("")}</span><span>slower</span><span class="key">stops at ${STOPS.join(", ")}×</span><span class="key">Compile: median per pattern, smallest bin</span>`;
+  if (document.getElementById("t-split")) document.getElementById("t-split").innerHTML = h + "</tbody>";
+  document.getElementById("ramp-legend").innerHTML = `<span>faster than Rust</span><span style="display:inline-flex;gap:0">${RAMP.map(v => `<i style="display:inline-block;width:26px;height:10px;background:var(${v})"></i>`).join("")}</span><span>slower</span><span class="key">stops at ${STOPS.join(", ")}×</span>`;
 }
 
 // Full cross matrix: set x outcome x size
@@ -281,6 +267,7 @@ for (const id of ["view-strict", "view-own"]) {
 
 // Scaling chart
 (function () {
+  if (!document.getElementById("c-scale")) return;
   const pick = M.scale_engines.filter(n => S[n]).concat(Object.keys(EX).filter(n => EX[n].scale));
   const scaleOf = n => EX[n] && EX[n].scale ? EX[n].scale : (D.scale[n] || {});
   const colors = ["#1f5fd6", "#d0582a", "#1e8a4c", "#8a4fd0", "#b8860b", "#2f7d8c", "#c2306a", "#6b7a1f", "#e0457b"];
