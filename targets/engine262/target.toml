@@ -29,3 +29,6 @@ sticky = true
 [flags]
 # i+v sets dropped: IRX-E262-4 (every complement-based class fails under iv) floods the run.
 sets = ["", "i", "m", "s", "u", "v", "iu", "im", "is", "ms", "ims", "imu", "isu", "msu", "msv", "imsu", "su", "sv", "mu", "mv"]
+
+[global]
+enabled = true  # first 4 matches of matchAll (JS empty-match advance)

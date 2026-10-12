@@ -42,7 +42,8 @@ while ((line = stdin.ReadLine()) != null) {
         }
         if (lone) { sb.Append(isSpan ? Failed(0x40, 2) : isCap ? Failed(0x40, 26) : "40"); continue; }
         // \x{H} -> raw char; surrogate halves (UTF-16 dialect literals) become single chars.
-        p = xesc.Replace(p, m => { int cp = Convert.ToInt32(m.Groups[1].Value, 16); return cp >= 0xD800 && cp <= 0xDFFF ? ((char)cp).ToString() : char.ConvertFromUtf32(cp); });
+        // BMP code points as \uXXXX escapes (a raw space or \r would be ignored inside (?x:…)); astral ones raw.
+        p = xesc.Replace(p, m => { int cp = Convert.ToInt32(m.Groups[1].Value, 16); return cp <= 0xFFFF ? "\\u" + cp.ToString("X4") : char.ConvertFromUtf32(cp); });
         // ecma: RegexOptions.ECMAScript, which allows only IgnoreCase, Multiline and Compiled (the
         // current culture is pinned to the invariant one instead); s has no ECMAScript form.
         bool ecma = engine == "ecma";

@@ -17,4 +17,5 @@ enabled = true
 units = "utf8"  # index unit of the host's reported spans
 
 [capture]
-enabled = false  # not modelled yet
+enabled = true
+loop = "reset"  # loop bodies' captures per iteration (docs/phase2-captures.md)

@@ -19,6 +19,12 @@ fn space(c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    .atomic_groups = true,
+    .possessive = true,
+    .backrefs = true,
+    .possessive_counted = false,
+    .backref_by_name = true,
+    .extended_mode = true,
     .scoped_flags = true,
     .props_multi_fold = true,
     // Ruby's m is dotall; ^ and $ always match at lines, so there is no scoped m.
@@ -62,6 +68,12 @@ fn onigWord(c: u21, f: D.Flags) bool {
 }
 
 pub const oniguruma: D.Dialect = .{
+    .atomic_groups = true,
+    .possessive = true,
+    .backrefs = true,
+    .possessive_counted = false,
+    .backref_by_name = true,
+    .extended_mode = true,
     .scoped_flags = true,
     .props_multi_fold = true,
     // Ruby's m is dotall; ^ and $ always match at lines, so there is no scoped m.
@@ -104,7 +116,8 @@ fn onigSyntax(name: []const u8, p_angle: bool) D.Dialect {
     d.dollar_before_final_terminator = true;
     d.scoped_mods = 1 | 2 | 4;
     d.dotall_letter = 's';
-    if (p_angle) d.named_group = .p_angle;
+    // Perl and Java syntax reject (?<name>…): plain captures; Python syntax spells (?P<name>…).
+    d.named_group = if (p_angle) .p_angle else .plain_capture;
     return d;
 }
 pub const onig_perl: D.Dialect = onigSyntax("onig-perl", false);

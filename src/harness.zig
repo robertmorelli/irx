@@ -181,6 +181,8 @@ pub const Expect = enum {
     offset,
     /// The match anchored exactly at that offset (sticky / \G / ANCHORED).
     sticky,
+    /// The first span.global_matches matches of a global search (matchAll), JS empty-match advance.
+    global,
 
     /// Modes whose requests carry the start offsets.
     pub fn usesOffsets(e: Expect) bool {
@@ -192,7 +194,7 @@ pub const Expect = enum {
         return e == .long or e == .long_span or e == .long_capture;
     }
     pub fn isSpan(e: Expect) bool {
-        return e == .span or e == .long_span or e == .offset or e == .sticky;
+        return e == .span or e == .long_span or e == .offset or e == .sticky or e == .global;
     }
     pub fn isCapture(e: Expect) bool {
         return e == .capture or e == .long_capture;
@@ -204,6 +206,7 @@ pub const Expect = enum {
 pub fn resultWidth(expect: Expect) usize {
     return switch (expect) {
         .span, .offset, .sticky => 4,
+        .global => 2 * 2 * @import("span.zig").global_matches,
         .capture => @import("capture.zig").width,
         .long_span => 8,
         .long_capture => 2 * @import("capture.zig").width,
@@ -264,6 +267,9 @@ pub const builtin_modes = [_]ModeSpec{
     .{ .name = "sticky", .flags = &.{}, .driver_mode = "aspan", .expect = .sticky },
     .{ .name = "shell-sticky", .engine = .shell, .flags = &.{}, .driver_mode = "aspan", .expect = .sticky },
     .{ .name = "perl-sticky", .engine = .perl, .flags = &.{}, .driver_mode = "aspan", .expect = .sticky },
+    // The first few matches of a global search (driver mode gspan).
+    .{ .name = "global", .flags = &.{}, .driver_mode = "gspan", .expect = .global },
+    .{ .name = "shell-global", .engine = .shell, .flags = &.{}, .driver_mode = "gspan", .expect = .global },
 };
 
 pub fn findMode(name: []const u8) ?*const ModeSpec {
@@ -1000,7 +1006,7 @@ pub fn probeMode(gpa: Allocator, spec: *const ModeSpec, opts: ChildOptions) Prob
         const ok1 = p(bits, 0) == 300 and p(bits, 1) == 301 and p(bits[half..], 0) == 0xFFFF;
         const ok2 = (p(bits[w..], 0) == 0 and p(bits[w..], 1) > 0 and p(bits[w + half ..], 0) == 0xFFFF) or (p(bits[w..], 0) == 0xFFFE and bits[w + 3] == Bits.skipped);
         if (!ok1 or !ok2) return .{ .ok = false, .reason = "known-answer mismatch (long span/capture)" };
-    } else if (spec.expect == .span or spec.expect == .capture or spec.expect.usesOffsets()) {
+    } else if (spec.expect == .span or spec.expect == .capture or spec.expect == .global or spec.expect.usesOffsets()) {
         // a in "a" -> [0,1); no match in R; the astral case starts at 0 (end in host units)
         // or is unsupported (lone surrogate R on a UTF-8 host). Capture mode: per subject
         // the whole match comes first, then group slots (none here).

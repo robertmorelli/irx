@@ -21,6 +21,9 @@ fn boundaryWord(c: u21, f: D.Flags) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    .atomic_groups = true,
+    .backrefs = true,
+    .extended_mode = true,
     .scoped_flags = true,
     .isBoundaryWord = boundaryWord,
     .unicode_props = true,
@@ -43,6 +46,8 @@ pub const dialect: D.Dialect = .{
 pub const nonbacktracking: D.Dialect = blk: {
     var d = dialect;
     d.name = "dotnet-nonbacktracking";
+    d.atomic_groups = false;
+    d.backrefs = false;
     // Span mode: NonBacktracking reports the backtracking engines' match, but loops whose body
     // can match empty follow neither the ES nor the Perl rule ((?:a??)* on "a" -> [0,0),
     // (?:(?:\\b)?|aa)+ on "aaaaaa" -> [0,6)); not modelled.
@@ -76,5 +81,6 @@ pub const ecma: D.Dialect = blk: {
     d.isSpace = perl.asciiSpace;
     d.isBoundaryWord = null;
     d.escapes_ignore_case = true;
+    d.extended_mode = false; // ECMAScript excludes IgnorePatternWhitespace
     break :blk d;
 };

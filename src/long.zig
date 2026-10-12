@@ -26,7 +26,7 @@ const rngmod = @import("rng.zig");
 const Allocator = std.mem.Allocator;
 const Flags = alpha.Flags;
 
-pub const Error = error{ OutOfMemory, Budget };
+pub const Error = error{ OutOfMemory, Budget, Unsupported };
 
 /// Bit-vector evaluation of a pattern on one subject (model symbols).
 pub const Eval = struct {
@@ -156,6 +156,8 @@ pub const Eval = struct {
     fn walk(self: *Eval, idx: u8, s: []const u64, forward: bool) Error![]u64 {
         try self.charge(1);
         const n = self.t.nodes[idx];
+        // Atomic groups and backreferences have no position-set semantics (mutation mode only).
+        if (n.op == .atomic or n.op == .backref) return error.Unsupported;
         switch (n.op) {
             .atom => switch (n.atom.kind) {
                 .empty => {
@@ -202,6 +204,7 @@ pub const Eval = struct {
             },
             .quant => return self.quant(n.a, n.quant, s, forward),
             .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => return self.andMask(s, idx),
+            .atomic, .backref => unreachable,
             .group_cap, .group_nc, .group_named, .flag_group => return self.walk(n.a, s, forward),
         }
     }

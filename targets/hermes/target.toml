@@ -35,3 +35,6 @@ flag_group = 0  # no ES2025 modifiers: (?i:…) is a syntax error
 
 [grammar]
 duplicate_names = false  # (?<a>x)|(?<a>y) is a syntax error
+
+[global]
+enabled = true  # first 4 matches of matchAll (JS empty-match advance)

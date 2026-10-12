@@ -1,0 +1,13 @@
+# irx target: MinRX (gawk 5.4)
+# Run: tools/irx_target.py minrx [--duration SECONDS]
+
+[target]
+title = "MinRX (gawk 5.4)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/minrx_host {mode}"
+dialect = "llvm"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans

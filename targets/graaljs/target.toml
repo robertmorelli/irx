@@ -19,3 +19,6 @@ loop = "reset"  # loop bodies' captures per iteration (docs/phase2-captures.md)
 [offset]
 enabled = true  # span of a search from lastIndex
 sticky = true   # the y flag
+
+[global]
+enabled = true  # first 4 matches of matchAll (JS empty-match advance)

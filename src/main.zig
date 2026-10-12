@@ -279,6 +279,7 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     // The pool must live in run.cfg: the local cfg above goes out of scope.
     alpha.active_pool = run.cfg.poolSlice();
     @import("sample.zig").allow_duplicate_names = run.cfg.duplicate_names;
+    @import("sample.zig").allow_extended = run.cfg.extended_mode;
     // Pools for rotation: the base pool, then each alternate pool filtered like the base pool.
     run.pools[0] = alpha.active_pool;
     run.n_pools = 1;
@@ -315,6 +316,8 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     if (run.cfg.offset) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, off_mode });
     const sticky_mode = if (o.shell != null) "shell-sticky" else if (o.perl != null) "perl-sticky" else "sticky";
     if (run.cfg.sticky) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, sticky_mode });
+    const global_mode = if (o.shell != null) "shell-global" else "global";
+    if (run.cfg.global and o.perl == null) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, global_mode });
     // [long]: add the long-input mode, or run it alone (`only = true`).
     if (run.cfg.long_mode or run.cfg.long_mode_only) {
         mode_list = if (run.cfg.long_mode_only) long_mode else try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, long_mode });
@@ -770,7 +773,7 @@ fn cmdGate(gpa: Allocator, o: *const Options) !u8 {
 fn quantDepth(t: *const ast.Ast, idx: u8) usize {
     const n = t.nodes[idx];
     return switch (n.op) {
-        .atom => 0,
+        .atom, .backref => 0,
         .concat, .alt => @max(quantDepth(t, n.a), quantDepth(t, n.b)),
         .quant => blk: {
             const d = quantDepth(t, n.a);

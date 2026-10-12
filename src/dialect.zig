@@ -80,6 +80,26 @@ pub const Dialect = struct {
     /// Inline flag groups (?i:…) / (?-i:…) are supported, for the flags in scoped_mods
     /// (ast.fmod_*); dotall_letter spells s (Ruby: m).
     scoped_flags: bool = false,
+    /// Mutation mode (atomic groups, possessive quantifiers, backreferences): which the engine has.
+    atomic_groups: bool = false,
+    possessive: bool = false,
+    backrefs: bool = false,
+    /// A backreference to a group that has not participated matches empty (ECMAScript) rather
+    /// than failing (Perl, PCRE and most others).
+    backref_unset_matches_empty: bool = false,
+    /// Possessive spellings exist for counted loops too (x{2,3}+); Ruby reads that as {2,3} then +.
+    possessive_counted: bool = true,
+    /// Backreferences to named groups are spelled \k<name>, and with any named group present a
+    /// numbered reference is an error (Onigmo, Oniguruma).
+    backref_by_name: bool = false,
+    /// Loop bodies' captures are cleared per iteration (capture model hint for the oracle).
+    reset_loop_captures_hint: bool = false,
+    /// \h \H \v \V (horizontal / vertical whitespace) are generated, with these sets.
+    hv_escapes: bool = false,
+    /// Scoped extended mode (?x:…) is supported: whitespace and # comments are ignored.
+    extended_mode: bool = false,
+    isHSpace: *const fn (u21) bool = defaultHSpace,
+    isVSpace: *const fn (u21) bool = defaultVSpace,
     /// Named groups in different alternatives may share a name (ES2025 duplicate named groups).
     duplicate_names: bool = false,
     /// Under i, \p{…} also matches the multi-character case folds of its members (Onigmo:
@@ -128,6 +148,8 @@ pub const Dialect = struct {
     lookbehind_onig: bool = false,
     /// No `??`, `*?`, `+?` inside lookbehind (ICU; `{m,n}?` compiles).
     lookbehind_no_lazy: bool = false,
+    /// No quantifier at all inside lookbehind (Boost).
+    lookbehind_no_quant: bool = false,
     /// Which match an unanchored search reports: the first in backtracking priority order
     /// (Perl, JS, Java, ...) or the leftmost-longest (POSIX).
     span_semantics: SpanSemantics = .first,
@@ -167,6 +189,7 @@ pub const perl_a = @import("dialects/perl.zig").perl_a;
 pub const perl_aa = @import("dialects/perl.zig").perl_aa;
 pub const pcre2_ascii = @import("dialects/perl.zig").pcre2_ascii;
 pub const boost = @import("dialects/perl.zig").boost;
+pub const pcre1 = @import("dialects/perl.zig").pcre1;
 pub const swift = @import("dialects/swift.zig").dialect;
 pub const rust = @import("dialects/rust.zig").dialect;
 pub const fancy = @import("dialects/rust.zig").fancy;
@@ -199,7 +222,8 @@ pub const emacs = @import("dialects/emacs.zig").dialect;
 pub const vectorscan = @import("dialects/vectorscan.zig").dialect;
 pub const llvm = @import("dialects/llvm.zig").dialect;
 pub const libc = @import("dialects/llvm.zig").libc;
-pub const all = [_]*const Dialect{ &es, &perl, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm, &libc, &cpp, &boost, &re2j, &onig_perl, &onig_java, &onig_python, &onig_ascii, &dotnet_ecma };
+pub const gnu = @import("dialects/llvm.zig").gnu;
+pub const all = [_]*const Dialect{ &es, &perl, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm, &libc, &cpp, &boost, &re2j, &onig_perl, &onig_java, &onig_python, &onig_ascii, &dotnet_ecma, &pcre1, &gnu };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
@@ -313,6 +337,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (d.lookbehind_fixed and (c.min != c.max or c.max >= cap)) ok.* = false;
             if (d.lookbehind_no_unbounded_group and c.f & tb.aux_uq != 0) ok.* = false;
             if (d.lookbehind_no_variable and c.f & (tb.aux_vq | tb.aux_la) != 0) ok.* = false;
+            if (d.lookbehind_no_quant and c.f & tb.aux_q != 0) ok.* = false;
             if (d.lookbehind_onig and (c.f & (tb.aux_lk | tb.aux_cq) != 0 or (n.op == .neg_look_behind and c.f & tb.aux_cp != 0))) ok.* = false;
             if (d.lookbehind_no_lazy and c.f & tb.aux_lz != 0) ok.* = false;
             return .{ .min = 0, .max = 0, .f = tb.aux_lk | tb.aux_za | (c.f & inherit) };
@@ -326,10 +351,29 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             const c = lenOf(t, n.a, ok);
             return .{ .min = c.min, .max = c.max, .f = (c.f & inherit) | tb.aux_cp };
         },
+        .atomic => {
+            if (!d.atomic_groups) ok.* = false;
+            const c = lenOf(t, n.a, ok);
+            return .{ .min = c.min, .max = c.max, .f = (c.f & inherit) | tb.aux_cx };
+        },
+        // A backreference's length is the group's: variable, so lookbehind rules reject it.
+        .backref => {
+            if (!d.backrefs) ok.* = false;
+            return .{ .min = 0, .max = cap, .f = tb.aux_vq | tb.aux_uq | tb.aux_cx };
+        },
     }
 }
 
 /// Subjects never contain lone surrogates for this dialect.
 pub fn noLoneSurrogates() bool {
     return active.strings != .es;
+}
+
+/// PCRE2's \h: tab, space, NBSP, U+1680, U+180E, U+2000..U+200A, U+202F, U+205F, U+3000.
+pub fn defaultHSpace(c: u21) bool {
+    return c == 0x09 or c == 0x20 or c == 0xA0 or c == 0x1680 or c == 0x180E or (c >= 0x2000 and c <= 0x200A) or c == 0x202F or c == 0x205F or c == 0x3000;
+}
+/// PCRE2's \v: \n, VT, FF, \r, NEL, LS, PS.
+pub fn defaultVSpace(c: u21) bool {
+    return (c >= 0x0A and c <= 0x0D) or c == 0x85 or c == 0x2028 or c == 0x2029;
 }

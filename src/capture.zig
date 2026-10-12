@@ -78,7 +78,7 @@ fn collectNamed(t: *const ast.Ast, idx: u8, named: *[ast.max_caps]bool, k: *usiz
         if (n.op == .group_named) any.* = true;
         k.* += 1;
     }
-    if (n.op == .atom) return;
+    if (n.op.isLeaf()) return;
     collectNamed(t, n.a, named, k, any);
     if (ast.Op.isBinary(n.op)) collectNamed(t, n.b, named, k, any);
 }
@@ -145,7 +145,7 @@ pub const Check = struct {
 fn groupInNullableLoop(t: *const ast.Ast, idx: u8, in_nullable: bool) bool {
     const n = t.nodes[idx];
     if ((n.op == .group_cap or n.op == .group_named) and in_nullable) return true;
-    if (n.op == .atom) return false;
+    if (n.op.isLeaf()) return false;
     const inner = in_nullable or (n.op == .quant and span.minLen(t, n.a) == 0);
     if (groupInNullableLoop(t, n.a, inner)) return true;
     return ast.Op.isBinary(n.op) and groupInNullableLoop(t, n.b, inner);
@@ -158,7 +158,7 @@ fn groupContexts(t: *const ast.Ast, idx: u8, in_quant: bool, in_lb: bool, out: *
         if (in_quant) out[0] = true;
         if (in_lb) out[1] = true;
     }
-    if (n.op == .atom) return;
+    if (n.op.isLeaf()) return;
     const q = in_quant or n.op == .quant;
     const lb = in_lb or n.op == .look_behind or n.op == .neg_look_behind;
     groupContexts(t, n.a, q, lb, out);

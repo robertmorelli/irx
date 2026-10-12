@@ -1,0 +1,4 @@
+# GNU regex (glibc implementation, via gawk 5.4)
+
+See [`target.toml`](target.toml) for how irx drives this engine; run it with `tools/irx_target.py gnu-regex`.
+gawk's bundled copy of the GNU C library's regex (`regcomp`/`regexec`, built by `tools/build_gawk_support.sh`), the closest thing to Linux's grep/sed matcher available on macOS: POSIX ERE, leftmost-longest, C locale (`gnu` dialect). In this build `$[[:space:]]` matches `"\n"` at 0 without `REG_NEWLINE` and `(^a){0,2}` matches `"aa"`; until that is checked against a real glibc, the dialect generates no `^` or `$`. With `REG_ICASE` this copy matches `[a-c]` against `"A"` but not `"a"` (gawk does case-insensitivity its own way), so the target uses no `i` flag sets. Neither behavior has been checked against glibc itself. Bugs found here are listed in the [bug ledger](../../README.md#bug-ledger).

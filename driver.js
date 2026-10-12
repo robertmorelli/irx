@@ -135,6 +135,26 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
     return s;
   }
 
+  // Global mode (gspan): the first 4 matches of matchAll per subject (each engine's own empty-match
+  // advance), 2 hex digits per position, ff = no further match (see src/span.zig checkGlobal).
+  var GLOBAL_MATCHES = 4;
+  function globalCase(c) {
+    var re;
+    try { re = new RegExp(c[3], c[0] + "g"); } catch (e) { return "fe" + hx((e instanceof SyntaxError) ? 4 : 8) + "00".repeat(4 * GLOBAL_MATCHES - 2); }
+    var s = "";
+    try {
+      for (var k = 1; k <= 2; k++) {
+        var n = 0;
+        for (var m of c[k].matchAll(re)) {
+          if (n === GLOBAL_MATCHES) break;
+          s += hx(m.index) + hx(m.index + m[0].length); n++;
+        }
+        for (; n < GLOBAL_MATCHES; n++) s += "ffff";
+      }
+    } catch (e) { return "fe08" + "00".repeat(4 * GLOBAL_MATCHES - 2); }
+    return s;
+  }
+
   // Capture mode: like span mode, plus groups 1..6 (via the d flag's indices) per subject:
   // 7 position pairs each, ffff = unset (see src/capture.zig).
   var CAP_GROUPS = 6;
@@ -172,6 +192,7 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
     for (var i = 0; i < cases.length; i++) {
       if (mode === "span" || mode === "lspan") { parts[i] = spanCase(cases[i], mode === "lspan"); continue; }
       if (mode === "ospan" || mode === "aspan") { parts[i] = offsetCase(cases[i], mode === "aspan"); continue; }
+      if (mode === "gspan") { parts[i] = globalCase(cases[i]); continue; }
       if (mode === "capture" || mode === "lcapture") { parts[i] = captureCase(cases[i], mode === "lcapture"); continue; }
       var b = runCase(cases[i]);
       parts[i] = HEX[(b >> 4) & 15] + HEX[b & 15];

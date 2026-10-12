@@ -59,6 +59,11 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    .atomic_groups = true,
+    // x*+ and x{0,3}+ read as a quantifier then +, not possessive: atomic groups only.
+    .possessive = false,
+    .backrefs = true,
+    .extended_mode = true,
     .scoped_flags = true,
     // A loop whose body can match empty through an alternation can spin forever on empty
     // iterations ((?:(?:^|x)^)+ on "": IRX-SWIFT-4); such bodies only under ?.

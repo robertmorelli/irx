@@ -25,3 +25,6 @@ batch_deadline_base_ms = 90000
 [offset]
 enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
 sticky = true
+
+[global]
+enabled = true  # first 4 matches of matchAll (JS empty-match advance)

@@ -35,6 +35,11 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    .atomic_groups = true,
+    .possessive = true,
+    .backrefs = true,
+    .extended_mode = true,
+    .hv_escapes = true,
     .scoped_flags = true,
     .unicode_props = true,
     .prop_case = .equivalence_invert,

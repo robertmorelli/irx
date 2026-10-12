@@ -3,6 +3,8 @@ const alpha = @import("../alphabet.zig");
 const D = @import("../dialect.zig");
 
 pub const dialect: D.Dialect = .{
+    .backrefs = true,
+    .backref_unset_matches_empty = true,
     .scoped_flags = true,
     .unicode_props = true,
     .props_need_u = true,
@@ -31,6 +33,8 @@ pub const cpp: D.Dialect = blk: {
     d.caret_after_trailing_newline = false;
     // libc++'s loop over a body that matched empty follows its own rule; spans skip such patterns.
     d.empty_iteration = .unmodeled;
+    // A reference to a group that did not participate fails (IRX-LIBCXX-4; ES says empty).
+    d.backref_unset_matches_empty = false;
     d.duplicate_names = false;
     break :blk d;
 };

@@ -105,6 +105,7 @@ pub const Triage = struct {
         var bits: [harness.max_result_width]u8 = undefined;
         const raw = bits[0..harness.resultWidth(spec.expect)];
         const o = self.runRequest(spec, req.items, 1, raw, fresh);
+        if (spec.expect == .global and o == .bits) return .{ .bits = spanmod.checkGlobal(c, raw, self.run.cfg.span_units).bits };
         if (spec.expect.isSpan() and o == .bits) return .{ .bits = spanmod.checkAt(c, raw, self.run.cfg.span_units, long, spec.expect.usesOffsets(), spec.expect == .sticky).bits };
         if (spec.expect.isCapture() and o == .bits) return .{ .bits = capmod.check(c, raw, &self.run.cfg, long).bits };
         return o;
@@ -123,7 +124,7 @@ pub const Triage = struct {
         switch (self.runRequest(spec, req.items, 1, raw, false)) {
             .bits => {
                 try report.appendSlice(a, ",\n  ");
-                if (spec.expect.isSpan()) try spanmod.extraJson(report, a, spanmod.checkAt(c, raw, self.run.cfg.span_units, long, spec.expect.usesOffsets(), spec.expect == .sticky), raw) else try capmod.extraJson(report, a, capmod.check(c, raw, &self.run.cfg, long), raw);
+                if (spec.expect == .global) try spanmod.extraJson(report, a, spanmod.checkGlobal(c, raw, self.run.cfg.span_units), raw) else if (spec.expect.isSpan()) try spanmod.extraJson(report, a, spanmod.checkAt(c, raw, self.run.cfg.span_units, long, spec.expect.usesOffsets(), spec.expect == .sticky), raw) else try capmod.extraJson(report, a, capmod.check(c, raw, &self.run.cfg, long), raw);
             },
             .failed => {},
         }
@@ -295,6 +296,7 @@ pub const Triage = struct {
 
     fn validFor(t: *const ast.Ast, flags: Flags) bool {
         if (!@import("dialect.zig").treeAllowed(t)) return false;
+        if (ast.needsMatcher(t) and !ast.backrefsValid(t)) return false;
         for (t.nodes[0..t.len]) |n| {
             if (n.op != .atom) continue;
             const at = n.atom;
@@ -408,6 +410,10 @@ pub const Triage = struct {
                         variants[nv] = .{ .quant = q };
                         nv += 1;
                     }
+                },
+                .backref => {
+                    variants[nv] = .{ .replace_atom = .{ .kind = .empty } };
+                    nv += 1;
                 },
                 else => {
                     variants[nv] = .{ .child = n.a };
@@ -729,7 +735,7 @@ fn copyWith(src: *const ast.Ast, idx: u8, target: u8, v: Variant, dst: *ast.Ast)
     }
     var n = src.nodes[idx];
     switch (n.op) {
-        .atom => {},
+        .atom, .backref => {},
         .concat, .alt => {
             n.a = try copyWith(src, n.a, target, v, dst);
             n.b = try copyWith(src, n.b, target, v, dst);

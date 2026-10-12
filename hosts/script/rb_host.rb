@@ -27,7 +27,7 @@ $stdin.each_line do |line|
     opt = (flags.include?("i") ? Regexp::IGNORECASE : 0) | (flags.include?("s") ? Regexp::MULTILINE : 0)
     if is_cap # whole match + groups 1..6 per subject (src/capture.zig)
       begin
-        rx = Regexp.new(pat.gsub(/\\x\{([0-9A-Fa-f]+)\}/) { [$1.hex].pack("U") }, opt)
+        rx = Regexp.new(pat.gsub(/\\x\{([0-9A-Fa-f]+)\}/) { "\\u{#{$1}}" }, opt)
       rescue RegexpError, ArgumentError
         next failed(4, 26)
       end
@@ -50,7 +50,7 @@ $stdin.each_line do |line|
     end
     if is_span # unanchored search, code-point offsets (src/span.zig)
       begin
-        src = pat.gsub(/\\x\{([0-9A-Fa-f]+)\}/) { [$1.hex].pack("U") }
+        src = pat.gsub(/\\x\{([0-9A-Fa-f]+)\}/) { "\\u{#{$1}}" }
         rx = Regexp.new(sticky ? "\\G(?:#{src})" : src, opt)
       rescue RegexpError, ArgumentError
         next failed(4, 2)
@@ -61,7 +61,7 @@ $stdin.each_line do |line|
         next failed(8, 2)
       end
     end
-    src = "\\A(?:" + pat.gsub(/\\x\{([0-9A-Fa-f]+)\}/) { [$1.hex].pack("U") } + ")\\z"
+    src = "\\A(?:" + pat.gsub(/\\x\{([0-9A-Fa-f]+)\}/) { "\\u{#{$1}}" } + ")\\z"
     begin
       rx = Regexp.new(src, opt)
     rescue RegexpError, ArgumentError

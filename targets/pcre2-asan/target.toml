@@ -1,0 +1,27 @@
+# irx target: PCRE2 10.49 (ASan/UBSan)
+# Run: tools/irx_target.py pcre2-asan [--duration SECONDS]
+
+[target]
+title = "PCRE2 10.49 (ASan/UBSan)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/pcre2_host_asan {mode}"
+env = "ASAN_OPTIONS=abort_on_error=1:halt_on_error=1:detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_stacktrace=1"
+dialect = "pcre2"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+lookbehind = false  # lookbehind runs forward here; JS (and the model) match it right to left
+
+[offset]
+enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true
+
+[harness]
+# Sanitized builds run 2-5x slower.
+batch_deadline_per512_ms = 8000

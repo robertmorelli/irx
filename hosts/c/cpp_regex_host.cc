@@ -70,8 +70,22 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
     } catch (const std::regex_error &) { return 0x40; }
     return 0;
 }
-/* Capture mode is not modelled for this engine yet: unsupported. */
+/* Capture mode: whole match then groups 1..6 per subject, UTF-8 byte offsets (-1 = unset). */
 int host_capture(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[2][2 * CAP_PAIRS]) {
-    (void)flags; (void)subj; (void)lens; (void)pat; (void)plen; (void)out;
-    return 0x40;
+    std::wregex re;
+    try { re.assign(pattern(pat, plen), opts(flags)); } catch (const std::regex_error &) { return 0x04; }
+    try {
+        for (int k = 0; k < 2; k++) {
+            std::wstring w = widen(subj[k], lens[k]);
+            std::wsmatch m;
+            bool hit = std::regex_search(w, m, re);
+            for (int g = 0; g < CAP_PAIRS; g++) {
+                if (hit && (size_t)g < m.size() && m[g].matched) {
+                    long p = (long)m.position((std::size_t)g), e = p + (long)m.length((std::size_t)g);
+                    out[k][2 * g] = byteOff(subj[k], lens[k], p); out[k][2 * g + 1] = byteOff(subj[k], lens[k], e);
+                } else out[k][2 * g] = out[k][2 * g + 1] = -1;
+            }
+        }
+    } catch (const std::regex_error &) { return 0x40; }
+    return 0;
 }
