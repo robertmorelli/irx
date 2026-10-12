@@ -7,7 +7,7 @@ edition = "2021"
 regex = "1"
 regex-lite = "0.1"
 regex-automata = "0.4"
-fancy-regex = "0.14"
+fancy-regex = "0.19"
 resharp = "0.7.5"
 
 [profile.release]
