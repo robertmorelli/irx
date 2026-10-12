@@ -44,6 +44,8 @@ pub const cpp: D.Dialect = blk: {
     d.empty_iteration = .unmodeled;
     // A reference to a group that did not participate fails (IRX-LIBCXX-4; ES says empty).
     d.backref_unset_matches_empty = false;
+    // Any backreference inside a lookahead is rejected (IRX-LIBCXX-5).
+    d.backref_in_lookaround = false;
     d.duplicate_names = false;
     break :blk d;
 };

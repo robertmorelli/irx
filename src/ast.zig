@@ -177,17 +177,18 @@ pub fn evalRel(comptime R: type, t: *const Ast, idx: u8, flags: Flags, w: []cons
 pub fn backrefsValid(t: *const Ast) bool {
     const caps = Caps.init(t) orelse return false;
     var closed: [max_caps]bool = [_]bool{false} ** max_caps;
-    return backrefWalk(t, t.root, &caps, &closed);
+    return backrefWalk(t, t.root, &caps, &closed, false);
 }
 
-fn backrefWalk(t: *const Ast, idx: u8, caps: *const Caps, closed: *[max_caps]bool) bool {
+fn backrefWalk(t: *const Ast, idx: u8, caps: *const Caps, closed: *[max_caps]bool, in_look: bool) bool {
     const n = t.nodes[idx];
     switch (n.op) {
         .atom => return true,
-        .backref => return n.fmod < caps.count and closed[n.fmod],
-        .concat, .alt => return backrefWalk(t, n.a, caps, closed) and backrefWalk(t, n.b, caps, closed),
+        .backref => return n.fmod < caps.count and closed[n.fmod] and (!in_look or dialect.active.backref_in_lookaround),
+        .concat, .alt => return backrefWalk(t, n.a, caps, closed, in_look) and backrefWalk(t, n.b, caps, closed, in_look),
         else => {
-            if (!backrefWalk(t, n.a, caps, closed)) return false;
+            const look = in_look or n.op == .look_ahead or n.op == .neg_look_ahead or n.op == .look_behind or n.op == .neg_look_behind;
+            if (!backrefWalk(t, n.a, caps, closed, look)) return false;
             if (n.op == .group_cap or n.op == .group_named) closed[caps.ordinal[idx]] = true;
             return true;
         },

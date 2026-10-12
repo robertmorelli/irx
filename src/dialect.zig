@@ -103,6 +103,8 @@ pub const Dialect = struct {
     /// v-mode class strings (\q{…}) are compared case-insensitively under i. Irregexp compares
     /// the folded string against the raw subject (IRX-V8-5), so its targets keep \q out of i.
     qstr_ignore_case: bool = true,
+    /// A backreference may sit inside a lookaround (libc++ rejects it: IRX-LIBCXX-5).
+    backref_in_lookaround: bool = true,
     /// \X: one extended grapheme cluster (UAX #29) from the current position, atomically;
     /// `extended_gb9c` adds rule GB9c (Indic conjuncts, Unicode 15.1).
     grapheme_escape: Grapheme = .none,

@@ -9,8 +9,8 @@ confirmed by hand, usually against other engines too.
 
 ### Confirmed findings
 
-The [bug ledger](#bug-ledger) has **96 confirmed bug IDs**, **86 unique reported bugs**
-(distinct upstream issue links), **87 distinct bug shapes**, and **60 candidates**
+The [bug ledger](#bug-ledger) has **97 confirmed bug IDs**, **86 unique reported bugs**
+(distinct upstream issue links), **88 distinct bug shapes**, and **61 candidates**
 still to audit or report. Bug IDs count
 separate ledger rows, including confirmed repros linked to an existing report.
 Unique bugs count each upstream issue once; shapes group the same failure pattern
@@ -476,6 +476,7 @@ recorded in the tables below. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 =
 | IRX-LIBCXX-2 | libc++ `std::regex` | Open · not filed | wrong result: `std::regex_match("a", std::regex("a(?=\\b)"))` → false; `std::regex_match("ab", std::regex("a(?!\\B)b"))` → true → expected true; false | Tested: libc++ 22.1 (Xcode). Inside a lookahead, `\b` and `\B` ignore the character before the lookahead position, as if the lookahead started a new string. Found by the new `cpp-regex` target's sweep. |
 | IRX-LIBCXX-3 | libc++ `std::regex` | Open · not filed | wrong result: `std::regex_search("a", m, std::regex("\\B"))` → match `[1,1)` → expected no match (both positions of `"a"` are word boundaries) | Tested: libc++ 22.1 (Xcode). `\B` holds at the end of the string after a word character. Found by the new `cpp-regex` target's sweep. |
 | IRX-LIBCXX-4 | libc++ `std::regex` | Open · not filed | wrong result: `std::regex_match("", std::regex("(a)?\\1"))` → false; also `(a)a\|\1` on `""`, `(?:(a)\|b)\1` on `"b"` → expected true (ECMAScript, including the 3rd edition the C++ standard cites: a backreference to a group that did not participate matches empty) | Tested: libc++ 22.1 (Xcode). Found by mutation mode (backreferences) on the `cpp-regex` target; the `cpp` dialect follows libc++ here so the target keeps finding other bugs. |
+| IRX-LIBCXX-5 | libc++ `std::regex` | Open · not filed | rejects valid pattern: `std::regex("(a)(?=\\1)a")` → `regex_error` "invalid back reference"; also `(a)(?!\1)b` and any backreference inside a lookahead → expected accepted (ECMAScript allows backreferences in lookaheads, including the 3rd edition the C++ standard cites) | Tested: libc++ 21 (Xcode) and libc++ 23.1.2 (Homebrew LLVM). A backreference outside a lookahead (`(a)\1`) compiles. Found by the round-10 campaign (mutation mode) on `cpp-asan`; the `cpp` dialect no longer places backreferences in lookarounds |
 | IRX-LIBC-1 | macOS libc regex (TRE) | Open · not filed | wrong result: `regexec` of `^(($)*a)$` (`REG_EXTENDED`) on `"a"` → no match; also `^(a(^)*)$`, `^(a(^)?)$`; `echo a \| grep -E '($)*a'` → no match → expected match (zero iterations; `^((^)*a)$` and LLVM's Spencer regex match) | Tested: macOS 27 libc (`regcomp`/`regexec`, `/usr/bin/grep -E`). A quantified group holding `$` before other content, or `^` after it, makes the match fail even when it can repeat zero times. The `libc` dialect stops generating quantified assertions so the target can find other bugs. Found by the new `libc-regex` target's sweep. |
 | IRX-LIBC-2 | macOS libc regex (TRE) | Open · not filed | wrong span (not leftmost): `regexec` of `aa\|a{2}` (`REG_EXTENDED`) on `"aaa"` → `[1,3)`; `.a\|a+` on `"Aaa"` → `[1,3)` → expected `[0,2)` for both (POSIX: the leftmost match, then the longest) | Tested: macOS 27 libc (`regcomp`/`regexec`). With an alternation, a longer-looking match at a later start beats the leftmost one. Found by the new `libc-regex` target's span mode. |
 | IRX-JAVA-1 | Java | Resolved · not filed | wrong result (asymmetric case folding): `Pattern.compile("ß", CASE_INSENSITIVE \| UNICODE_CASE).matcher("ẞ").matches()` → false → expected true (`Pattern.compile("ẞ", …).matcher("ß")` is true) | Tested: OpenJDK 23 `java.util.regex` (`CASE_INSENSITIVE \| UNICODE_CASE`). **resolved in current version (OpenJDK 27)**; ß and ẞ now match in both directions, including the class case; older OpenJDK 23 behavior is retained here |
@@ -584,7 +585,7 @@ target has its own. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are 
 | SpiderMonkey 158 (jsvu) | [`spidermonkey`](targets/spidermonkey) | `driver.js` (`sm`) | `es` (exact) | new |
 | JavaScriptCore (system `jsc`) | [`jsc`](targets/jsc) | `driver.js` (`jsc`) | `es` (exact) | new |
 | GraalJS 25.4 (TRegex) | [`graaljs`](targets/graaljs) | `driver.js` (`vendor/graaljs`) | `es` (exact) | IRX-GRAAL-1 |
-| C++ `std::regex` (libc++) | [`cpp-regex`](targets/cpp-regex) | `hosts/c/cpp_regex_host` (`std::wregex`, ECMAScript) | `cpp`: ES subset, ASCII pool, `i`/`m` only | IRX-LIBCXX-1…4 |
+| C++ `std::regex` (libc++) | [`cpp-regex`](targets/cpp-regex) | `hosts/c/cpp_regex_host` (`std::wregex`, ECMAScript) | `cpp`: ES subset, ASCII pool, `i`/`m` only | IRX-LIBCXX-1…5 |
 | QuickJS (upstream `9d01a96`) | [`quickjs`](targets/quickjs) | `driver.js` (std) | ES2024 | IRX-QJS-1, IRX-QJS-2 |
 | XS | [`xs`](targets/xs) | bridge | ES2024 | IRX-XS-1…11 |
 | Boa | [`boa`](targets/boa) | bridge | ES2024 | IRX-BOA-1…8 |
