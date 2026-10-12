@@ -4,7 +4,7 @@
 [target]
 title = "java.util.regex"
 kind = "shell"   # d8 | perl | shell
-command = "/usr/bin/java -cp {root}/hosts/bin/java Host {mode}"
+command = "/opt/homebrew/opt/openjdk/bin/java -cp {root}/hosts/bin/java Host {mode}"
 dialect = "java"   # src/dialects/
 selfcheck = true
 
