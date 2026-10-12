@@ -37,7 +37,7 @@ pub const Run = struct {
     cfg: config.Config,
     /// Character pools: [0] the configured pool, then the alternate pools (pool rotation),
     /// filtered like the base pool for the dialect.
-    pools: [4][]const u21 = undefined,
+    pools: [1 + alpha.alt_pools.len][]const u21 = undefined,
     n_pools: u8 = 0,
     host: Budget,
     global_seed: u64,
