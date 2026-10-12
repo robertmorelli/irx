@@ -182,9 +182,14 @@ pub const java = @import("dialects/java.zig").dialect;
 pub const java_ascii = @import("dialects/java.zig").ascii;
 pub const ruby = @import("dialects/ruby.zig").dialect;
 pub const oniguruma = @import("dialects/ruby.zig").oniguruma;
+pub const onig_perl = @import("dialects/ruby.zig").onig_perl;
+pub const onig_java = @import("dialects/ruby.zig").onig_java;
+pub const onig_python = @import("dialects/ruby.zig").onig_python;
+pub const onig_ascii = @import("dialects/ruby.zig").onig_ascii;
 pub const dotnet = @import("dialects/dotnet.zig").dialect;
 pub const dotnet_nb = @import("dialects/dotnet.zig").nonbacktracking;
 pub const dotnet_compiled = @import("dialects/dotnet.zig").compiled;
+pub const dotnet_ecma = @import("dialects/dotnet.zig").ecma;
 pub const icu = @import("dialects/icu.zig").dialect;
 pub const resharp = @import("dialects/resharp.zig").dialect;
 pub const nim = @import("dialects/nim.zig").dialect;
@@ -194,7 +199,7 @@ pub const emacs = @import("dialects/emacs.zig").dialect;
 pub const vectorscan = @import("dialects/vectorscan.zig").dialect;
 pub const llvm = @import("dialects/llvm.zig").dialect;
 pub const libc = @import("dialects/llvm.zig").libc;
-pub const all = [_]*const Dialect{ &es, &perl, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm, &libc, &cpp, &boost, &re2j };
+pub const all = [_]*const Dialect{ &es, &perl, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm, &libc, &cpp, &boost, &re2j, &onig_perl, &onig_java, &onig_python, &onig_ascii, &dotnet_ecma };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
