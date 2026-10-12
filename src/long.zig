@@ -19,6 +19,8 @@
 //! length and drops pairs it cannot finish.
 const std = @import("std");
 const ast = @import("ast.zig");
+const grapheme = @import("grapheme.zig");
+const dialect = @import("dialect.zig");
 const atoms = @import("atoms.zig");
 const alpha = @import("alphabet.zig");
 const rngmod = @import("rng.zig");
@@ -114,7 +116,7 @@ pub const Eval = struct {
                 .caret, .dollar, .wordb, .nwordb => {
                     for (0..self.w.len + 1) |i| if (atoms.assertionAt(&n.atom, self.nflags[idx], self.w, i)) setBit(m, i);
                 },
-                .strs => unreachable,
+                .strs, .grapheme => unreachable,
                 else => for (self.w, 0..) |c, i| if (atoms.matches(&n.atom, self.nflags[idx], c)) setBit(m, i),
             },
             .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => {
@@ -154,13 +156,54 @@ pub const Eval = struct {
         return self.walk(idx, e, false);
     }
 
+    /// Atoms that may match a multi-character case fold: single characters plus fold strings.
+    fn foldWalk(self: *Eval, idx: u8, s: []const u64, forward: bool) Error![]u64 {
+        const a = &self.t.nodes[idx].atom;
+        const fl = self.nflags[idx];
+        const out = try self.alloc();
+        @memset(out, 0);
+        const Ctx = struct {
+            ev: *Eval,
+            s: []const u64,
+            out: []u64,
+            i: usize,
+            forward: bool,
+            fn f(x: @This(), e: usize) bool {
+                if (x.forward) {
+                    if (getBit(x.s, x.i)) setBit(x.out, e);
+                } else if (getBit(x.s, e)) setBit(x.out, x.i);
+                return false;
+            }
+        };
+        for (0..self.w.len) |i| {
+            if (atoms.matches(a, fl, self.w[i])) {
+                if (forward) {
+                    if (getBit(s, i)) setBit(out, i + 1);
+                } else if (getBit(s, i + 1)) setBit(out, i);
+            }
+            _ = atoms.forEachFoldMatch(a, fl, self.w, i, Ctx{ .ev = self, .s = s, .out = out, .i = i, .forward = forward }, Ctx.f);
+        }
+        return out;
+    }
+
     fn walk(self: *Eval, idx: u8, s: []const u64, forward: bool) Error![]u64 {
         try self.charge(1);
         const n = self.t.nodes[idx];
         // Atomic groups and backreferences have no position-set semantics (mutation mode only).
         if (n.op == .atomic or n.op == .backref) return error.Unsupported;
         switch (n.op) {
-            .atom => switch (n.atom.kind) {
+            .atom => if (atoms.foldsMulti(&n.atom, self.nflags[idx])) return self.foldWalk(idx, s, forward) else switch (n.atom.kind) {
+                .grapheme => {
+                    const out = try self.alloc();
+                    @memset(out, 0);
+                    for (0..self.w.len) |i| {
+                        const e = grapheme.clusterEndActive(self.w, i);
+                        if (forward) {
+                            if (getBit(s, i)) setBit(out, e);
+                        } else if (getBit(s, e)) setBit(out, i);
+                    }
+                    return out;
+                },
                 .strs => {
                     // Class strings: each alternative moves a position by its length.
                     const out = try self.alloc();

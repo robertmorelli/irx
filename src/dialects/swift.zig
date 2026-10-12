@@ -59,6 +59,7 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    .grapheme_escape = .extended_gb9c,
     .atomic_groups = true,
     // x*+ and x{0,3}+ read as a quantifier then +, not possessive: atomic groups only.
     .possessive = false,

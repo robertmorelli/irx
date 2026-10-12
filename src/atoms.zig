@@ -10,9 +10,10 @@ const alpha = @import("alphabet.zig");
 const relmod = @import("rel.zig");
 const Flags = alpha.Flags;
 const ucd = @import("ucd.zig");
+const grapheme = @import("grapheme.zig");
 const dialect = @import("dialect.zig");
 
-pub const Kind = enum(u8) { lit, dot, esc, range, cls, vset, caret, dollar, wordb, nwordb, empty, prop, strs };
+pub const Kind = enum(u8) { lit, dot, esc, range, cls, vset, caret, dollar, wordb, nwordb, empty, prop, strs, grapheme };
 
 /// Unicode general categories for `\p{…}` / `\P{…}` (a selection that the character pool
 /// exercises: letters and their cases, digits, the pool's punctuation, symbols, separators,
@@ -72,6 +73,7 @@ pub const AtomSpec = struct {
     }
     pub fn maxLen(a: AtomSpec) u8 {
         if (a.kind == .strs) return @max(a.n & 0xF, a.n >> 4);
+        if (a.kind == .grapheme) return 255;
         return if (a.isConsuming()) 1 else 0;
     }
 
@@ -99,7 +101,7 @@ pub const AtomSpec = struct {
 
     pub fn isConsuming(a: AtomSpec) bool {
         return switch (a.kind) {
-            .lit, .dot, .esc, .range, .cls, .vset, .prop, .strs => true,
+            .lit, .dot, .esc, .range, .cls, .vset, .prop, .strs, .grapheme => true,
             else => false,
         };
     }
@@ -126,6 +128,7 @@ pub fn category(a: AtomSpec) Category {
         .empty => .empty,
         .prop => .property,
         .strs => .vset,
+        .grapheme => .escape,
     };
 }
 
@@ -341,6 +344,8 @@ pub fn matchesCaseless(spec: *const AtomSpec, flags: Flags, c: u21) bool {
 
 /// CharacterSetMatcher for one symbol (dialect override first).
 pub fn matches(spec: *const AtomSpec, flags: Flags, c: u21) bool {
+    // Multi-character atoms have no per-character test (callers handle them first).
+    if (spec.kind == .strs or spec.kind == .grapheme) return false;
     if (dialect.active.matchAtom) |m| return m(spec, flags, c);
     return matchesGeneric(spec, flags, c);
 }
@@ -413,6 +418,50 @@ pub fn assertionAt(spec: *const AtomSpec, flags0: Flags, w: []const u21, i: usiz
 }
 
 /// Relation of one atom on string w.
+/// Full case folds of more than one character for the characters the pools use (CaseFolding.txt
+/// status F). Subjects never contain these (dialect.pattern_only), so a subject string matches
+/// when its characters' simple folds spell the fold.
+pub fn multiFold(c: u21) ?[]const u21 {
+    return switch (c) {
+        0xDF, 0x1E9E => &.{ 's', 's' },
+        0xFB00 => &.{ 'f', 'f' },
+        0xFB01 => &.{ 'f', 'i' },
+        0xFB02 => &.{ 'f', 'l' },
+        0xFB03 => &.{ 'f', 'f', 'i' },
+        0xFB04 => &.{ 'f', 'f', 'l' },
+        0xFB05, 0xFB06 => &.{ 's', 't' },
+        0x130 => &.{ 'i', 0x307 },
+        else => null,
+    };
+}
+
+/// Multi-character folds the atom can match at w[i..] under i (full_fold dialects): calls
+/// `f(ctx, end)` for each, stopping when it returns true.
+pub fn forEachFoldMatch(a: *const AtomSpec, flags: Flags, w: []const u21, i: usize, ctx: anytype, comptime f: fn (@TypeOf(ctx), usize) bool) bool {
+    if (!foldsMulti(a, flags)) return false;
+    const members: []const u21 = if (a.kind == .lit) a.syms[0..1] else a.syms[0..a.n];
+    for (members) |c| {
+        const fold = multiFold(c) orelse continue;
+        if (i + fold.len > w.len) continue;
+        for (fold, 0..) |x, k| {
+            if (ucd.simpleFold(w[i + k]) != x) break;
+        } else if (f(ctx, i + fold.len)) return true;
+    }
+    return false;
+}
+
+/// Could the atom match more than one character under these flags (full folding)?
+pub fn foldsMulti(a: *const AtomSpec, flags: Flags) bool {
+    if (!flags.i or dialect.active.full_fold == .none) return false;
+    return switch (a.kind) {
+        .lit => multiFold(a.syms[0]) != null,
+        .cls => dialect.active.full_fold == .classes and !a.neg and for (a.syms[0..a.n]) |c| {
+            if (multiFold(c) != null) break true;
+        } else false,
+        else => false,
+    };
+}
+
 /// Does string `s` (a \q{…} alternative) occur at w[i..]? Case-insensitive under i (v mode:
 /// simple case folding).
 pub fn stringAt(s: []const u21, w: []const u21, i: usize, flags: Flags) bool {
@@ -429,6 +478,11 @@ pub fn relation(comptime R: type, spec: *const AtomSpec, flags: Flags, w: []cons
     switch (spec.kind) {
         .empty => return R.identity(dim),
         .caret, .dollar, .wordb, .nwordb => return R.diagFromMask(assertionMask(spec, flags, w)),
+        .grapheme => {
+            var r: R = .{};
+            for (0..w.len) |i| r.set(i, grapheme.clusterEndActive(w, i));
+            return r;
+        },
         .strs => {
             var r: R = .{};
             var ss: [2][]const u21 = undefined;
@@ -442,6 +496,17 @@ pub fn relation(comptime R: type, spec: *const AtomSpec, flags: Flags, w: []cons
             var r: R = .{};
             for (w, 0..) |c, i| {
                 if (matches(spec, flags, c)) r.set(i, i + 1);
+            }
+            if (foldsMulti(spec, flags)) {
+                const Ctx = struct {
+                    r: *R,
+                    i: usize,
+                    fn add(x: @This(), e: usize) bool {
+                        x.r.set(x.i, e);
+                        return false;
+                    }
+                };
+                for (0..w.len) |i| _ = forEachFoldMatch(spec, flags, w, i, Ctx{ .r = &r, .i = i }, Ctx.add);
             }
             return r;
         },
@@ -528,6 +593,7 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
         };
     }
 
+    if (dialect.active.grapheme_escape != .none) try out.append(gpa, .{ .kind = .grapheme });
     for ([_]Kind{ .caret, .dollar, .wordb, .nwordb, .empty }) |kd| {
         if (!dialect.active.assertions.allows(kd)) continue;
         try out.append(gpa, .{ .kind = kd });

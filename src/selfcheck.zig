@@ -11,6 +11,7 @@ const atoms = @import("atoms.zig");
 const sys = @import("sys.zig");
 const harness = @import("harness.zig");
 const finding = @import("finding.zig");
+const ucd = @import("ucd.zig");
 const sample = @import("sample.zig");
 const tablemod = @import("table.zig");
 const runmod = @import("run.zig");
@@ -128,12 +129,14 @@ pub const Checker = struct {
         var subjects: std.ArrayList(finding.Subject) = .empty;
         defer subjects.deinit(self.gpa);
         for (pool) |s| {
+            if (std.mem.indexOfScalar(u21, dialect.active.pattern_only, s) != null) continue;
             var x: finding.Subject = .{};
             if (alpha.isSurrogate(s)) subjectUnits(&.{@intCast(s)}, &x) else subjectFrom(&.{s}, &x);
             try subjects.append(self.gpa, x);
         }
         for (extra_subjects) |s| {
             if (s > 0xFFFF and !flags.unicode()) continue; // two positions; covered by halves
+            if (std.mem.indexOfScalar(u21, dialect.active.pool_exclude, s) != null or std.mem.indexOfScalar(u21, dialect.active.pattern_only, s) != null) continue;
             var x: finding.Subject = .{};
             subjectFrom(&.{s}, &x);
             try subjects.append(self.gpa, x);
@@ -151,6 +154,43 @@ pub const Checker = struct {
         for (g.atoms) |at| {
             if (!at.isConsuming()) continue;
             for (subjects.items) |s| try self.addProbe(flags, at, -1, s, empty, "atom");
+            if (atoms.foldsMulti(&at, flags)) {
+                // Fold strings in every case mix (and with long s), alone and between letters.
+                const mem: []const u21 = if (at.kind == .lit) at.syms[0..1] else at.syms[0..at.n];
+                for (mem) |m| {
+                    const fold = atoms.multiFold(m) orelse continue;
+                    if (std.mem.indexOfScalar(u21, fold, 0x307) != null) continue;
+                    var mask: usize = 0;
+                    while (mask < (@as(usize, 1) << @intCast(fold.len))) : (mask += 1) {
+                        var cps: [3]u21 = undefined;
+                        for (fold, 0..) |x, k| cps[k] = if (mask >> @intCast(k) & 1 == 1) (if (x == 's') 0x17F else ucd.simpleUpper(x)) else x;
+                        var s1: finding.Subject = .{};
+                        subjectFrom(cps[0..fold.len], &s1);
+                        try self.addProbe(flags, at, -1, s1, empty, "fold");
+                        try self.addProbe(flags, at, 1, s1, empty, "fold");
+                    }
+                }
+            }
+            if (at.kind == .grapheme) {
+                // Every two- and three-symbol string over the pool: cluster boundaries.
+                var gbuf: [alpha.max_symbols * 2]u21 = undefined;
+                var ng: usize = 0;
+                for (pool) |c| if (!alpha.isSurrogate(c)) {
+                    gbuf[ng] = c;
+                    ng += 1;
+                };
+                const syms = gbuf[0..ng];
+                for (syms) |x| for (syms) |y| {
+                    var s2: finding.Subject = .{};
+                    subjectFrom(&.{ x, y }, &s2);
+                    try self.addProbe(flags, at, -1, s2, empty, "grapheme");
+                    for (syms) |z| {
+                        var s3: finding.Subject = .{};
+                        subjectFrom(&.{ x, y, z }, &s3);
+                        try self.addProbe(flags, at, -1, s3, empty, "grapheme");
+                    }
+                };
+            }
             if (at.kind == .strs) {
                 // Each string alternative, whole.
                 var ss: [2][]const u21 = undefined;

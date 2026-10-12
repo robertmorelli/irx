@@ -31,6 +31,10 @@ pub const dialect: D.Dialect = blk: {
     d.backrefs = false;
     // No \h \v (\H reads as a literal H).
     d.hv_escapes = false;
+    d.grapheme_escape = .none;
+    d.full_fold = .none;
+    d.pattern_only = &.{};
+    d.pool_exclude = &.{ 0xDF, 0x130 };
     d.named_group = .p_angle;
     d.dollar_before_final_terminator = false;
     d.caret_after_trailing_newline = true;

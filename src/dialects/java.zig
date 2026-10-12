@@ -40,6 +40,7 @@ pub const dialect: D.Dialect = .{
     .backrefs = true,
     .extended_mode = true,
     .hv_escapes = true,
+    .grapheme_escape = .extended_gb9c,
     .scoped_flags = true,
     .unicode_props = true,
     .prop_case = .equivalence_invert,

@@ -38,6 +38,7 @@ pub const dialect: D.Dialect = .{
     .extended_mode = true,
     .scoped_flags = true,
     .hv_escapes = true,
+    .grapheme_escape = .extended_gb9c,
     .isHSpace = hspace,
     .unicode_props = true,
     .prop_case = .cased,
@@ -53,8 +54,10 @@ pub const dialect: D.Dialect = .{
     .escape = .x_brace,
     .any_char = .space_or_nonspace,
     .strings = .code_points,
-    // /i uses full case folding: ß -> "ss", İ -> "i̇" would let one atom match two characters.
-    .pool_exclude = &.{ 0xDF, 0x130 },
+    // /i uses full case folding: a pattern ß matches "ss", also when listed in a class. Subjects
+    // keep these characters out (a subject ß would also match the pattern `ss`).
+    .full_fold = .classes,
+    .pattern_only = &.{ 0xDF, 0x1E9E, 0xFB00, 0xFB01, 0x130 },
     // Perl rejects unbounded lookbehind ("Lookbehind longer than 255").
     .lookbehind_len_cap = 16,
 };
@@ -72,6 +75,14 @@ pub fn pcre2Space(c: u21) bool {
 pub const pcre2: D.Dialect = blk: {
     var d = dialect;
     d.name = "pcre2";
+    // Prepend followed by an Extended_Pictographic character splits (IRX-PCRE2-6).
+    d.grapheme_prepend_pict = false;
+    // No GB9c (Indic conjuncts) in PCRE2 10.49.
+    d.grapheme_escape = .extended;
+    // Simple case folding only (ß ~ ẞ); multi-fold characters stay out of the pool.
+    d.full_fold = .none;
+    d.pattern_only = &.{};
+    d.pool_exclude = &.{ 0xDF, 0x130 };
     d.isHSpace = D.defaultHSpace; // PCRE2's fixed \h list includes U+180E
     d.isWord = pcre2Word;
     d.isSpace = pcre2Space;
@@ -112,6 +123,10 @@ pub const perl_a: D.Dialect = asciiClasses(dialect, "perl-a");
 pub const perl_aa: D.Dialect = blk: {
     var d = asciiClasses(dialect, "perl-aa");
     d.fold = aaFold;
+    // /aa: no ASCII/non-ASCII fold matches, so ß never matches "ss".
+    d.full_fold = .none;
+    d.pattern_only = &.{};
+    d.pool_exclude = &.{ 0xDF, 0x130 };
     break :blk d;
 };
 /// PCRE2 in UTF mode without PCRE2_UCP: ASCII classes; case folding above 127 stays Unicode.
@@ -129,6 +144,10 @@ fn boostLineTerminator(c: u21) bool {
 /// case folding, an ASCII pool, fixed-length lookbehind, no \p{…} (that needs the ICU traits).
 pub const boost: D.Dialect = blk: {
     var d = asciiClasses(dialect, "boost");
+    d.grapheme_escape = .combining;
+    d.full_fold = .none;
+    d.pattern_only = &.{};
+    d.pool_exclude = &.{ 0xDF, 0x130 };
     d.fold = asciiFold;
     d.unicode_props = false;
     d.isLineTerminator = boostLineTerminator;
@@ -158,6 +177,8 @@ fn pcre1Word(c: u21, _: D.Flags) bool {
 pub const pcre1: D.Dialect = blk: {
     var d = pcre2;
     d.name = "pcre1";
+    // Unicode 10-era grapheme data (emoji modifiers had their own class): no \X.
+    d.grapheme_escape = .none;
     d.isWord = pcre1Word;
     // Fixed-length lookbehind branches only: no variable quantifier inside, not even ()?.
     d.lookbehind_no_variable = true;

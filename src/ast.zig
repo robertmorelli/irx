@@ -4,6 +4,7 @@
 const std = @import("std");
 const dialect = @import("dialect.zig");
 const alpha = @import("alphabet.zig");
+const grapheme = @import("grapheme.zig");
 const atoms = @import("atoms.zig");
 const relmod = @import("rel.zig");
 const Flags = alpha.Flags;
@@ -361,6 +362,19 @@ pub const Matcher = struct {
                     if (!atoms.assertionAt(a, fl, self.w, pos)) return false;
                     return self.run(c, pos);
                 }
+                if (a.kind == .grapheme) {
+                    // \X: the one cluster from here, atomically.
+                    if (dir == .fwd) {
+                        if (pos >= self.w.len) return false;
+                        return self.run(c, grapheme.clusterEndActive(self.w, pos));
+                    }
+                    var k = pos;
+                    while (k > 0) {
+                        k -= 1;
+                        if (grapheme.clusterEndActive(self.w, k) == pos and self.run(c, k)) return true;
+                    }
+                    return false;
+                }
                 if (a.kind == .strs) {
                     // Class strings: alternatives longest first, with backtracking.
                     var ss: [2][]const u21 = undefined;
@@ -372,6 +386,33 @@ pub const Matcher = struct {
                         }
                     }
                     return false;
+                }
+                if (atoms.foldsMulti(a, fl)) {
+                    // Full case folding: one character, or a subject string spelling the fold.
+                    if (dir != .fwd) {
+                        if (pos > 0 and atoms.matches(a, fl, self.w[pos - 1]) and self.run(c, pos - 1)) return true;
+                        var k = pos;
+                        while (k > 0) {
+                            k -= 1;
+                            const Hit = struct {
+                                pos: usize,
+                                fn f(x: @This(), e: usize) bool {
+                                    return e == x.pos;
+                                }
+                            };
+                            if (atoms.forEachFoldMatch(a, fl, self.w, k, Hit{ .pos = pos }, Hit.f) and self.run(c, k)) return true;
+                        }
+                        return false;
+                    }
+                    if (pos < self.w.len and atoms.matches(a, fl, self.w[pos]) and self.run(c, pos + 1)) return true;
+                    const Go = struct {
+                        m: *Matcher,
+                        c: *const Cont,
+                        fn f(x: @This(), e: usize) bool {
+                            return x.m.run(x.c, e);
+                        }
+                    };
+                    return atoms.forEachFoldMatch(a, fl, self.w, pos, Go{ .m = self, .c = c }, Go.f);
                 }
                 if (dir == .fwd) {
                     if (pos >= self.w.len or !atoms.matches(a, fl, self.w[pos])) return false;

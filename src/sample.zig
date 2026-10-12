@@ -595,6 +595,7 @@ pub const Printer = struct {
                 try self.operand(&atoms.v_operands[a.syms[1]]);
                 try self.putc(']');
             },
+            .grapheme => try self.put("\\X"),
             .strs => {
                 // [\q{ab|c}]: a class whose alternatives are strings (ES v mode).
                 try self.put("[\\q{");

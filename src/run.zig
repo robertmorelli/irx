@@ -232,7 +232,8 @@ pub const Run = struct {
         // Pool rotation and the flag a flag group toggles: from a separate stream of the seed.
         var vrng = rngmod.Rng.fromParts(0x9001, &.{seed});
         const pool_idx: u8 = if (self.n_pools > 1 and vrng.float() < self.cfg.pool_rotation) @intCast(1 + vrng.below(self.n_pools - 1)) else 0;
-        const pool = self.poolAt(pool_idx);
+        var spool_buf: [64]u21 = undefined;
+        const pool = dialect_mod.subjectPool(self.poolAt(pool_idx), &spool_buf);
         var mods: [3]u8 = undefined;
         var nm: usize = 0;
         for ([_]u8{ ast.fmod_i, ast.fmod_s, ast.fmod_m }) |m| if (dialect_mod.active.scoped_mods & m != 0) {

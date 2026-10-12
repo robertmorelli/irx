@@ -34,6 +34,7 @@ test {
     _ = @import("ucd.zig");
     _ = @import("alphabet.zig");
     _ = @import("atoms.zig");
+    _ = @import("grapheme.zig");
     _ = @import("ast.zig");
     _ = @import("budget.zig");
     _ = @import("config.zig");

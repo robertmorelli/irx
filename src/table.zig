@@ -8,6 +8,7 @@ const std = @import("std");
 const alpha = @import("alphabet.zig");
 const atoms = @import("atoms.zig");
 const ast = @import("ast.zig");
+const dialect = @import("dialect.zig");
 const relmod = @import("rel.zig");
 const config = @import("config.zig");
 const budget_mod = @import("budget.zig");
@@ -83,8 +84,10 @@ pub const aux_ctx: u32 = 1 << 28;
 pub const aux_pi: u32 = 1 << 29;
 /// contains a quantifier (Boost rejects any quantifier inside lookbehind, even {1})
 pub const aux_q: u32 = 1 << 30;
+/// contains \X (kept out of lookbehind)
+pub const aux_gx: u32 = 1 << 31;
 /// flags a parent inherits from its children (atom/za are positional)
-pub const aux_inherit: u32 = aux_la | aux_md | aux_vq | aux_uq | aux_cx | aux_lk | aux_cp | aux_cq | aux_lz | aux_bq | aux_ctx | aux_pi | aux_q;
+pub const aux_inherit: u32 = aux_la | aux_md | aux_vq | aux_uq | aux_cx | aux_lk | aux_cp | aux_cq | aux_lz | aux_bq | aux_ctx | aux_pi | aux_q | aux_gx;
 
 /// The quantifier flags of `q` applied to a body with flags `bf` (shared with dialect.treeAllowed).
 pub fn quantFlags(bf: u32, min: u32, max: u32, inf: u32, lazy: bool, opt_like: bool, shorthand: bool, big: bool) u32 {
@@ -335,6 +338,7 @@ pub const Grammar = struct {
         if (self.lb_no_quant) m |= aux_q;
         if (self.small_rep_bound < 255) m |= aux_bq | aux_atom;
         if (self.has_alt) m |= aux_ctx;
+        if (dialect.active.grapheme_escape != .none or dialect.active.full_fold != .none) m |= aux_gx;
         return m;
     }
 
@@ -1044,6 +1048,7 @@ fn Builder(comptime R: type) type {
                     },
                     .look_ahead, .neg_look_ahead => f = aux_la | aux_lk | aux_za | (yf & aux_inherit),
                     .look_behind, .neg_look_behind => {
+                        if (yf & aux_gx != 0) return;
                         if (self.g.lookbehind_len_cap > 0 and ymax >= cap) return;
                         if (self.g.lookbehind_fixed and (ymin != ymax or ymax >= cap)) return;
                         if (self.g.lb_no_unbounded_group and yf & aux_uq != 0) return;
@@ -1164,10 +1169,11 @@ fn Builder(comptime R: type) type {
                 const af_flags = if (alt) self.g.alt_flags else self.g.flags;
                 var af: u32 = if (alt) aux_ctx else 0;
                 if (a.kind == .dollar and af_flags.m) af |= aux_md;
-                if (a.isConsuming()) af |= aux_atom;
+                const multi = atoms.foldsMulti(a, af_flags);
+                if (a.kind == .grapheme or multi) af |= aux_gx else if (a.isConsuming()) af |= aux_atom;
                 if (af_flags.i and a.mayFoldMulti()) af |= aux_pi;
                 if (a.kind == .caret or a.kind == .dollar or a.kind == .wordb or a.kind == .nwordb) af |= aux_za;
-                const len: u32 = if (self.g.len_cap > 0 and a.isConsuming()) (@as(u32, a.maxLen()) | (@as(u32, a.minLen()) << aux_min_shift)) else 0;
+                const len: u32 = if (self.g.len_cap > 0 and a.isConsuming()) (@as(u32, if (multi) 3 else a.maxLen()) | (@as(u32, a.minLen()) << aux_min_shift)) else 0;
                 const key = keyAux(atoms.relation(R, a, af_flags, wa), atoms.relation(R, a, af_flags, wr), len | (af & self.g.flagMask()));
                 self.record(.atom, @intCast(i), none, none, &key);
                 tab.stats.atoms += 1;

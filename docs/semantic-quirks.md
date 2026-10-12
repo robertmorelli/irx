@@ -73,7 +73,8 @@ which dropped U+180E when it stopped being a space separator in Unicode 6.3. In 
 |---|---|
 | ECMAScript without `u` | `Canonicalize` maps to uppercase and never maps non-ASCII to ASCII (so `ſ` does not match `s`) |
 | ECMAScript `u`/`v` | simple case folding |
-| Perl, PCRE family | full case folding, so one atom could match two characters: `ß` and `İ` stay out of the pool |
+| Perl | full case folding: a pattern `ß` (literal, or listed in a class but not in a range) matches `ss`, `SS`, `ſs`; `/aa` turns this off between ASCII and non-ASCII |
+| PCRE family, Boost | simple case folding only (`ß` matches `ẞ`, never `ss`) |
 | Perl `/aa` | no case-insensitive match between ASCII and non-ASCII (`k` vs the Kelvin sign, `s` vs `ſ`) |
 | Java | `lower(upper(c))` on both sides; a literal without simple case mappings (`ß`) compiles as an exact match, so `ß` fails to match `ẞ` while `ẞ` matches `ß` (IRX-JAVA-1) |
 | .NET | single-scalar lowercase mappings |
@@ -222,3 +223,12 @@ libc sometimes misses the leftmost start (IRX-LIBC-2).
 * gawk's copy of GNU regex handles `REG_ICASE` its own way (`[a-c]` matches `"A"` but not `"a"`) and treats some
   anchors unexpectedly; neither has been checked against glibc itself.
 * re2j's Unicode tables are old (U+180E is still `Zs`, U+1F600 has no category).
+
+## `\X`, extended grapheme clusters
+
+Perl, ICU, Java, Ruby (Onigmo) and Python's `regex` module follow UAX #29 including GB9c (a Devanagari consonant,
+virama, consonant sequence is one cluster); Oniguruma 6.9 and PCRE2 10.49 lack GB9c. Every engine starts the cluster at the current
+position without looking behind it and matches it atomically. PCRE2 breaks between a Prepend character and an
+emoji (IRX-PCRE2-6). Boost's `\X` is a character plus following combining marks (`\r\n` is two). PCRE1's
+grapheme data predates Unicode 11 (emoji modifiers were their own class). JavaScript, .NET, Rust, RE2, Go and the
+POSIX engines have no `\X`.

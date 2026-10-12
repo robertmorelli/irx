@@ -38,6 +38,10 @@ pub const NamedGroup = enum { angle, p_angle, plain_capture };
 /// How the self-check spells "any single character".
 pub const AnyChar = enum { empty_negated_class, space_or_nonspace };
 
+/// combining: a character and the marks after it (Boost; CR LF stays two clusters).
+pub const Grapheme = enum { none, extended, extended_gb9c, combining };
+pub const FullFold = enum { none, literals, classes };
+
 pub const Dialect = struct {
     name: []const u8,
     /// Character predicates over code points. `isWord` gets flags because some
@@ -99,6 +103,19 @@ pub const Dialect = struct {
     /// v-mode class strings (\q{…}) are compared case-insensitively under i. Irregexp compares
     /// the folded string against the raw subject (IRX-V8-5), so its targets keep \q out of i.
     qstr_ignore_case: bool = true,
+    /// \X: one extended grapheme cluster (UAX #29) from the current position, atomically;
+    /// `extended_gb9c` adds rule GB9c (Indic conjuncts, Unicode 15.1).
+    grapheme_escape: Grapheme = .none,
+    /// Follow UAX #29 for Prepend + emoji and regional indicator + Extend (PCRE2 does not:
+    /// IRX-PCRE2-6).
+    grapheme_prepend_pict: bool = true,
+    /// Full case folding under i: a pattern character with a multi-character fold (ß → ss)
+    /// matches subject strings with that fold. `literals`: literal characters; `classes`: also
+    /// members listed in a non-negated class (not ranges).
+    full_fold: FullFold = .none,
+    /// Characters that may appear in patterns but not in subjects: with full folding, a subject
+    /// ß would also be matched by pattern sequences like `ss`, which the atom model cannot see.
+    pattern_only: []const u21 = &.{},
     /// Scoped extended mode (?x:…) is supported: whitespace and # comments are ignored.
     extended_mode: bool = false,
     isHSpace: *const fn (u21) bool = defaultHSpace,
@@ -304,6 +321,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             var f: u32 = 0;
             if (k == .dollar) f |= tb.aux_md;
             if (k == .caret or k == .dollar or k == .wordb or k == .nwordb) f |= tb.aux_za;
+            if (k == .grapheme) return .{ .min = 1, .max = cap, .f = tb.aux_gx };
             if (n.atom.isConsuming()) return .{ .min = n.atom.minLen(), .max = n.atom.maxLen(), .f = tb.aux_atom };
             return .{ .min = 0, .max = 0, .f = f };
         },
@@ -335,6 +353,8 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             return .{ .min = 0, .max = 0, .f = tb.aux_la | tb.aux_lk | tb.aux_za | (c.f & inherit) };
         },
         .look_behind, .neg_look_behind => {
+            // \X never goes inside lookbehind (no engine matches it right to left the same way).
+            if (lenOf(t, n.a, ok).f & tb.aux_gx != 0) ok.* = false;
             const c = lenOf(t, n.a, ok);
             if (!d.allow_lookbehind) ok.* = false;
             if (d.lookbehind_len_cap > 0 and c.max >= d.lookbehind_len_cap) ok.* = false;
@@ -380,4 +400,15 @@ pub fn defaultHSpace(c: u21) bool {
 /// PCRE2's \v: \n, VT, FF, \r, NEL, LS, PS.
 pub fn defaultVSpace(c: u21) bool {
     return (c >= 0x0A and c <= 0x0D) or c == 0x85 or c == 0x2028 or c == 0x2029;
+}
+
+/// The pool without the dialect's pattern-only characters (for drawing subjects).
+pub fn subjectPool(pool: []const u21, buf: []u21) []const u21 {
+    if (active.pattern_only.len == 0) return pool;
+    var n: usize = 0;
+    for (pool) |c| if (std.mem.indexOfScalar(u21, active.pattern_only, c) == null) {
+        buf[n] = c;
+        n += 1;
+    };
+    return if (n == 0) pool else buf[0..n];
 }

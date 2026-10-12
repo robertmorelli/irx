@@ -70,6 +70,7 @@ pub const dialect: D.Dialect = .{
 /// standing for any cased letter under IGNORECASE, and variable-length lookbehind.
 pub const regex_module: D.Dialect = blk: {
     var d = dialect;
+    d.grapheme_escape = .extended_gb9c;
     d.name = "python-regex";
     d.isWord = perl.word;
     d.isSpace = perl.space;
