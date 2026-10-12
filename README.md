@@ -9,14 +9,14 @@ confirmed by hand, usually against other engines too.
 
 ### Confirmed findings
 
-The [bug ledger](#bug-ledger) has **59 confirmed bug IDs**, **55 unique reported bugs**
-(distinct upstream issue links), **52 distinct bug shapes**, and **64 candidates**
+The [bug ledger](#bug-ledger) has **63 confirmed bug IDs**, **59 unique reported bugs**
+(distinct upstream issue links), **55 distinct bug shapes**, and **63 candidates**
 still to audit or report. Bug IDs count
 separate ledger rows, including confirmed repros linked to an existing report.
 Unique bugs count each upstream issue once; shapes group the same failure pattern
 even across engines. Findings with no report or confirmed link to one are excluded.
 Fixed reported bugs remain in these all-time counts.
-Candidates are 63 open, unreported IDs and IRX-JAVA-2, whose recorded examples
+Candidates are 62 open, unreported IDs and IRX-JAVA-2, whose recorded examples
 were fixed but a different counted-loop form still fails in current OpenJDK.
 Resolved, documented, and older-version-only unreported findings are excluded
 from the candidate count.
@@ -31,19 +31,20 @@ from the candidate count.
 | Swift Regex | 5 | 5 | 5 |
 | V8 | 6 | 4 | 4 |
 | Racket | 5 | 5 | 5 |
+| Hermes | 4 | 4 | 4 |
 | Ruby | 2 | 1 | 2 |
 | Java | 1 | 1 | 1 |
 | RE# | 1 | 1 | 1 |
 | QuickJS | 1 | 1 | 1 |
-| Shared shapes across engines | — | — | −4 |
-| **Total** | **59** | **55** | **52** |
+| Shared shapes across engines | — | — | −5 |
+| **Total** | **63** | **59** | **55** |
 
 IRX-V8-1 maps to V8-3's report, IRX-V8-4 to IRX-V8-3's report, and
 IRX-PERL-5 to PERL-3's report. DOTNET-8 and DOTNET-6 also share a report and shape;
 RUBY-1 and RUBY-2 are different shapes in one report. NIM-1 is one ledger ID
 with two separately reported shapes ([#169](https://github.com/nitely/nim-regex/issues/169)
 and [#170](https://github.com/nitely/nim-regex/issues/170)).
-The cross-engine shape overlaps are BOA-7/XS-4, BOA-8/XS-7, and
+The cross-engine shape overlaps are BOA-7/XS-4/HERMES-3, BOA-8/XS-7, and
 SWIFT-3/XS-5/RUBY-1.
 
 For the remaining JavaScript-engine reports (checked 2026-10-11): engine262's
@@ -383,10 +384,10 @@ recorded in the tables below. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 =
 | IRX-E262-2 | engine262 | Open · not filed | wrong result: `/^[^[^a]&&\d]$/v.test("ſ")` → `false`; `/^a[^A&&[a-z]]$/v.test("aa")` → `false` → expected `true`; `true` | Tested: engine262 (npm `@engine262/engine262`). negated classes whose contents are a set operation are computed wrongly (~46k findings) |
 | IRX-E262-3 | engine262 | Open · not filed | wrong result: `/\u{1F600}\B/u.exec("😀k")` → match `[0,2)`; `/\W\b/u.exec("😀k")` → `null` → expected `null`; `[0,2)` (V8) | Tested: engine262 (npm `@engine262/engine262`). In `u` mode a word boundary right after an astral character is evaluated wrongly (it behaves as if there were no boundary between `😀` and `k`); BMP characters (`é`) and the `v` flag are fine. Found by the long-input campaign (span mode), minimized to `(?:\W\B|[A-Z])*` on `"😀k"` |
 | IRX-FANCY-1 | fancy-regex | Open · not filed | wrong capture: `fancy_regex::Regex::new(r"(?:(?:(a)|b)(?=)){2}")?.captures("ab")` → group 1 `None`; also `(?:(?:b|(a))(?=a)a){2}` on `"aaba"` → expected `Some(0..1)`; `Some(1..2)` (fancy-regex without the lookahead, `regex`, PCRE2, Perl) | Tested: fancy-regex 0.14. When a loop body contains a lookaround, the backtracking VM forgets a capture set by an earlier iteration once a later iteration takes a branch without it (ES-style reset); the same pattern without the lookaround is delegated to `regex` and keeps it, so equivalent patterns disagree. Found in capture mode; a second trigger without lookarounds (found by long capture mode): `(?:(?:^(b)|\D)\Ba)*` on `"baba"` → group 1 `None`, expected `Some(0..1)` (needs both `^` and `\B` in the body; `regex` correct) |
-| IRX-HERMES-1 | Hermes | Open · not filed | wrong result: `/^(?:(?:(?:\W+){1,1})*\s)$/.test("\u2028\n")` → `false` → expected `true` | Reproduces in the v0.13.0 CLI and a source build from current `260318099.0.0-stable` at `09d3bf2` (2026-10-08). Boa also fails it (cross-check) |
-| IRX-HERMES-2 | Hermes | Open · not filed | exception on tiny input: `/^(?:(?:^a?)+?)$/.test("aa")` → `RangeError: Maximum regex stack depth reached` → expected `false` | Reproduces in the v0.13.0 CLI and current stable source build `09d3bf2`. Also `(?:a*)+?\B` on `"a"`, `(?:(?:(?:)\|(?:)){2,2}){1,2}` on `"a"`: lazy loops over empty-matchable bodies recurse without bound |
-| IRX-HERMES-3 | Hermes | Open · not filed | wrong result: `/(?:(?:a+){1}){2}/.test("aa")` → `false`; `/^(?:(?:a{2,}){2}){2}$/.test("a".repeat(8))` → `false` → expected `true` | Reproduces in the v0.13.0 CLI and current stable source build `09d3bf2`. A counted repeat of a group whose body is a counted repeat of a greedy loop; same shape as IRX-BOA-7 |
-| IRX-HERMES-4 | Hermes | Open · not filed | wrong result: `/a(?<=x\|^a)/.test("a")` → `false` → expected `true` | Reproduces in the v0.13.0 CLI and current stable source build `09d3bf2`. `^` inside an alternative of a lookbehind; `a(?<=^a)` and `a(?<=x\|a)` are fine |
+| IRX-HERMES-1 | Hermes | Open · [#2235](https://github.com/facebook/hermes/issues/2235) | wrong result: `/^(?:(?:(?:\W+){1,1})*\s)$/.test("\u2028\n")` → `false` → expected `true` | Reproduces in the v0.13.0 CLI and a source build from current `260318099.0.0-stable` at `09d3bf2` (2026-10-08). Boa also fails it (cross-check) |
+| IRX-HERMES-2 | Hermes | Open · [#2234](https://github.com/facebook/hermes/issues/2234) | exception on tiny input: `/^(?:(?:^a?)+?)$/.test("aa")` → `RangeError: Maximum regex stack depth reached` → expected `false` | Reproduces in the v0.13.0 CLI and current stable source build `09d3bf2`. Also `(?:a*)+?\B` on `"a"`, `(?:(?:(?:)\|(?:)){2,2}){1,2}` on `"a"`: lazy loops over empty-matchable bodies recurse without bound |
+| IRX-HERMES-3 | Hermes | Open · [#2232](https://github.com/facebook/hermes/issues/2232) | wrong result: `/(?:(?:a+){1}){2}/.test("aa")` → `false`; `/^(?:(?:a{2,}){2}){2}$/.test("a".repeat(8))` → `false` → expected `true` | Reproduces in the v0.13.0 CLI and current stable source build `09d3bf2`. A counted repeat of a group whose body is a counted repeat of a greedy loop; same shape as IRX-BOA-7 |
+| IRX-HERMES-4 | Hermes | Open · [#2233](https://github.com/facebook/hermes/issues/2233) | wrong result: `/a(?<=x\|^a)/.test("a")` → `false` → expected `true` | Reproduces in the v0.13.0 CLI and current stable source build `09d3bf2`. `^` inside an alternative of a lookbehind; `a(?<=^a)` and `a(?<=x\|a)` are fine |
 | IRX-RACKET-1 | Racket | Open · [#5605](https://github.com/racket/racket/issues/5605) | crash at construction: `(pregexp "(?:)(?:)")` → `exn:fail` "invalid memory reference. Some debugging context lost" → expected compiles; matches `""` | Tested: Racket 9.3 CS (`regexp`/`pregexp`/`byte-pregexp`). two or more adjacent empty non-capturing groups (also `a\|(?:)(?:)`, `^(?:(?:)(?:))$`); `()()`, `(?:(?:))`, `(?:)a(?:)` are fine, and a `#rx` literal `x(?:)(?:)y` works. The message is Chez Scheme's memory-fault handler |
 | IRX-RACKET-2 | Racket | Semantics question · [#5608](https://github.com/racket/racket/issues/5608) | `(regexp-match? #px"^b(?<=b(?=a))a$" "ba")` → `#f`; `#px"(?<=(?=a))"` never matches; `#px"^(?<!(?!a))a$"` misses `"a"` | Tested: Racket 9.3 CS (`#px`). Nested lookahead appears bounded by the lookbehind's input, while `$` still refers to the original input end. Both `^b(?<=b(?=a))a$` and `^b(?<=b(?=$))a$` return `#f` on `"ba"`; this is consistent under that interpretation. #5608 asks whether it is intended; do not count this as a confirmed bug |
 | IRX-RACKET-3 | Racket | Open · [#5607](https://github.com/racket/racket/issues/5607) | wrong result: `(regexp-match? #px"^[^ſ]$" "ß")` → `#f`; also `"é"` → `#f` → expected `#t` (neither is `ſ`) | Tested: Racket 9.3 CS (`#px`). A negated class containing `ſ` (U+017F, UTF-8 `C5 BF`) also excludes other two-byte characters; `[^ā]`, `[^Ā]` and `[^K]` are fine, so the `BF` continuation byte seems to break the byte-level complement. Possibly the same root as RACKET-1 (non-ASCII ranges losing members). Found by the long-input campaign, minimized to `[^\x{17F}\x{D}]{0,}` on `"-ß"` |
