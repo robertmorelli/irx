@@ -41,6 +41,9 @@ code { font-variation-settings: "MONO" 1, "CASL" 0; font-size: 0.9em; color: var
 section { display: grid; gap: 16px; min-width: 0; }
 .facts { display: none; }
 .card { min-width: 0; }
+/* Wide tables break out of the text column, centred, up to 1400px (they still scroll inside
+   themselves on narrow screens). */
+.wide { width: min(1400px, calc(100vw - 40px)); margin-left: calc(50% - min(700px, calc(50vw - 20px))); }
 .note { font-size: 14px; color: var(--muted); max-width: 80ch; }
 /* Tier board */
 .tiers { display: grid; gap: 3px; background: var(--board); padding: 3px; }
@@ -126,14 +129,14 @@ a { color: var(--accent); }
   <section aria-labelledby="h-split">
     <h2 id="h-split">Where the time goes</h2>
     <p>The same ratio, split four ways: ASCII against Unicode patterns and subjects, inputs Rust accepted against inputs it rejected, and four subject sizes (16, 128, 1,024 and 8,192 characters). A cell compares the engine with Rust on that slice only, so a row shows how an engine's speed changes, not which slice is slow overall.</p>
-    <div class="card"><div class="scrollx"><table id="t-split"></table></div>
+    <div class="card wide"><div class="scrollx"><table id="t-split"></table></div>
       <div class="legend" id="ramp-legend"></div></div>
   </section>
 
   <section aria-labelledby="h-cross">
     <h2 id="h-cross">The full matrix</h2>
     <p>All three splits crossed: for each engine, ASCII or Unicode, an input Rust accepted or rejected, and the subject size. Each cell is the geometric-mean ratio to Rust over the 125–170 inputs in that slice. Reading across a block shows how an engine scales with size; comparing the accept and reject blocks shows whether it is quicker to find a match or to rule one out.</p>
-    <div class="card"><div class="scrollx"><table class="cross" id="t-cross"></table></div></div>
+    <div class="card wide"><div class="scrollx"><table class="cross" id="t-cross"></table></div></div>
   </section>
 
   <section aria-labelledby="h-scale">
@@ -145,7 +148,7 @@ a { color: var(--accent); }
   <section aria-labelledby="h-feat">
     <h2 id="h-feat">Features</h2>
     <p>Construct families each engine supports, from the irx dialect that models it (<code>irx features</code>). These are what the fuzzer generates for that engine, so they reflect tested support.</p>
-    <div class="card"><div class="scrollx"><table class="feat" id="t-feat"></table></div></div>
+    <div class="card wide"><div class="scrollx"><table class="feat" id="t-feat"></table></div></div>
   </section>
 
   <section aria-labelledby="h-bugs">
