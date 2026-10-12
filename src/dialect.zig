@@ -80,6 +80,8 @@ pub const Dialect = struct {
     /// Inline flag groups (?i:…) / (?-i:…) are supported, for the flags in scoped_mods
     /// (ast.fmod_*); dotall_letter spells s (Ruby: m).
     scoped_flags: bool = false,
+    /// Named groups in different alternatives may share a name (ES2025 duplicate named groups).
+    duplicate_names: bool = false,
     /// Under i, \p{…} also matches the multi-character case folds of its members (Onigmo:
     /// \p{L} matches "ss" via ß, "ff" via ﬀ): not modelled, so no \p under i.
     props_multi_fold: bool = false,
@@ -158,11 +160,13 @@ pub const Dialect = struct {
 };
 
 pub const es = @import("dialects/es.zig").dialect;
+pub const cpp = @import("dialects/es.zig").cpp;
 pub const perl = @import("dialects/perl.zig").dialect;
 pub const pcre2 = @import("dialects/perl.zig").pcre2;
 pub const perl_a = @import("dialects/perl.zig").perl_a;
 pub const perl_aa = @import("dialects/perl.zig").perl_aa;
 pub const pcre2_ascii = @import("dialects/perl.zig").pcre2_ascii;
+pub const boost = @import("dialects/perl.zig").boost;
 pub const swift = @import("dialects/swift.zig").dialect;
 pub const rust = @import("dialects/rust.zig").dialect;
 pub const fancy = @import("dialects/rust.zig").fancy;
@@ -171,6 +175,7 @@ pub const re2 = @import("dialects/re2.zig").dialect;
 pub const go = @import("dialects/re2.zig").go;
 pub const re2_longest = @import("dialects/re2.zig").re2_longest;
 pub const go_longest = @import("dialects/re2.zig").go_longest;
+pub const re2j = @import("dialects/re2.zig").re2j;
 pub const python = @import("dialects/python.zig").dialect;
 pub const python_regex = @import("dialects/python.zig").regex_module;
 pub const java = @import("dialects/java.zig").dialect;
@@ -188,7 +193,8 @@ pub const tcl = @import("dialects/tcl.zig").dialect;
 pub const emacs = @import("dialects/emacs.zig").dialect;
 pub const vectorscan = @import("dialects/vectorscan.zig").dialect;
 pub const llvm = @import("dialects/llvm.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm };
+pub const libc = @import("dialects/llvm.zig").libc;
+pub const all = [_]*const Dialect{ &es, &perl, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm, &libc, &cpp, &boost, &re2j };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;

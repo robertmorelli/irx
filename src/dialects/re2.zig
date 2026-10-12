@@ -54,3 +54,13 @@ fn longest(d0: D.Dialect, name: []const u8) D.Dialect {
 }
 pub const re2_longest: D.Dialect = longest(dialect, "re2-longest");
 pub const go_longest: D.Dialect = longest(go, "go-longest");
+
+/// re2j (RE2's Java port): RE2 syntax and semantics. Its Unicode tables are old (U+180E is still
+/// Zs, U+1F600 has no category), so both stay out of the pool. (?i)\p{Ll} missing A-Z is a bug
+/// (IRX-RE2J-1), left visible.
+pub const re2j: D.Dialect = blk: {
+    var d = dialect;
+    d.name = "re2j";
+    d.pool_exclude = &.{ 0x180E, 0x1F600 };
+    break :blk d;
+};

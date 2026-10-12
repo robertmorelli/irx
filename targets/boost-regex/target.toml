@@ -1,0 +1,16 @@
+# irx target: Boost.Regex 1.92 (Perl syntax)
+# Run: tools/irx_target.py boost-regex [--duration SECONDS]
+
+[target]
+title = "Boost.Regex 1.92"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/boost_regex_host {mode}"
+dialect = "boost"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans
+
+[capture]
+enabled = false  # not modelled yet

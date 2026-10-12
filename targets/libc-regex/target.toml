@@ -1,0 +1,13 @@
+# irx target: macOS libc regex (regcomp/regexec, TRE)
+# Run: tools/irx_target.py libc-regex [--duration SECONDS]
+
+[target]
+title = "macOS libc regex (regcomp/regexec)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/libc_regex_host {mode}"
+dialect = "libc"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans

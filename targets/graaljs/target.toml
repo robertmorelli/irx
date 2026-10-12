@@ -1,0 +1,21 @@
+# irx target: GraalJS 25.4 (TRegex)
+# Run: tools/irx_target.py graaljs [--duration SECONDS]
+
+[target]
+title = "GraalJS 25.4 (TRegex)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/vendor/graaljs/graaljs-community-25.4.4.1.1-macos-aarch64/bin/js {driver} -- {mode}"
+dialect = "es"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf16"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "reset"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+
+[offset]
+enabled = true  # span of a search from lastIndex
+sticky = true   # the y flag

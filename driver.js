@@ -158,10 +158,14 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
 
   if (bridge) read = (function () { var done = false; return function () { if (done) return null; done = true; return __IRX_BATCH; }; })();
   else out("ready " + ver + " mode=" + mode);
+  // JSC's readline returns "" (not null) at end of input; irx never sends empty lines, so a long
+  // run of them means stdin is closed.
+  var empties = 0;
   for (;;) {
     var line = read();
     if (line === null || line === undefined) break;
-    if (line.length === 0) continue;
+    if (line.length === 0) { if (++empties > 1000) break; continue; }
+    empties = 0;
     var msg = (bridge && typeof __IRX_BATCH_OBJ !== "undefined") ? __IRX_BATCH_OBJ : JSON.parse(line);
     var seq = msg[0], cases = msg[1];
     var parts = new Array(cases.length);

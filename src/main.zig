@@ -278,6 +278,7 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     };
     // The pool must live in run.cfg: the local cfg above goes out of scope.
     alpha.active_pool = run.cfg.poolSlice();
+    @import("sample.zig").allow_duplicate_names = run.cfg.duplicate_names;
     // Pools for rotation: the base pool, then each alternate pool filtered like the base pool.
     run.pools[0] = alpha.active_pool;
     run.n_pools = 1;

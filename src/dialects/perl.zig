@@ -104,3 +104,33 @@ pub const perl_aa: D.Dialect = blk: {
 };
 /// PCRE2 in UTF mode without PCRE2_UCP: ASCII classes; case folding above 127 stays Unicode.
 pub const pcre2_ascii: D.Dialect = asciiClasses(pcre2, "pcre2-ascii");
+
+fn asciiFold(c: u21) u21 {
+    return if (c >= 'A' and c <= 'Z') c + 32 else c;
+}
+/// Boost's line separators (`.` without mod_s, ^/$ under m): \n, \f, \r, NEL, LS, PS (not \v).
+fn boostLineTerminator(c: u21) bool {
+    return c == 0x0A or c == 0x0C or c == 0x0D or c == 0x85 or c == 0x2028 or c == 0x2029;
+}
+
+/// Boost.Regex (boost::wregex, Perl syntax, default traits in the C locale): ASCII classes and
+/// case folding, an ASCII pool, fixed-length lookbehind, no \p{…} (that needs the ICU traits).
+pub const boost: D.Dialect = blk: {
+    var d = asciiClasses(dialect, "boost");
+    d.fold = asciiFold;
+    d.unicode_props = false;
+    d.isLineTerminator = boostLineTerminator;
+    // no_mod_m: $ only at the very end (Perl also matches before a final \n); under m, ^ also
+    // matches at the very end after a trailing separator.
+    d.dollar_before_final_terminator = false;
+    d.caret_after_trailing_newline = true;
+    // Lookbehind bodies must be fixed-length with no quantifier at all ((?<=(?:)?) is rejected).
+    d.lookbehind_no_variable = true;
+    d.ascii_only = true;
+    d.lookbehind_fixed = true;
+    // A loop whose body matches empty at an assertion fails ((?:$)+, (?:$(?:))+ under m on "":
+    // IRX-BOOST-1); nullable loop bodies only under ?.
+    d.quantify_assertions = false;
+    d.nullable_quant_opt_only = true;
+    break :blk d;
+};

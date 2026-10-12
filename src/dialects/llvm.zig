@@ -58,3 +58,15 @@ pub const dialect: D.Dialect = .{
     .allow_lazy = false,
     .assertions = .{ .wordb = false, .nwordb = false },
 };
+
+/// The C library's regcomp/regexec (macOS: TRE-based libc regex) in the C locale: the same POSIX
+/// ERE model; kept separate so the two implementations can diverge where they differ.
+pub const libc: D.Dialect = blk: {
+    var d = dialect;
+    d.name = "libc";
+    // A group holding an anchor (quantified, or beside an empty alternative) breaks the match
+    // (IRX-LIBC-1); it is so common that ^ and $ are not generated at all.
+    d.quantify_assertions = false;
+    d.assertions = .{ .caret = false, .dollar = false, .wordb = false, .nwordb = false };
+    break :blk d;
+};
