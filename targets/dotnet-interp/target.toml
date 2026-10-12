@@ -5,6 +5,8 @@
 title = ".NET 9 Regex (interpreter)"
 kind = "shell"   # d8 | perl | shell
 command = "{root}/hosts/bin/dotnet/host interp {mode}"
+# The newest installed runtime (.NET 11 RC1 in ~/.dotnet), not the system .NET 9.
+env = "DOTNET_ROOT={home}/.dotnet DOTNET_ROLL_FORWARD=LatestMajor DOTNET_ROLL_FORWARD_TO_PRERELEASE=1"
 dialect = "dotnet"   # src/dialects/
 selfcheck = true
 
