@@ -7,6 +7,8 @@
 # Full match uses \A(?:r)\z, which /m does not affect.
 use strict;
 use warnings;
+# IRX_PERL_CHARSET=a or aa: that charset modifier on every pattern instead of /u (targets perl-a, perl-aa).
+my $CS = $ENV{IRX_PERL_CHARSET};
 no warnings 'regexp';
 use JSON::PP ();
 
@@ -27,7 +29,7 @@ sub run_case {
     $mods .= 'i' if $flags =~ /i/;
     $mods .= 'm' if $flags =~ /m/;
     $mods .= 's' if $flags =~ /s/;
-    $mods .= 'u' if $flags =~ /[uv]/;
+    $mods .= $CS // ($flags =~ /[uv]/ ? 'u' : '');
     my $re = eval { qr/(?^$mods:\A(?:$src)\z)/ };
     return 0x04 unless defined $re;
     my $bits = 0;
@@ -60,7 +62,7 @@ sub span_case {
     $mods .= 'i' if $flags =~ /i/;
     $mods .= 'm' if $flags =~ /m/;
     $mods .= 's' if $flags =~ /s/;
-    $mods .= 'u' if $flags =~ /[uv]/;
+    $mods .= $CS // ($flags =~ /[uv]/ ? 'u' : '');
     my $re = eval { qr/(?^$mods:$src)/ };
     return span_fail(0x04) unless defined $re;
     my $out = '';
@@ -85,7 +87,7 @@ sub offset_case {
     $mods .= 'i' if $fl =~ /i/;
     $mods .= 'm' if $fl =~ /m/;
     $mods .= 's' if $fl =~ /s/;
-    $mods .= 'u' if $fl =~ /[uv]/;
+    $mods .= $CS // ($fl =~ /[uv]/ ? 'u' : '');
     my $re = eval { qr/(?^$mods:$src)/ };
     return 'fe040000' unless defined $re;
     my $out = '';
@@ -113,7 +115,7 @@ sub capture_case {
     $mods .= 'i' if $flags =~ /i/;
     $mods .= 'm' if $flags =~ /m/;
     $mods .= 's' if $flags =~ /s/;
-    $mods .= 'u' if $flags =~ /[uv]/;
+    $mods .= $CS // ($flags =~ /[uv]/ ? 'u' : '');
     my $re = eval { qr/(?^$mods:$src)/ };
     return $fail->(0x04) unless defined $re;
     my $out = '';

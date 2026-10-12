@@ -24,3 +24,4 @@ deadline_ms_per_case = 40
 
 [offset]
 enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true

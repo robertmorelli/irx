@@ -65,3 +65,42 @@ pub const pcre2: D.Dialect = blk: {
     d.isSpace = pcre2Space;
     break :blk d;
 };
+
+/// ASCII classes: \d = [0-9], \s = [\t\n\v\f\r ], \w = [0-9A-Za-z_] (Perl /a, PCRE2 without
+/// UCP, Java without UNICODE_CHARACTER_CLASS).
+pub fn asciiDigit(c: u21) bool {
+    return c >= '0' and c <= '9';
+}
+pub fn asciiWord(c: u21, _: D.Flags) bool {
+    return (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z') or asciiDigit(c) or c == '_';
+}
+pub fn asciiSpace(c: u21) bool {
+    return c == ' ' or (c >= 0x09 and c <= 0x0D);
+}
+fn asciiClasses(d0: D.Dialect, name: []const u8) D.Dialect {
+    var d = d0;
+    d.name = name;
+    d.isWord = asciiWord;
+    d.isDigit = asciiDigit;
+    d.isSpace = asciiSpace;
+    // \w, \d, \s are fixed ASCII sets: case-insensitivity does not close them (\w misses the
+    // Kelvin sign, \W misses k).
+    d.escapes_ignore_case = true;
+    return d;
+}
+
+/// Perl /aa: also no case-insensitive match between ASCII and non-ASCII (K stays apart from the
+/// Kelvin sign, s from ſ).
+fn aaFold(c: u21) u21 {
+    const f = ucd.simpleFold(c);
+    return if ((c < 0x80) == (f < 0x80)) f else c;
+}
+
+pub const perl_a: D.Dialect = asciiClasses(dialect, "perl-a");
+pub const perl_aa: D.Dialect = blk: {
+    var d = asciiClasses(dialect, "perl-aa");
+    d.fold = aaFold;
+    break :blk d;
+};
+/// PCRE2 in UTF mode without PCRE2_UCP: ASCII classes; case folding above 127 stays Unicode.
+pub const pcre2_ascii: D.Dialect = asciiClasses(pcre2, "pcre2-ascii");

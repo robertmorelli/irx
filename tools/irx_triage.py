@@ -104,7 +104,8 @@ def main():
         with tempfile.NamedTemporaryFile("w", suffix=".ids", delete=False) as f:
             f.write("\n".join(map(str, picked))); ids = f.name
         irx = ["nice", "-n", "10", a.irx, "triage", *engine, "--dialect", meta.get("dialect", "es"), "--out", out, "--ids", ids, "--jobs", str(a.jobs)]
-        try: subprocess.run(irx, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=a.timeout)
+        env = dict(os.environ, **dict(kv.split("=", 1) for kv in meta.get("env", "").split()))  # [target] env
+        try: subprocess.run(irx, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=a.timeout, env=env)
         except subprocess.TimeoutExpired: print("  (triage stopped at the time limit)")
         os.unlink(ids)
     sh = shapes(fdir)

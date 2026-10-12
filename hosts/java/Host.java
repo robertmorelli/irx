@@ -58,7 +58,8 @@ public class Host {
                 String PF = wide ? "%04x%04x" : "%02x%02x", NONE = wide ? "ffffffff" : "ffff";
                 java.util.function.BiFunction<Integer, Integer, String> failed = (b, rest) -> (wide ? String.format("fffe%04x", b) : String.format("fe%02x", b)) + "0".repeat((wide ? 4 : 2) * rest);
                 if (hasLone(a) || hasLone(r) || hasLone(p)) { res.append(span ? failed.apply(0x40, 2) : capture ? failed.apply(0x40, 26) : "40"); continue; }
-                int fl = Pattern.UNICODE_CASE | Pattern.UNICODE_CHARACTER_CLASS;
+                // IRX_JAVA_ASCII: without UNICODE_CHARACTER_CLASS (ASCII \\d \\s \\w; target java-ascii).
+                int fl = Pattern.UNICODE_CASE | (System.getenv("IRX_JAVA_ASCII") != null ? 0 : Pattern.UNICODE_CHARACTER_CLASS);
                 if (f.indexOf('i') >= 0) fl |= Pattern.CASE_INSENSITIVE;
                 if (f.indexOf('m') >= 0) fl |= Pattern.MULTILINE;
                 if (f.indexOf('s') >= 0) fl |= Pattern.DOTALL;

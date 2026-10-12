@@ -1,0 +1,23 @@
+# irx target: java.util.regex without UNICODE_CHARACTER_CLASS
+# Run: tools/irx_target.py java-ascii [--duration SECONDS]
+
+[target]
+title = "java.util.regex without UNICODE_CHARACTER_CLASS"
+kind = "shell"   # d8 | perl | shell
+command = "/usr/bin/java -cp {root}/hosts/bin/java Host {mode}"
+env = "IRX_JAVA_ASCII=1"   # set for irx and the engine processes (tools/irx_target.py)
+dialect = "java-ascii"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf16"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+lookbehind = false  # Java tries lookbehind lengths shortest-first
+
+[offset]
+enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true

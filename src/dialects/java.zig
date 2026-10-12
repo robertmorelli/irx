@@ -58,3 +58,42 @@ pub const dialect: D.Dialect = .{
     .any_char = .space_or_nonspace,
     .strings = .code_points,
 };
+
+/// Pattern.Bound: a side counts as a word character if it is \w, or a non-spacing mark whose
+/// run of marks starts after a letter or digit (hasBaseCharacter uses Unicode isLetterOrDigit).
+fn markWithBase(w: []const u21, i: usize) bool {
+    var x = i + 1;
+    while (x > 0) {
+        x -= 1;
+        // codePointAt steps back one UTF-16 unit: an astral base is seen as its low surrogate.
+        if (w[x] > 0xFFFF) return false;
+        const k = ucd.category(w[x]);
+        if (k[0] == 'L' or (k[0] == 'N' and k[1] == 'd')) return true;
+        if (!(k[0] == 'M' and k[1] == 'n')) return false;
+    }
+    return false;
+}
+fn boundSide(w: []const u21, i: usize, f: D.Flags) bool {
+    const c = w[i];
+    if (perl.asciiWord(c, f)) return true;
+    const k = ucd.category(c);
+    return k[0] == 'M' and k[1] == 'n' and markWithBase(w, i);
+}
+fn asciiBoundaryAt(w: []const u21, i: usize, f: D.Flags) bool {
+    const left = i > 0 and boundSide(w, i - 1, f);
+    const right = i < w.len and boundSide(w, i, f);
+    return left != right;
+}
+
+/// Java without UNICODE_CHARACTER_CLASS (UNICODE_CASE kept): ASCII \d, \s, \w; \b follows \w
+/// (JDK 19+) plus the non-spacing-mark rule above.
+pub const ascii: D.Dialect = blk: {
+    var d = dialect;
+    d.name = "java-ascii";
+    d.isWord = perl.asciiWord;
+    d.isDigit = perl.asciiDigit;
+    d.isSpace = perl.asciiSpace;
+    d.escapes_ignore_case = true;
+    d.boundaryAt = asciiBoundaryAt;
+    break :blk d;
+};

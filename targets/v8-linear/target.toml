@@ -1,0 +1,15 @@
+# irx target: V8's experimental linear-time regexp engine (/l)
+# Run: tools/irx_target.py v8-linear [--duration SECONDS]
+
+[target]
+title = "V8 linear engine"
+kind = "d8"   # d8 | perl | shell
+command = "/opt/homebrew/bin/d8"
+dialect = "es"   # src/dialects/
+selfcheck = true
+# --enable-experimental-regexp-engine with the l flag. The engine rejects i, u and v (and
+# lookarounds); m is skipped because the full-match wrapper needs lookarounds there.
+modes = "linear"
+
+[flags]
+sets = ["", "s"]

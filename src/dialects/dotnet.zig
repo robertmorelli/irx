@@ -51,3 +51,12 @@ pub const nonbacktracking: D.Dialect = blk: {
     d.allow_lookbehind = false;
     break :blk d;
 };
+
+/// RegexOptions.Compiled on .NET 9: a lazy loop inside a lookbehind can crash code generation
+/// ("Bad label content in ILGenerator": IRX-DOTNET-2, fixed in .NET 11), so none are generated.
+pub const compiled: D.Dialect = blk: {
+    var d = dialect;
+    d.name = "dotnet-compiled";
+    d.lookbehind_no_lazy = true;
+    break :blk d;
+};

@@ -2,9 +2,9 @@
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 #include "proto.h"
-const char *host_name(void) { static char b[64]; pcre2_config(PCRE2_CONFIG_VERSION, b); static char o[96]; snprintf(o, sizeof o, "pcre2-%s%s", b, getenv("IRX_PCRE2_JIT") ? "-jit" : ""); return o; }
+const char *host_name(void) { static char b[64]; pcre2_config(PCRE2_CONFIG_VERSION, b); static char o[96]; snprintf(o, sizeof o, "pcre2-%s%s%s", b, getenv("IRX_PCRE2_JIT") ? "-jit" : "", getenv("IRX_PCRE2_NOUCP") ? "-noucp" : ""); return o; }
 int host_case(const char *flags, const char *a, size_t alen, const char *r, size_t rlen, const char *pat, size_t plen, int repeat) {
-    uint32_t opt = PCRE2_UTF | PCRE2_UCP;
+    uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP);
     if (strchr(flags, 'i')) opt |= PCRE2_CASELESS;
     if (strchr(flags, 'm')) opt |= PCRE2_MULTILINE;
     if (strchr(flags, 's')) opt |= PCRE2_DOTALL;
@@ -28,7 +28,7 @@ done:
     return bits;
 }
 int host_span(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[4]) {
-    uint32_t opt = PCRE2_UTF | PCRE2_UCP;
+    uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP);
     if (strchr(flags, 'i')) opt |= PCRE2_CASELESS;
     if (strchr(flags, 'm')) opt |= PCRE2_MULTILINE;
     if (strchr(flags, 's')) opt |= PCRE2_DOTALL;
@@ -48,7 +48,7 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
     return e;
 }
 int host_capture(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[2][2 * CAP_PAIRS]) {
-    uint32_t opt = PCRE2_UTF | PCRE2_UCP;
+    uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP);
     if (strchr(flags, 'i')) opt |= PCRE2_CASELESS;
     if (strchr(flags, 'm')) opt |= PCRE2_MULTILINE;
     if (strchr(flags, 's')) opt |= PCRE2_DOTALL;

@@ -10,13 +10,13 @@ confirmed by hand, usually against other engines too.
 ### Confirmed findings
 
 The [bug ledger](#bug-ledger) has **59 confirmed bug IDs**, **55 unique reported bugs**
-(distinct upstream issue links), **52 distinct bug shapes**, and **71 candidates**
+(distinct upstream issue links), **52 distinct bug shapes**, and **72 candidates**
 still to audit or report. Bug IDs count
 separate ledger rows, including confirmed repros linked to an existing report.
 Unique bugs count each upstream issue once; shapes group the same failure pattern
 even across engines. Findings with no report or confirmed link to one are excluded.
 Fixed reported bugs remain in these all-time counts.
-Candidates are 70 open, unreported IDs and IRX-JAVA-2, whose recorded examples
+Candidates are 71 open, unreported IDs and IRX-JAVA-2, whose recorded examples
 were fixed but a different counted-loop form still fails in current OpenJDK.
 Resolved, documented, and older-version-only unreported findings are excluded
 from the candidate count.
@@ -109,7 +109,7 @@ Every batch of cases goes to one engine process per *mode*; a target enables the
 | span (`[span]`) | `[start, end)` of the first match of an unanchored search in A and R | the backtracking matcher's first match in priority order, or the relation's leftmost-longest span (POSIX engines) |
 | capture (`[capture]`) | the whole match plus groups 1–6 | the matcher's capture slots, with per-engine loop and lookbehind rules |
 | offset (`[offset]`; `shell-offset`, `perl-offset`, d8 `offset`) | `[start, end)` of a search that starts at a per-case offset in A and R | the matcher's first match from that offset; `^` still means the real start and lookbehind sees the earlier text. Offsets travel in the flags string as `"<flags>@<a>,<r>"` in the host's units (driver mode `ospan`). Enabled where the engine's API has those semantics; Tcl (`-start`), ICU and Racket treat the offset as the string start, Go, Vectorscan, LLVM, Swift Regex, Emacs and RE# have no such API |
-| sticky (`[offset] sticky`; `shell-sticky`, `perl-sticky`, d8 `sticky`) | the same offsets, but the match must start exactly there | the matcher's match anchored at the offset. Only for hosts with a native anchored search (JS `y`, Perl `\G`, Python `match(s, pos)`, Java `region` + `lookingAt`, PCRE2 `ANCHORED`, `onig_match`, RE2 `ANCHOR_START`; driver mode `aspan`): emulating it from the offset search would only repeat the offset check |
+| sticky (`[offset] sticky`; `shell-sticky`, `perl-sticky`, d8 `sticky`) | the same offsets, but the match must start exactly there | the matcher's match anchored at the offset. Only for hosts with a native anchored search (JS `y`, Perl `\G`, Python `match(s, pos)`, Java `region` + `lookingAt`, PCRE2 `ANCHORED`, PHP `A`, `onig_match`, Ruby and .NET `\G`, RE2 `ANCHOR_START`; driver mode `aspan`): emulating it from the offset search would only repeat the offset check |
 | long (`[long]`; `shell-long`, `perl-long`, d8 `long`) | does the pattern fully match a long accept string? its near-miss reject? | the relation semantics evaluated as bit vectors over positions (`src/long.zig`) |
 | long span, long capture (`[long]` with `[span]`/`[capture]`; `*-long-span`, `*-long-capture`) | span mode and capture mode on the long pair | the same references as span and capture mode, on subjects of any length; positions on the wire are 4 hex digits (driver modes `lspan`, `lcapture`) |
 
@@ -156,7 +156,7 @@ A campaign's configuration is [`weights.toml`](weights.toml) followed by the tar
 | `[grammar]` | grammar shape | max size 24, counted repeats up to 3 plus big bounds `[16, 100, 254]` (`{0,N}`, `{1,N}`, `{N,}`, `{N}`, weight ×4, only over a single character atom and never inside another quantifier), classes of up to 2 members |
 | `[limits]` | table and memory budgets, stored findings | 1 GiB per table, 4 GiB host, 100k samples per table, 20 stored findings per signature group |
 | `[harness]` | batches, deadlines, journals | 512 cases per batch, 2 s + 2 s per 512 cases, journals deleted after the run (`keep_journals`) |
-| `[target]` (target.toml) | how to launch the engine | `kind` (`d8`, `perl`, `shell`), `command`, `dialect`, `selfcheck` |
+| `[target]` (target.toml) | how to launch the engine | `kind` (`d8`, `perl`, `shell`), `command`, `dialect`, `selfcheck`; `env` (variables for irx and the engine, e.g. `IRX_PCRE2_JIT=1`), `modes` / `optional_modes` (d8: `linear`, `noopt`, `nopeephole`, `fallback0`) |
 | `[span]`, `[capture]` (target.toml) | range checks | `enabled`, `units`; `loop`, `lookbehind` |
 | `[offset]` (target.toml) | start-offset checks | `enabled` (offset mode), `sticky` (anchored at the offset; only for hosts with a native anchored search) |
 | `[long]` | long-input modes (off unless enabled) | `enabled`, `only` (no other modes), `span`/`capture` (long spans and captures where the target supports them; default true), `fraction` 0.25 of cases, `lengths` [64, 256, 1000, 4096] (at most 16000), `guard_factor` 50, `deadline_ms_per_kb` 20, `deadline_ms_per_case` 10, `max_request_bytes` 8 MiB |
@@ -371,6 +371,7 @@ recorded in the tables below. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 =
 | IRX-PCRE2-2 | PCRE2 | Open · not filed | wrong span: `pcre2_match("(?:^\\B\|..){0,2}\\S", " .-x0")` → `[0,3)` → expected `[0,5)` (Perl, V8) | Tested: PCRE2 10.49 (interpreter and JIT; also PHP 8.5). after the first iteration matched empty (`^\B` at 0) and was backtracked into `..`, the second iteration is never tried before `\S`; with a literal (`…{0,2}0`) the span is right. Found by span mode; also `(?:^\|.){0,3}\\B` on `"aa-"` → `[0,1)` (Perl `[0,3)`) |
 | IRX-PCRE2-3 | PCRE2 | Open · not filed | wrong result (no match): `/(?:é\| )\\D{2}/u` on `" aa"` → no match under `pcre2_jit_compile`; also `\\S{2,}`, `\\w{2,}`, first branch `ı` or `σ` → expected `[0,3)` (interpreter) | Tested: PCRE2 10.49 **JIT** (also PHP 8.5). an alternation whose first branch is a non-ASCII literal and whose later branch matches, followed by a class escape repeated two or more times; `(?: \|é)`, `[é ]`, `\\D{1,}` and `[^0-9]{2,}` are fine. Found by span mode on PHP |
 | IRX-PCRE2-4 | PCRE2 | Open · not filed | wrong result: `/\P{So}+\P{Sm}/utf` on `"ab"` → no match; `/a\P{So}*\D/utf,ucp` on `"aaa"` → no match (`\D` is `\P{Nd}` under UCP); also `\P{L}*\P{N}` on `"--"` → expected a match (Perl; PCRE2 with `no_auto_possess`) | Tested: PCRE2 10.49 (`pcre2test`, interpreter). Auto-possessification treats a loop over one negated general category as possessive when a different negated category follows, although the two sets overlap; `\P{Lu}*\P{Ll}` is fine. Found by the new `\p{…}` atoms (offset-mode sweep) |
+| IRX-PCRE2-5 | PCRE2 | Open · not filed | wrong result: `pcre2test` `/(?<=(?<!a)a)b/utf` on `aaab\=offset=3` → `0: b`; also `/(?<=(?<!a)a)/utf` (empty match at 3) → expected no match (the `a` before the `b` is itself preceded by `a`) | Tested: PCRE2 10.49 (`pcre2test`, interpreter). With a non-zero start offset in UTF mode, a lookbehind nested in a lookbehind does not see the text before the offset; without `utf`, at offset 0, and under the JIT the result is correct. Found by offset mode on the `pcre2-ascii` target. |
 | IRX-SWIFT-1 | Swift Regex | Open · [#901](https://github.com/swiftlang/swift-experimental-string-processing/issues/901) | wrong result: `/\w\b\w/` matches `"a0"`; `/0\b/` misses `"0"` → expected no; yes | Tested: Swift Regex (Swift 6.4), `.unicodeScalar` semantics + `.simple` word boundaries. `\b` treats digits as non-word although `\w` matches them; grapheme semantics is correct |
 | IRX-SWIFT-2 | Swift Regex | Open · [#900](https://github.com/swiftlang/swift-experimental-string-processing/issues/900) | wrong result: `try Regex("k+").ignoresCase()` does not match `"K"` (U+212A, Kelvin), nor `"KK"` → expected match (`k` alone and `kk*` on one `K` do match) | Tested: Swift Regex (Swift 6.4), `.unicodeScalar` semantics, `ignoresCase()`. a quantified case-insensitive literal skips the Unicode case variant that the single literal honours |
 | IRX-SWIFT-3 | Swift Regex | Open · [#899](https://github.com/swiftlang/swift-experimental-string-processing/issues/899) | wrong result: `\A(?:^\|a){2,}\z` and `\A(?:a\|^){2,}\z` miss `"a"` → expected match | Tested: Swift Regex (Swift 6.4), `.unicodeScalar` semantics. an open-ended counted group that needs a zero-width iteration; `{2}` and `{2,3}` are fine. Same family as IRX-JAVA-2 and IRX-ONIG-1 |
@@ -512,6 +513,8 @@ target has its own. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are 
 | Target | Directory | Host | Model | Status |
 |---|---|---|---|---|
 | V8 15.5 (d8) | [`v8`](targets/v8) | `driver.js` | ES2024 (exact) | IRX-V8-1…4 |
+| V8 linear engine; no-optimization and fallback paths | [`v8-linear`](targets/v8-linear), [`v8-noopt`](targets/v8-noopt) | d8 modes `linear`; `noopt`, `nopeephole`, `fallback0` | `es` (exact; linear: `""` and `s` flags only) | sweeps clean (706k / 250k per mode) |
+| SpiderMonkey 158 (jsvu) | [`spidermonkey`](targets/spidermonkey) | `driver.js` (`sm`) | `es` (exact) | new |
 | QuickJS (upstream `9d01a96`) | [`quickjs`](targets/quickjs) | `driver.js` (std) | ES2024 | IRX-QJS-1 |
 | XS | [`xs`](targets/xs) | bridge | ES2024 | IRX-XS-1…11 |
 | Boa | [`boa`](targets/boa) | bridge | ES2024 | IRX-BOA-1…8 |
@@ -520,8 +523,10 @@ target has its own. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are 
 | JavaScriptCore (Bun 1.4.2) | [`bun`](targets/bun) | `driver.js` (node adapter) | ES2024 | clean (0 self-check mismatches) |
 | V8 14.1 / 15.0 (Node, Deno) | [`node`](targets/node), [`deno`](targets/deno) | `driver.js` | ES2024 | older V8; excluded from the ledger and from `--all` campaigns (`campaign = false`) |
 | Perl 5.44 / blead | [`perl`](targets/perl) | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1…7 |
-| PCRE2 10.49 | [`pcre2`](targets/pcre2) | `hosts/c/pcre2_host` | `pcre2`: Perl with UCP `\w`/`\s` (exact) | IRX-PCRE2-1, 3 (JIT), IRX-PCRE2-2, 4 |
+| Perl 5.44 `/a`, `/aa` | [`perl-a`](targets/perl-a), [`perl-aa`](targets/perl-aa) | `driver.pl` (`IRX_PERL_CHARSET`) | `perl-a`: ASCII classes; `perl-aa`: also no ASCII/non-ASCII case match (exact) | self-check: only IRX-PERL-6/7 |
+| PCRE2 10.49 | [`pcre2`](targets/pcre2) | `hosts/c/pcre2_host` | `pcre2`: Perl with UCP `\w`/`\s` (exact) | IRX-PCRE2-1, 3 (JIT), IRX-PCRE2-2, 4, 5 |
 | PCRE2 10.49 JIT | [`pcre2-jit`](targets/pcre2-jit) | `hosts/c/pcre2_host` (`IRX_PCRE2_JIT=1`) | `pcre2` (exact) | 0 self-check mismatches; IRX-PCRE2-4 in the sweep |
+| PCRE2 10.49 without UCP | [`pcre2-ascii`](targets/pcre2-ascii) | `hosts/c/pcre2_host` (`IRX_PCRE2_NOUCP=1`) | `pcre2-ascii`: ASCII classes, Unicode case folding (exact) | 0 self-check mismatches |
 | PHP 8.5 `preg_*` | [`php-pcre2`](targets/php-pcre2) | `hosts/script/php_host.php` | Perl (exact) | IRX-PCRE2-1…3 |
 | Swift Regex 6.4 | [`swift-regex`](targets/swift-regex) | `hosts/swift` (scalar semantics) | Swift (exact) | IRX-SWIFT-1…5 |
 | .NET 9 interpreter / Compiled / NonBacktracking | [`dotnet-interp`](targets/dotnet-interp), [`dotnet-compiled`](targets/dotnet-compiled), [`dotnet-nonbacktracking`](targets/dotnet-nonbacktracking) | `hosts/dotnet` | `dotnet` / `dotnet-nonbacktracking`: UTF-16 units, `\w` = L\|Mn\|Nd\|Pc (exact) | IRX-DOTNET-1…8 |
@@ -539,6 +544,7 @@ target has its own. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are 
 | Python `re` | [`python-re`](targets/python-re) | `hosts/script/py_host.py` | `python`: isalnum `\w`, sre case groups, `(?P<…>)` (exact) | 0 self-check mismatches |
 | Python `regex` module | [`python-regex`](targets/python-regex) | `hosts/script/py_host.py` (`IRX_PY_ENGINE=regex`, `vendor/pyregex`) | `python-regex`: `\p{Word}` `\w`, `re` case groups, `\p`, variable lookbehind; ı and İ outside the pool (non-transitive case relation) | self-check: only ı/İ probes |
 | Java `java.util.regex` | [`java`](targets/java) | `hosts/java` | `java`: Java line ends, `lower(upper())` fold, range rule (exact) | IRX-JAVA-1…6 |
+| Java without `UNICODE_CHARACTER_CLASS` | [`java-ascii`](targets/java-ascii) | `hosts/java` (`IRX_JAVA_ASCII=1`) | `java-ascii`: ASCII classes, `\b` with Java's non-spacing-mark rule (exact) | self-check: only IRX-JAVA-1 |
 | nim-regex | [`nim-regex`](targets/nim-regex) | `hosts/nim` | `nim`: `(?P<…>)`, end-only `$`, case-mapped range endpoints (exact) | IRX-NIM-1, NIM-1, NIM-3, NIM-6 rediscovered |
 | Tcl ARE | [`tcl`](targets/tcl) | `hosts/script/tcl_host.tcl` | `tcl`: `\y`, L\|Nd\|Pc words, `-linestop` negations, {p, upper, lower} nocase (exact) | IRX-TCL-1 |
 | Racket `#px` | [`racket`](targets/racket) | `hosts/racket` | `racket`: ASCII classes, multi-mode `.`, asymmetric fold, `?`-only nullable quantifiers (exact) | IRX-RACKET-1…5; RACKET-1…3 rediscovered (RACKET-3 by span mode) |
