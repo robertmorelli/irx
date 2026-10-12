@@ -6958,12 +6958,11 @@
   "dialect": "vectorscan",
   "features": [
    "unicode_props",
-   "named_groups",
    "inline_flags",
    "lazy",
    "unicode_classes"
   ],
-  "feature_count": 5,
+  "feature_count": 4,
   "open_bugs": [
    "HS-1",
    "IRX-HS-1"
@@ -7344,10 +7343,8 @@
    }
   },
   "dialect": "llvm",
-  "features": [
-   "named_groups"
-  ],
-  "feature_count": 1,
+  "features": [],
+  "feature_count": 0,
   "open_bugs": [
    "IRX-LLVM-1",
    "IRX-LLVM-2"
@@ -7728,10 +7725,8 @@
    }
   },
   "dialect": "libc",
-  "features": [
-   "named_groups"
-  ],
-  "feature_count": 1,
+  "features": [],
+  "feature_count": 0,
   "open_bugs": [
    "IRX-LIBC-1",
    "IRX-LIBC-2"
@@ -8112,10 +8107,8 @@
    }
   },
   "dialect": "gnu",
-  "features": [
-   "named_groups"
-  ],
-  "feature_count": 1,
+  "features": [],
+  "feature_count": 0,
   "open_bugs": [],
   "fast": false,
   "featureful": false,
@@ -8493,10 +8486,8 @@
    }
   },
   "dialect": "llvm",
-  "features": [
-   "named_groups"
-  ],
-  "feature_count": 1,
+  "features": [],
+  "feature_count": 0,
   "open_bugs": [],
   "fast": false,
   "featureful": false,
@@ -22417,13 +22408,12 @@
    "lookahead",
    "lookbehind",
    "unicode_props",
-   "named_groups",
    "inline_flags",
    "lazy",
    "word_boundary",
    "unicode_classes"
   ],
-  "feature_count": 8,
+  "feature_count": 7,
   "open_bugs": [
    "IRX-RACKET-1",
    "IRX-RACKET-3",
@@ -22434,9 +22424,9 @@
    "RACKET-3"
   ],
   "fast": false,
-  "featureful": true,
+  "featureful": false,
   "family": "VM",
-  "tier": "D"
+  "tier": "F"
  },
  "emacs": {
   "overall": {
@@ -22920,12 +22910,11 @@
   },
   "dialect": "emacs",
   "features": [
-   "named_groups",
    "lazy",
    "word_boundary",
    "unicode_classes"
   ],
-  "feature_count": 4,
+  "feature_count": 3,
   "open_bugs": [
    "IRX-EMACS-1",
    "IRX-EMACS-2"

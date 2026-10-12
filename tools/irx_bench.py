@@ -307,6 +307,10 @@ FEATURES = ["lookahead", "lookbehind", "backrefs", "atomic", "possessive", "unic
             "lazy", "word_boundary", "grapheme", "unicode_classes", "full_case_fold", "extended_mode"]
 FAST, FEATUREFUL = 2.5, 8
 CORE_COVERAGE = 0.95
+# Constructs a dialect generates only because the host rewrites them into something else (the
+# POSIX, Emacs and Racket hosts turn (?<name>...) into a plain group; Vectorscan reports no
+# captures at all): the engine itself lacks them.
+HOST_TRANSLATED = {d: ["named_groups"] for d in ("gnu", "llvm", "libc", "emacs", "racket", "vectorscan")}
 # Features the engine supports but its dialect stops generating because a known bug would drown
 # other findings (see the dialect comments): they still count toward the feature score.
 SUPPRESSED = {"dotnet": ["atomic"], "dotnet-compiled": ["atomic"], "boost": ["atomic", "possessive", "grapheme"], "pcre1": ["grapheme"]}
@@ -404,7 +408,7 @@ def report(out):
         tgt = dict((e[0], e[1]) for e in ENGINES)[name]
         dia = re.search(r'^dialect = "(.*?)"', open(os.path.join(ROOT, "targets", tgt, "target.toml")).read(), re.M).group(1)
         f = feats.get(dia, {})
-        have = [k for k in FEATURES if f.get(k) or k in SUPPRESSED.get(dia, [])]
+        have = [k for k in FEATURES if (f.get(k) or k in SUPPRESSED.get(dia, [])) and k not in HOST_TRANSLATED.get(dia, [])]
         bugs = open_bugs(name, rows_l)
         geo = summary[name]["rank"]["overall"]["geo"]
         summary[name].update({"dialect": dia, "features": have, "feature_count": len(have), "open_bugs": bugs,
