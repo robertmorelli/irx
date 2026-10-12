@@ -74,6 +74,7 @@ which dropped U+180E when it stopped being a space separator in Unicode 6.3. In 
 | ECMAScript without `u` | `Canonicalize` maps to uppercase and never maps non-ASCII to ASCII (so `ſ` does not match `s`) |
 | ECMAScript `u`/`v` | simple case folding |
 | Perl | full case folding: a pattern `ß` (literal, or listed in a class but not in a range) matches `ss`, `SS`, `ſs`; `/aa` turns this off between ASCII and non-ASCII |
+| ICU | full case folding for literals (`ß` matches `ss`, `ſS`); class members fold simply |
 | PCRE family, Boost | simple case folding only (`ß` matches `ẞ`, never `ss`) |
 | Perl `/aa` | no case-insensitive match between ASCII and non-ASCII (`k` vs the Kelvin sign, `s` vs `ſ`) |
 | Java | `lower(upper(c))` on both sides; a literal without simple case mappings (`ß`) compiles as an exact match, so `ß` fails to match `ẞ` while `ẞ` matches `ß` (IRX-JAVA-1) |
@@ -149,7 +150,7 @@ engines; Perl 5.38+ follows neither consistently and is not modelled. Details: [
 | PCRE1, Python `re`, fancy-regex, Ruby, Oniguruma | fixed length per top-level branch; PCRE1 also rejects any variable quantifier inside, even `()?` |
 | Boost | fixed length, and no quantifier at all, not even `{1}` |
 | Java | bounded; rejects unbounded quantifiers over non-atoms, lazy unbounded ones, and counted ones over a group holding an alternation or quantifier |
-| ICU | bounded; no `??`, `*?`, `+?`; no unbounded quantifier even inside a nested lookahead (gap in the model) |
+| ICU | bounded; no `??`, `*?`, `+?`; no unbounded quantifier even inside a nested lookahead (irx keeps lookarounds out of ICU lookbehinds) |
 | Onigmo, Oniguruma | no lookarounds or quantified captures inside, no captures in a negative lookbehind, and no atom under `i` that could match a multi-character fold |
 | Racket | bounded |
 | RE2, Go, Rust, Vectorscan, LLVM, libc, std::regex | no lookbehind (std::regex has no lookbehind at all) |

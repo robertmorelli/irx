@@ -136,6 +136,7 @@ pub const Grammar = struct {
     lb_onig: bool = false,
     /// No `??`, `*?`, `+?` inside lookbehind (ICU).
     lb_no_lazy: bool = false,
+    lb_no_look: bool = false,
     /// No quantifier inside lookbehind (dialect lookbehind_no_quant).
     lb_no_quant: bool = false,
     /// Only the `?` form may quantify a nullable body (min length 0).
@@ -285,6 +286,7 @@ pub const Grammar = struct {
             .no_quant_assert = !dialect_mod.active.quantify_assertions,
             .lb_onig = dialect_mod.active.lookbehind_onig,
             .lb_no_lazy = dialect_mod.active.lookbehind_no_lazy,
+            .lb_no_look = dialect_mod.active.lookbehind_no_lookaround,
             .lb_no_quant = dialect_mod.active.lookbehind_no_quant,
             .nullable_opt_only = dialect_mod.active.nullable_quant_opt_only,
         };
@@ -335,6 +337,7 @@ pub const Grammar = struct {
         if (self.lb_onig) m |= aux_lk | aux_cp | aux_cq | aux_pi;
         if (self.no_counted_lk) m |= aux_lk;
         if (self.lb_no_lazy) m |= aux_lz;
+        if (self.lb_no_look) m |= aux_lk;
         if (self.lb_no_quant) m |= aux_q;
         if (self.small_rep_bound < 255) m |= aux_bq | aux_atom;
         if (self.has_alt) m |= aux_ctx;
@@ -352,7 +355,7 @@ pub const Grammar = struct {
         h.update(std.mem.asBytes(&self.len_cap));
         h.update(std.mem.asBytes(&self.small_rep_bound));
         h.update(&[_]u8{ @intFromBool(self.has_alt), self.alt_flags.bits(), self.alt_mod, self.pool_idx });
-        h.update(&[_]u8{ @intFromBool(self.no_empty_quant), @intFromBool(self.lookbehind_fixed), @intFromBool(self.no_la_in_star), @intFromBool(self.nullable_opt_only), @intFromBool(self.lb_no_unbounded_group), @intFromBool(self.lb_no_var), @intFromBool(self.no_quant_assert), @intFromBool(self.lb_onig), @intFromBool(self.lb_no_lazy), @intFromBool(self.no_counted_lk), @intFromBool(self.lb_no_quant) });
+        h.update(&[_]u8{ @intFromBool(self.no_empty_quant), @intFromBool(self.lookbehind_fixed), @intFromBool(self.no_la_in_star), @intFromBool(self.nullable_opt_only), @intFromBool(self.lb_no_unbounded_group), @intFromBool(self.lb_no_var), @intFromBool(self.no_quant_assert), @intFromBool(self.lb_onig), @intFromBool(self.lb_no_lazy), @intFromBool(self.lb_no_look), @intFromBool(self.no_counted_lk), @intFromBool(self.lb_no_quant) });
         for (self.atoms, self.atom_w) |a, w| {
             h.update(std.mem.asBytes(&a.kind));
             h.update(&[_]u8{ a.sub, @intFromBool(a.neg), a.n });
@@ -1056,6 +1059,7 @@ fn Builder(comptime R: type) type {
                         if (self.g.lb_no_quant and yf & aux_q != 0) return;
                         if (self.g.lb_onig and (yf & (aux_lk | aux_cq | aux_pi) != 0 or (u.op == .neg_look_behind and yf & aux_cp != 0))) return;
                         if (self.g.lb_no_lazy and yf & aux_lz != 0) return;
+                        if (self.g.lb_no_look and yf & aux_lk != 0) return;
                         f = aux_lk | aux_za | (yf & aux_inherit);
                     },
                     .group_nc => {

@@ -49,6 +49,11 @@ pub const dialect: D.Dialect = .{
     .lookbehind_len_cap = 16,
     // `(?<=a??)` and `(?<=a+?)` are rejected; `(?<=a{0,1}?)` compiles.
     .lookbehind_no_lazy = true,
+    .lookbehind_no_lookaround = true,
+    // Full case folding for literals under i (a pattern ß matches "ss", "ſS"); listed class
+    // members use simple folding. Multi-fold characters stay out of subjects.
+    .full_fold = .literals,
+    .pattern_only = &.{ 0xDF, 0x1E9E, 0xFB00, 0xFB01, 0x130 },
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
     .name = "icu",
