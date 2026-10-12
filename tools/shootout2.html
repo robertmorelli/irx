@@ -108,7 +108,7 @@ a { color: var(--accent); }
 
   <section aria-labelledby="h-tiers">
     <h2 id="h-tiers">Tier list</h2>
-    <p>Correctness gates the top three tiers: an engine with any open bug found by irx can place no higher than C. Within each half, an engine earns one step for being <strong>fast</strong> (geometric-mean search time at most <span id="fast-x"></span>× Rust's) and one for being <strong>featureful</strong> (at least <span id="feat-n"></span> of the 14 construct families below, read from irx's dialect model).</p>
+    <p id="p-tiers">Correctness gates the top three tiers: an engine with any open bug found by irx can place no higher than C. Within each half, an engine earns one step for being <strong>fast</strong> (geometric-mean search time at most <span id="fast-x"></span>× Rust's) and one for being <strong>featureful</strong> (at least <span id="feat-n"></span> of the 14 construct families below, read from irx's dialect model).</p>
     <div class="tiers" id="tiers"></div>
   </section>
 
@@ -123,38 +123,38 @@ a { color: var(--accent); }
 
   <section aria-labelledby="h-speed">
     <h2 id="h-speed">Overall speed</h2>
-    <p>Each engine's search time divided by Rust's on the same input, combined as a geometric mean over the inputs chosen above. Bars right of the line are slower than Rust. Engines differ in what they can run: POSIX engines reject lazy quantifiers and <code>\b</code>, DFA engines reject Unicode word boundaries, and timeouts count as not run, which is why the strict view compares engines only on shared inputs.</p>
+    <p id="p-speed">Each engine's search time divided by Rust's on the same input, combined as a geometric mean over the inputs chosen above. Bars right of the line are slower than Rust. Engines differ in what they can run: POSIX engines reject lazy quantifiers and <code>\b</code>, DFA engines reject Unicode word boundaries, and timeouts count as not run, which is why the strict view compares engines only on shared inputs.</p>
     <div class="card"><div class="chart" id="c-speed" role="img" aria-label="Geometric-mean slowdown versus Rust per engine"></div></div>
   </section>
 
-  <section aria-labelledby="h-split">
+  <section class="wide" aria-labelledby="h-split">
     <h2 id="h-split">Where the time goes</h2>
-    <p>The same ratio, split four ways: ASCII against Unicode patterns and subjects, inputs Rust accepted against inputs it rejected, and four subject sizes (16, 128, 1,024 and 8,192 characters). A cell compares the engine with Rust on that slice only, so a row shows how an engine's speed changes, not which slice is slow overall.</p>
-    <div class="card wide"><div class="scrollx"><table id="t-split"></table></div>
+    <p id="p-split">The same ratio, split four ways: ASCII against Unicode patterns and subjects, inputs Rust accepted against inputs it rejected, and four subject sizes (16, 128, 1,024 and 8,192 characters). A cell compares the engine with Rust on that slice only, so a row shows how an engine's speed changes, not which slice is slow overall.</p>
+    <div class="card"><div class="scrollx"><table id="t-split"></table></div>
       <div class="legend" id="ramp-legend"></div></div>
   </section>
 
-  <section aria-labelledby="h-cross">
+  <section class="wide" aria-labelledby="h-cross">
     <h2 id="h-cross">The full matrix</h2>
-    <p>All three splits crossed: for each engine, ASCII or Unicode, an input Rust accepted or rejected, and the subject size. Each cell is the geometric-mean ratio to Rust over the 125–170 inputs in that slice. Reading across a block shows how an engine scales with size; comparing the accept and reject blocks shows whether it is quicker to find a match or to rule one out.</p>
-    <div class="card wide"><div class="scrollx"><table class="cross" id="t-cross"></table></div></div>
+    <p id="p-cross">All three splits crossed: for each engine, ASCII or Unicode, an input Rust accepted or rejected, and the subject size. Each cell is the geometric-mean ratio to Rust over the 125–170 inputs in that slice. Reading across a block shows how an engine scales with size; comparing the accept and reject blocks shows whether it is quicker to find a match or to rule one out.</p>
+    <div class="card"><div class="scrollx"><table class="cross" id="t-cross"></table></div></div>
   </section>
 
   <section aria-labelledby="h-scale">
     <h2 id="h-scale">Scaling with input size</h2>
-    <p>Absolute median time per search at each size, ASCII set, for a selection of engines (log scales). A slope of one decade per decade is linear in the input; Rust's lazy DFA and Hyperscan-style engines stay flat on short inputs because per-call overhead dominates.</p>
+    <p id="p-scale">Absolute median time per search at each size, ASCII set, for a selection of engines (log scales). A slope of one decade per decade is linear in the input; Rust's lazy DFA and Hyperscan-style engines stay flat on short inputs because per-call overhead dominates.</p>
     <div class="card"><div class="chart" id="c-scale" role="img" aria-label="Median search time against input size per engine"></div><div class="legend" id="scale-legend"></div></div>
   </section>
 
-  <section aria-labelledby="h-feat">
+  <section class="wide" aria-labelledby="h-feat">
     <h2 id="h-feat">Features</h2>
-    <p>Construct families each engine supports, from the irx dialect that models it (<code>irx features</code>). These are what the fuzzer generates for that engine, so they reflect tested support.</p>
-    <div class="card wide"><div class="scrollx"><table class="feat" id="t-feat"></table></div></div>
+    <p id="p-feat">Construct families each engine supports, from the irx dialect that models it (<code>irx features</code>). These are what the fuzzer generates for that engine, so they reflect tested support.</p>
+    <div class="card"><div class="scrollx"><table class="feat" id="t-feat"></table></div></div>
   </section>
 
   <section aria-labelledby="h-bugs">
     <h2 id="h-bugs">Correctness</h2>
-    <p>Open bugs found by irx that affect each engine in its latest tested version. Engines that embed another engine inherit its bugs (PHP and Erlang run PCRE2; SpiderMonkey shares V8's Irregexp). Zero means irx has not found one, not that none exist.</p>
+    <p id="p-bugs">Open bugs found by irx that affect each engine in its latest tested version. Engines that embed another engine inherit its bugs (PHP and Erlang run PCRE2; SpiderMonkey shares V8's Irregexp). Zero means irx has not found one, not that none exist.</p>
     <div class="card"><div class="scrollx"><table id="t-bugs"></table></div></div>
   </section>
 
@@ -183,10 +183,22 @@ const fmt = x => x == null ? "–" : x < 10 ? x.toFixed(2) : x < 100 ? x.toFixed
 const label = n => (EX[n] && EX[n].label) || M.labels[n] || n;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
+if (M.concise) {
+  const C = {
+    "p-tiers": `An engine with any open bug places C or lower. In each half it moves up one tier for being fast (at most ${M.fast}× Rust) and one for being featureful (${M.featureful} or more of the 14 features below).`,
+    "p-speed": "Search time relative to Rust, as a geometric mean. Left of the line is faster.",
+    "p-split": "The same ratio by pattern set, by whether the input matched, and by input length in characters.",
+    "p-cross": "Every combination of those splits. Blue is faster than Rust, red is slower.",
+    "p-scale": "Median time per search as inputs grow, ASCII set.",
+    "p-feat": "Features each engine supports.",
+    "p-bugs": "Open bugs irx has found in each engine's latest version.",
+  };
+  for (const [id, t] of Object.entries(C)) { const el = document.getElementById(id); if (el) el.innerHTML = t; }
+}
 document.getElementById("fast-x").textContent = M.fast;
 document.getElementById("feat-n").textContent = M.featureful;
 const counts = TIER_ORDER.map(t => names.filter(n => S[n].tier === t).length);
-document.getElementById("lede").innerHTML = `Every engine irx fuzzes, timed on one shared workload: ${M.patterns} random patterns in an ASCII and a Unicode set, each against subjects of four sizes, about ${M.inputs.toLocaleString()} timed inputs per engine. <strong>${counts[0] === 1 ? names.filter(n => S[n].tier === "S").map(label)[0] + " is the only engine in S tier" : counts[0] + " engines reach S tier"}</strong>; ${names.filter(n => !S[n].open_bugs.length).length} of ${names.length} have no open bug.`;
+document.getElementById("lede").innerHTML = M.concise ? `${names.length} regex engines timed on the same ${M.patterns * 2} patterns, each searched in inputs from 16 to 8,192 characters, then ranked by speed, features and bugs. Rust's <code>regex</code> crate is the 1.0× baseline.` : `Every engine irx fuzzes, timed on one shared workload: ${M.patterns} random patterns in an ASCII and a Unicode set, each against subjects of four sizes, about ${M.inputs.toLocaleString()} timed inputs per engine. <strong>${counts[0] === 1 ? names.filter(n => S[n].tier === "S").map(label)[0] + " is the only engine in S tier" : counts[0] + " engines reach S tier"}</strong>; ${names.filter(n => !S[n].open_bugs.length).length} of ${names.length} have no open bug.`;
 document.getElementById("facts").innerHTML = [["Engines", names.length], ["Patterns", (M.patterns * 2).toLocaleString()], ["Timed inputs / engine", M.inputs.toLocaleString()], ["Size bins", "16 → 8,192"], ["Open bugs found", M.ledger_open]].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
 
 // Diverging ramp on log2(ratio)
@@ -198,7 +210,7 @@ function textOn(x) { return x <= 0.5 || x > 10 ? "#fff" : "var(--ink)"; }
 function render() {
   bySpeed = speedNames.slice().sort((a, b) => MX(a).overall.geo - MX(b).overall.geo);
   const st = M.strict;
-  document.getElementById("view-note").innerHTML = VIEW === "strict"
+  document.getElementById("view-note").innerHTML = M.concise ? `Engines are compared only on inputs they all ran: ${st.core_inputs.toLocaleString()} inputs for the ${st.core_engines} engines that ran nearly everything, and ${st.all_inputs} for the rest, marked “all-engine set”.` : VIEW === "strict"
     ? `Every engine is compared with Rust on inputs it shares with a whole group of engines, so rankings are like for like. The <strong>${st.core_engines} engines that ran at least ${Math.round(st.core_coverage * 100)}% of cases</strong> share ${st.core_inputs.toLocaleString()} of the ${st.total_inputs.toLocaleString()} timed inputs. The others (POSIX engines, DFA-only engines, V8's linear engine, RE#, Racket) are ranked on the ${st.all_inputs} inputs <strong>every</strong> engine ran, marked “all-engine set”. Tiers use these numbers.`
     : `Each engine against Rust on every input it ran. Engines that reject lazy quantifiers or <code>\\b</code> are judged on an easier subset here, so their rows are not comparable with the rest; tiers still use the strict sets.`;
 // Tier board
@@ -313,5 +325,5 @@ for (const id of ["view-strict", "view-own"]) {
   if (M.no_bug_ids) document.getElementById("t-bugs").className = "counts";
 })();
 
-document.getElementById("foot").innerHTML = Object.keys(EX).map(n => `<div>* ${esc(label(n))}: shown for comparison only. It is not an irx engine, so it has no tier, features or bug count. Timed on the same workload through its own runner, with the fuzzing campaign running, so its ratios are against a Rust run timed under the same load.</div>`).join("") + `<div>Measured ${M.date} on an Apple Silicon Mac with the fuzzing campaign paused, engines run one at a time. Each case compiles once (timed), runs one untimed warm-up search per subject, then times repeated unanchored “is there a match?” searches; loops shorter than 2 ms are rerun with more repetitions, which matters for shells with millisecond clocks (Boa, XS, Hermes). Times are in-process and exclude startup and I/O. JavaScript engines and the JVM time warm code; Java's JIT is shared across cases.</div><div>Speed thresholds: fast means at most ${M.fast}× Rust overall. Features: ${M.features.length} families from the dialect model; featureful means at least ${M.featureful}. Bugs: open bugs irx had found as of ${M.date}.</div><div>fancy-regex was re-timed on 0.19.2 (the version its bug status refers to) after the main run, alongside Rust, and its per-input ratios applied to the main run's Rust times.</div><div>Harness: <code>tools/irx_bench.py</code> (bench mode in every irx host).</div>`;
+document.getElementById("foot").innerHTML = M.concise ? `<div>Measured ${M.date} on an Apple Silicon Mac, one engine at a time. Each pattern is compiled once, then searched repeatedly.</div>` : Object.keys(EX).map(n => `<div>* ${esc(label(n))}: shown for comparison only. It is not an irx engine, so it has no tier, features or bug count. Timed on the same workload through its own runner, with the fuzzing campaign running, so its ratios are against a Rust run timed under the same load.</div>`).join("") + `<div>Measured ${M.date} on an Apple Silicon Mac with the fuzzing campaign paused, engines run one at a time. Each case compiles once (timed), runs one untimed warm-up search per subject, then times repeated unanchored “is there a match?” searches; loops shorter than 2 ms are rerun with more repetitions, which matters for shells with millisecond clocks (Boa, XS, Hermes). Times are in-process and exclude startup and I/O. JavaScript engines and the JVM time warm code; Java's JIT is shared across cases.</div><div>Speed thresholds: fast means at most ${M.fast}× Rust overall. Features: ${M.features.length} families from the dialect model; featureful means at least ${M.featureful}. Bugs: open bugs irx had found as of ${M.date}.</div><div>fancy-regex was re-timed on 0.19.2 (the version its bug status refers to) after the main run, alongside Rust, and its per-input ratios applied to the main run's Rust times.</div><div>Harness: <code>tools/irx_bench.py</code> (bench mode in every irx host).</div>`;
 </script>
