@@ -9,8 +9,8 @@ confirmed by hand, usually against other engines too.
 
 ### Confirmed findings
 
-The [bug ledger](#bug-ledger) has **102 confirmed bug IDs**, **86 unique reported bugs**
-(distinct upstream issue links), **93 distinct bug shapes**, and **66 candidates**
+The [bug ledger](#bug-ledger) has **103 confirmed bug IDs**, **86 unique reported bugs**
+(distinct upstream issue links), **94 distinct bug shapes**, and **67 candidates**
 still to audit or report. Bug IDs count
 separate ledger rows, including confirmed repros linked to an existing report.
 Unique bugs count each upstream issue once; shapes group the same failure pattern
@@ -517,6 +517,7 @@ recorded in the tables below. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 =
 | [JSC-1](../regex_comparison/bugs/BUGS.md#jsc-1) | JavaScriptCore | Resolved · not filed | wrong result: `/u` mixed ASCII/astral class misses an astral character after index 0 | Tested: JavaScriptCore (Bun); latest Bun 1.4.2. `/u` class with an ASCII range + astral range misses astral chars after index 0 |
 | [JSC-2](../regex_comparison/bugs/BUGS.md#jsc-2) | JavaScriptCore | Resolved · not filed | wrong result: `(?:^)?` or `(?:^)*` misses a match after index 0 | Tested: JavaScriptCore (Bun); latest Bun 1.4.2. `(?:^)?` / `(?:^)*` makes the match fail when it doesn't start at index 0 |
 | IRX-JSC-3 | JavaScriptCore | Open · not filed | wrong result: `/^\p{Ll}$/ui.test("S")` → `false`; also `/^\p{Lu}$/ui.test("s")`, the same under `vi` → expected `true` (case-insensitive property matching; V8, QuickJS) | Tested: system JavaScriptCore on macOS 27.0 (bundle 22625.1.29.11.27). Bun 1.4.2's JavaScriptCore matches, so this may be specific to the system build; not yet checked against WebKit trunk. Found while checking the `\q{}` results |
+| IRX-JSC-4 | JavaScriptCore | Open · not filed | wrong result: `/^[^[^a]k]$/v.test("a")` → `false`; also `/^a[^[^a]k]$/v` on `"aa"`; conversely `/^[^[^a][^b]]$/v.test("a")` → `true` → expected `true`, `true`, `false` (a complemented class that contains a complemented class and other members; V8, Bun's JavaScriptCore) | Tested: system JavaScriptCore on macOS 27.0. Bun 1.4.2's JavaScriptCore is right, like IRX-JSC-3, so the system build may predate a fix. Found by the round-10 campaign on `jsc` |
 | [JAVA-1](../regex_comparison/bugs/BUGS.md#java-1) | Java | Open · not filed | wrong result: lookbehind misses an escaped supplementary code point | Tested: java.util.regex; latest OpenJDK 27. lookbehind never matches an *escaped* supplementary code point |
 | [PERL-1](../regex_comparison/bugs/BUGS.md#perl-1) | Perl | Open · [#24915](https://github.com/Perl/perl5/issues/24915) | wrong result: `/x+(?:b{2}){2}/` misses `"xxbbbb"` | Tested: Perl; latest 5.44.0. `(?:b{2}){2}` after any `+`/`*` quantifier fails: `/x+(?:b{2}){2}/` misses `"xxbbbb"` |
 | [DOTNET-1](../regex_comparison/bugs/BUGS.md#dotnet-1) | .NET | Resolved · [#135328](https://github.com/dotnet/runtime/issues/135328) | hang: `(?:\|a?\|b)+?c` never returns on `"a"` | Tested: .NET Regex (interpreter); latest .NET 11.0.0-rc.1. `(?:\|a?\|b)+?c` on `"a"` never terminates (the two-branch form was fixed in .NET 10). Still affected in .NET 10.0.12; fixed in .NET 11 RC 1. |
