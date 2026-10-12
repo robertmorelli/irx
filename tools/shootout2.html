@@ -7,7 +7,7 @@
    bugs. Data cells use mono numerals; the diverging ramp is blue for faster than Rust, red for slower. */
 :root {
   --bg: #f4f6f8; --surface: #ffffff; --ink: #11161d; --ink-2: #4a5462; --muted: #7b8594;
-  --line: #dde2e8; --accent: #1f5fd6; --code: #eef1f5;
+  --line: #dde2e8; --accent: #1f5fd6; --code: #eef1f5; --board: #1b1f26;
   --tier-s: #b8860b; --tier-a: #1e8a4c; --tier-b: #2f7d8c; --tier-c: #c27a12; --tier-d: #d0582a; --tier-f: #b9312f;
   --d-n3: #1d4f9e; --d-n2: #4a86d8; --d-n1: #b4cff2; --d-mid: #eceef1; --d-p1: #f4c9bd; --d-p2: #e9927c; --d-p3: #d4573f; --d-p4: #a8341f; --d-p5: #6c1d10;
   --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
@@ -16,14 +16,14 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e1116; --surface: #161b22; --ink: #eef2f6; --ink-2: #b4bdc9; --muted: #8590a0; --line: #2a313b; --accent: #6c9cf0; --code: #1f2630;
+    --bg: #0e1116; --surface: #161b22; --ink: #eef2f6; --ink-2: #b4bdc9; --muted: #8590a0; --line: #2a313b; --accent: #6c9cf0; --code: #1f2630; --board: #05070a;
     --tier-s: #e0b13a; --tier-a: #43b874; --tier-b: #4fb2c2; --tier-c: #e3a03c; --tier-d: #ec7d4e; --tier-f: #e05a57;
     --d-n3: #9cc2f5; --d-n2: #4f8fe6; --d-n1: #1f3d66; --d-mid: #2a3038; --d-p1: #5a2f27; --d-p2: #8f3d2e; --d-p3: #c4523b; --d-p4: #e5745b; --d-p5: #f6ad9b;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0e1116; --surface: #161b22; --ink: #eef2f6; --ink-2: #b4bdc9; --muted: #8590a0; --line: #2a313b; --accent: #6c9cf0; --code: #1f2630;
+  --bg: #0e1116; --surface: #161b22; --ink: #eef2f6; --ink-2: #b4bdc9; --muted: #8590a0; --line: #2a313b; --accent: #6c9cf0; --code: #1f2630; --board: #05070a;
   --tier-s: #e0b13a; --tier-a: #43b874; --tier-b: #4fb2c2; --tier-c: #e3a03c; --tier-d: #ec7d4e; --tier-f: #e05a57;
   --d-n3: #9cc2f5; --d-n2: #4f8fe6; --d-n1: #1f3d66; --d-mid: #2a3038; --d-p1: #5a2f27; --d-p2: #8f3d2e; --d-p3: #c4523b; --d-p4: #e5745b; --d-p5: #f6ad9b;
   color-scheme: dark;
@@ -46,14 +46,15 @@ section { display: grid; gap: 14px; min-width: 0; }
 .card { background: var(--surface); border-radius: 10px; box-shadow: 0 0 0 1px var(--line); padding: 18px; min-width: 0; }
 .note { font-size: 13px; color: var(--muted); max-width: 80ch; }
 /* Tier board */
-.tiers { display: grid; gap: 8px; }
-.tier { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: stretch; }
-.tier .badge { display: grid; place-items: center; border-radius: 8px; color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 30px; font-stretch: 80%; }
-.tier .rule { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-.tier .row { background: var(--surface); box-shadow: 0 0 0 1px var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 9px; border-radius: 999px; background: var(--code); font-size: 13px; color: var(--ink); white-space: nowrap; }
-.chip small { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+/* Tier board: a classic tier list. Square letter cells, flat bands, rectangular tiles. */
+.tiers { display: grid; gap: 2px; background: var(--board); padding: 2px; }
+.tier { display: grid; grid-template-columns: 76px 1fr; gap: 2px; align-items: stretch; }
+.tier .badge { display: grid; place-items: center; color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 34px; font-stretch: 80%; min-height: 64px; text-shadow: 0 1px 0 rgba(0,0,0,0.25); }
+.tier .rule { font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+.tier .row { background: var(--surface); padding: 8px 10px; min-width: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 5px 9px; border-radius: 2px; background: var(--code); border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.chip small { font-family: var(--font-mono); font-size: 10.5px; font-weight: 400; color: var(--muted); }
 .empty { font-size: 13px; color: var(--muted); font-style: italic; }
 /* Tables */
 .scrollx { overflow-x: auto; }
@@ -194,7 +195,7 @@ function render() {
 // Tier board
 document.getElementById("tiers").innerHTML = TIER_ORDER.map(t => {
   const es = names.filter(n => S[n].tier === t).sort((a, b) => MX(a).overall.geo - MX(b).overall.geo);
-  return `<div class="tier"><div class="badge" style="background:${tierColor(t)}">${t}</div><div class="row"><div class="rule">${TIER_RULE[t]}</div>${es.length ? `<div class="chips">${es.map(n => `<span class="chip">${esc(label(n))}<small>${fmt(MX(n).overall.geo)}× · ${S[n].feature_count}/14${S[n].open_bugs.length ? " · " + S[n].open_bugs.length + " bug" + (S[n].open_bugs.length > 1 ? "s" : "") : ""}</small></span>`).join("")}</div>` : `<div class="empty">none</div>`}</div></div>`;
+  return `<div class="tier"><div class="badge" style="background:${tierColor(t)}">${t}</div><div class="row"><div class="rule">${TIER_RULE[t]}</div>${es.length ? `<div class="chips">${es.map(n => `<span class="chip">${esc(label(n))}<small>${fmt(MX(n).overall.geo)}×${S[n].open_bugs.length ? " · " + S[n].open_bugs.length + " bug" + (S[n].open_bugs.length > 1 ? "s" : "") : ""}</small></span>`).join("")}</div>` : `<div class="empty">none</div>`}</div></div>`;
 }).join("");
 
 // Speed chart (log x)
@@ -301,5 +302,5 @@ for (const id of ["view-strict", "view-own"]) {
   document.getElementById("t-bugs").innerHTML = h + "</tbody>";
 })();
 
-document.getElementById("foot").innerHTML = Object.keys(EX).map(n => `<div>* ${esc(label(n))}: shown for comparison only. It is not an irx engine, so it has no tier, features or bug count. Timed on the same workload through its own runner, with the fuzzing campaign running, so its ratios are against a Rust run timed under the same load.</div>`).join("") + `<div>Measured ${M.date} on an Apple Silicon Mac with the fuzzing campaign paused, engines run one at a time. Each case compiles once (timed), runs one untimed warm-up search per subject, then times repeated unanchored “is there a match?” searches; loops shorter than 2 ms are rerun with more repetitions, which matters for shells with millisecond clocks (Boa, XS, Hermes). Times are in-process and exclude startup and I/O. JavaScript engines and the JVM time warm code; Java's JIT is shared across cases.</div><div>Speed thresholds: fast means at most ${M.fast}× Rust overall. Features: ${M.features.length} families from the dialect model; featureful means at least ${M.featureful}. Bugs: open ledger entries on ${M.date}.</div><div>Harness: <code>tools/irx_bench.py</code> (bench mode in every irx host). Previous shootout: regex_comparison.</div>`;
+document.getElementById("foot").innerHTML = Object.keys(EX).map(n => `<div>* ${esc(label(n))}: shown for comparison only. It is not an irx engine, so it has no tier, features or bug count. Timed on the same workload through its own runner, with the fuzzing campaign running, so its ratios are against a Rust run timed under the same load.</div>`).join("") + `<div>Measured ${M.date} on an Apple Silicon Mac with the fuzzing campaign paused, engines run one at a time. Each case compiles once (timed), runs one untimed warm-up search per subject, then times repeated unanchored “is there a match?” searches; loops shorter than 2 ms are rerun with more repetitions, which matters for shells with millisecond clocks (Boa, XS, Hermes). Times are in-process and exclude startup and I/O. JavaScript engines and the JVM time warm code; Java's JIT is shared across cases.</div><div>Speed thresholds: fast means at most ${M.fast}× Rust overall. Features: ${M.features.length} families from the dialect model; featureful means at least ${M.featureful}. Bugs: open ledger entries on ${M.date}.</div><div>fancy-regex was re-timed on 0.19.2 (the version its bug status refers to) after the main run, alongside Rust, and its per-input ratios applied to the main run's Rust times.</div><div>Harness: <code>tools/irx_bench.py</code> (bench mode in every irx host). Previous shootout: regex_comparison.</div>`;
 </script>
