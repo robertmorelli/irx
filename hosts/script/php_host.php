@@ -3,7 +3,8 @@
 $mode = $argv[1] ?? "default"; $rep = in_array($mode, ["repeat", "tierup"]) ? 2 : 1;
 // Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
 $wide = in_array($mode, ["lspan", "lcapture"]); $D = $wide ? 4 : 2; $NONE = str_repeat("f", 2 * $D);
-$isSpan = in_array($mode, ["span", "lspan", "ospan"]); $isCap = in_array($mode, ["capture", "lcapture"]);
+$sticky = $mode === "aspan"; // the match must start at the offset: the A modifier with the offset
+$isSpan = in_array($mode, ["span", "lspan", "ospan", "aspan"]); $isCap = in_array($mode, ["capture", "lcapture"]);
 function pair($s, $e) { global $D; return sprintf("%0{$D}x%0{$D}x", $s, $e); }
 function failed($b, $rest) { global $wide, $D; return ($wide ? sprintf("fffe%04x", $b) : sprintf("fe%02x", $b)) . str_repeat("0", $D * $rest); }
 echo "ready php-pcre-" . PCRE_VERSION . " mode=$mode\n"; fflush(STDOUT);
@@ -34,7 +35,7 @@ while (($line = fgets(STDIN)) !== false) {
             $out .= $s; continue;
         }
         if ($isSpan) { // unanchored search, byte offsets (src/span.zig)
-            $re = "\x01" . $pat . "\x01" . $m; $s = "";
+            $re = "\x01" . $pat . "\x01" . $m . ($sticky ? "A" : ""); $s = "";
             foreach ([$a, $r] as $j => $subj) {
                 $res = @preg_match($re, $subj, $mm, PREG_OFFSET_CAPTURE, $starts[$j]);
                 if ($res === false) { $s = failed((preg_last_error() === PREG_INTERNAL_ERROR && $j == 0) ? 4 : 8, 2); break; }

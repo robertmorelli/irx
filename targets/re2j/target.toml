@@ -1,0 +1,21 @@
+# irx target: re2j 1.8 (RE2 for Java)
+# Run: tools/irx_target.py re2j [--duration SECONDS]
+
+[target]
+title = "re2j 1.8"
+kind = "shell"   # d8 | perl | shell
+command = "/usr/bin/java -cp {root}/hosts/bin/re2j:{root}/vendor/re2j/re2j-1.8.jar Re2jHost {mode}"
+dialect = "re2j"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf16"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+lookbehind = false  # lookbehind runs forward here; JS (and the model) match it right to left
+
+[offset]
+enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)

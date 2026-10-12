@@ -88,7 +88,7 @@ pub const Triage = struct {
 
     /// Flags as sent to the host: offset mode appends the start offsets in host units.
     fn hostFlags(self: *Triage, buf: []u8, spec: *const harness.ModeSpec, c: *const finding.Case) []const u8 {
-        if (spec.expect != .offset) return finding.flagStr(c.flags);
+        if (!spec.expect.usesOffsets()) return finding.flagStr(c.flags);
         const u = self.run.cfg.span_units;
         return std.fmt.bufPrint(buf, "{s}@{d},{d}", .{ finding.flagStr(c.flags), spanmod.utf16ToHost(c.a.slice(), c.off_a, u), spanmod.utf16ToHost(c.r.slice(), c.off_r, u) }) catch finding.flagStr(c.flags);
     }
@@ -105,7 +105,7 @@ pub const Triage = struct {
         var bits: [harness.max_result_width]u8 = undefined;
         const raw = bits[0..harness.resultWidth(spec.expect)];
         const o = self.runRequest(spec, req.items, 1, raw, fresh);
-        if (spec.expect.isSpan() and o == .bits) return .{ .bits = spanmod.checkFrom(c, raw, self.run.cfg.span_units, long, spec.expect == .offset).bits };
+        if (spec.expect.isSpan() and o == .bits) return .{ .bits = spanmod.checkAt(c, raw, self.run.cfg.span_units, long, spec.expect.usesOffsets(), spec.expect == .sticky).bits };
         if (spec.expect.isCapture() and o == .bits) return .{ .bits = capmod.check(c, raw, &self.run.cfg, long).bits };
         return o;
     }
@@ -123,7 +123,7 @@ pub const Triage = struct {
         switch (self.runRequest(spec, req.items, 1, raw, false)) {
             .bits => {
                 try report.appendSlice(a, ",\n  ");
-                if (spec.expect.isSpan()) try spanmod.extraJson(report, a, spanmod.checkFrom(c, raw, self.run.cfg.span_units, long, spec.expect == .offset), raw) else try capmod.extraJson(report, a, capmod.check(c, raw, &self.run.cfg, long), raw);
+                if (spec.expect.isSpan()) try spanmod.extraJson(report, a, spanmod.checkAt(c, raw, self.run.cfg.span_units, long, spec.expect.usesOffsets(), spec.expect == .sticky), raw) else try capmod.extraJson(report, a, capmod.check(c, raw, &self.run.cfg, long), raw);
             },
             .failed => {},
         }
@@ -299,6 +299,13 @@ pub const Triage = struct {
             if (n.op != .atom) continue;
             const at = n.atom;
             if (at.kind == .vset and !flags.v) return false;
+            // \p{…} needs u/v where the dialect says so (ES: without u it is the literal "p{…}"),
+            // and is not generated under i where its multi-character folds are unmodelled.
+            if (at.kind == .prop) {
+                const dl = @import("dialect.zig").active;
+                if (dl.props_need_u and !flags.unicode()) return false;
+                if (dl.props_multi_fold and flags.i) return false;
+            }
             if (!flags.unicode()) {
                 switch (at.kind) {
                     .lit => if (at.syms[0] > 0xFFFF) return false,
@@ -314,6 +321,9 @@ pub const Triage = struct {
     /// Model revalidation then engine check. On success the candidate replaces `c`.
     fn tryCandidate(self: *Triage, spec: *const harness.ModeSpec, c: *finding.Case, cand: *finding.Case, pred: finding.Predicate) !bool {
         if (!validFor(&cand.tree, cand.flags)) return false;
+        // Offset modes: a shortened subject keeps its start offset within the string.
+        cand.off_a = @min(cand.off_a, @as(u16, @intCast(cand.a.slice().len)));
+        cand.off_r = @min(cand.off_r, @as(u16, @intCast(cand.r.slice().len)));
         if (spec.expect.isLong()) {
             // Long modes: the long pair must stay accept/reject under the candidate.
             if (longmod.acceptsUnits(self.gpa, &cand.tree, cand.flags, cand.la) != true) return false;
@@ -332,6 +342,8 @@ pub const Triage = struct {
         c.flags = cand.flags;
         c.a = cand.a;
         c.r = cand.r;
+        c.off_a = cand.off_a;
+        c.off_r = cand.off_r;
         c.la = cand.la;
         c.lr = cand.lr;
         c.pattern.clearRetainingCapacity();

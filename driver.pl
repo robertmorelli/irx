@@ -7,6 +7,8 @@
 # Full match uses \A(?:r)\z, which /m does not affect.
 use strict;
 use warnings;
+# IRX_PERL_CHARSET=a or aa: that charset modifier on every pattern instead of /u (targets perl-a, perl-aa).
+my $CS = $ENV{IRX_PERL_CHARSET};
 no warnings 'regexp';
 use JSON::PP ();
 
@@ -27,7 +29,7 @@ sub run_case {
     $mods .= 'i' if $flags =~ /i/;
     $mods .= 'm' if $flags =~ /m/;
     $mods .= 's' if $flags =~ /s/;
-    $mods .= 'u' if $flags =~ /[uv]/;
+    $mods .= $CS // ($flags =~ /[uv]/ ? 'u' : '');
     my $re = eval { qr/(?^$mods:\A(?:$src)\z)/ };
     return 0x04 unless defined $re;
     my $bits = 0;
@@ -60,7 +62,7 @@ sub span_case {
     $mods .= 'i' if $flags =~ /i/;
     $mods .= 'm' if $flags =~ /m/;
     $mods .= 's' if $flags =~ /s/;
-    $mods .= 'u' if $flags =~ /[uv]/;
+    $mods .= $CS // ($flags =~ /[uv]/ ? 'u' : '');
     my $re = eval { qr/(?^$mods:$src)/ };
     return span_fail(0x04) unless defined $re;
     my $out = '';
@@ -76,7 +78,7 @@ sub span_case {
 
 # Offset mode (ospan): flags carry "<flags>@<a>,<r>" (code points); search from pos().
 sub offset_case {
-    my ($c) = @_;
+    my ($c, $anch) = @_;
     my ($flags, $a, $r, $src) = @$c;
     my ($fl, $offs) = split /\@/, $flags, 2;
     my @off = split /,/, $offs;
@@ -85,7 +87,7 @@ sub offset_case {
     $mods .= 'i' if $fl =~ /i/;
     $mods .= 'm' if $fl =~ /m/;
     $mods .= 's' if $fl =~ /s/;
-    $mods .= 'u' if $fl =~ /[uv]/;
+    $mods .= $CS // ($fl =~ /[uv]/ ? 'u' : '');
     my $re = eval { qr/(?^$mods:$src)/ };
     return 'fe040000' unless defined $re;
     my $out = '';
@@ -94,7 +96,8 @@ sub offset_case {
         for my $s0 ($a, $r) {
             my $s = $s0;
             pos($s) = $off[$k++];
-            $out .= ($s =~ /$re/g) ? sprintf('%02x%02x', $-[0], $+[0]) : 'ffff';
+            my $hit = $anch ? ($s =~ /\G$re/g) : ($s =~ /$re/g);
+            $out .= $hit ? sprintf('%02x%02x', $-[0], $+[0]) : 'ffff';
         }
         1;
     };
@@ -112,7 +115,7 @@ sub capture_case {
     $mods .= 'i' if $flags =~ /i/;
     $mods .= 'm' if $flags =~ /m/;
     $mods .= 's' if $flags =~ /s/;
-    $mods .= 'u' if $flags =~ /[uv]/;
+    $mods .= $CS // ($flags =~ /[uv]/ ? 'u' : '');
     my $re = eval { qr/(?^$mods:$src)/ };
     return $fail->(0x04) unless defined $re;
     my $out = '';
@@ -146,7 +149,7 @@ while (defined(my $line = <STDIN>)) {
     }
     my ($seq, $cases) = @$msg;
     if ($mode eq 'span' || $mode eq 'lspan') { print $seq, ' ', join('', map { span_case($_) } @$cases), "\n"; next; }
-    if ($mode eq 'ospan') { print $seq, ' ', join('', map { offset_case($_) } @$cases), "\n"; next; }
+    if ($mode eq 'ospan' || $mode eq 'aspan') { print $seq, ' ', join('', map { offset_case($_, $mode eq 'aspan') } @$cases), "\n"; next; }
     if ($mode eq 'capture' || $mode eq 'lcapture') { print $seq, ' ', join('', map { capture_case($_) } @$cases), "\n"; next; }
     print $seq, ' ', join('', map { sprintf '%02x', run_case($_) } @$cases), "\n";
 }

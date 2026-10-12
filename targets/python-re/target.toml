@@ -19,3 +19,4 @@ lookbehind = false  # lookbehind runs forward here; JS (and the model) match it 
 
 [offset]
 enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true

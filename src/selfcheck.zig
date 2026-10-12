@@ -117,9 +117,14 @@ pub const Checker = struct {
     }
 
     pub fn buildProbes(self: *Checker, flags: Flags) !void {
-        const g = try self.run.grammarFor(flags);
+        // Every pool (pool rotation): its atoms and its characters.
+        for (0..@max(1, self.run.n_pools)) |pi| try self.buildProbesPool(flags, @intCast(pi));
+    }
+
+    fn buildProbesPool(self: *Checker, flags: Flags, pool_idx: u8) !void {
+        const g = try self.run.grammarVariant(flags, pool_idx, @import("ast.zig").fmod_i);
         var symbuf: [alpha.max_symbols * 2]u21 = undefined;
-        const pool = alpha.poolSymbols(alpha.active_pool, flags, &symbuf);
+        const pool = alpha.poolSymbols(self.run.poolAt(pool_idx), flags, &symbuf);
         var subjects: std.ArrayList(finding.Subject) = .empty;
         defer subjects.deinit(self.gpa);
         for (pool) |s| {

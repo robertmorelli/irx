@@ -5,7 +5,9 @@ var mode = args.Length > 1 ? args[1] : "default";
 int rep = (mode == "repeat" || mode == "tierup") ? 2 : 1;
 // Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
 bool wide = mode == "lspan" || mode == "lcapture";
-bool isSpan = mode == "span" || mode == "lspan" || mode == "ospan", isCap = mode == "capture" || mode == "lcapture";
+// aspan (sticky): the match must start at the offset: \G(?:p) with Regex.Match(s, startat).
+bool sticky = mode == "aspan";
+bool isSpan = mode == "span" || mode == "lspan" || mode == "ospan" || sticky, isCap = mode == "capture" || mode == "lcapture";
 string X = wide ? "x4" : "x2";
 string NONE = new string('f', wide ? 8 : 4);
 string Failed(int b, int rest) => (wide ? "fffe" + b.ToString("x4") : "fe" + b.ToString("x2")) + new string('0', (wide ? 4 : 2) * rest);
@@ -74,7 +76,7 @@ while ((line = stdin.ReadLine()) != null) {
             continue;
         }
         if (isSpan) { // unanchored search, UTF-16 offsets (src/span.zig)
-            try { re = new Regex(p, o, Limit); } catch (Exception) { sb.Append(Failed(4, 2)); continue; }
+            try { re = new Regex(sticky ? @"\G(?:" + p + ")" : p, o, Limit); } catch (Exception) { sb.Append(Failed(4, 2)); continue; }
             try {
                 var sp = new StringBuilder();
                 foreach (var (s, k) in new[] { (a, starts[0]), (r, starts[1]) }) { var m = re.Match(s, k); sp.Append(m.Success ? m.Index.ToString(X) + (m.Index + m.Length).ToString(X) : NONE); }

@@ -154,7 +154,7 @@ pub const Sampler = struct {
             },
             else => {
                 const a = try self.expand(p.a, k - 1);
-                return self.out.add(.{ .op = op, .a = a, .fmod = if (op == .flag_group) ast.fmod_i else 0 });
+                return self.out.add(.{ .op = op, .a = a, .fmod = if (op == .flag_group) g.alt_mod else 0 });
             },
         }
     }
@@ -199,6 +199,9 @@ const Prec = enum(u8) { alt = 0, concat = 1, quant_body = 2 };
 
 const dialect = @import("dialect.zig");
 
+/// Config [grammar] duplicate_names (set at startup): off for engines that reject a repeated name.
+pub var allow_duplicate_names: bool = true;
+
 pub const Printer = struct {
     flags: Flags,
     out: *std.ArrayList(u8),
@@ -214,6 +217,10 @@ pub const Printer = struct {
     /// picks `(?:)`, nothing (where the syntax allows) or `()` from (spell, ordinal).
     spell: u64 = 0,
     empty_ordinal: u32 = 0,
+    /// Duplicate named groups (ES2025): alias[i] = the named-group node whose name node i
+    /// reuses (none = 255); name_num[i] = the printed number naming node i.
+    alias: [ast.max_nodes]u8 = undefined,
+    name_num: [ast.max_nodes]u8 = undefined,
     /// The atom being printed sits directly in an alternative or group body, where an
     /// empty atom may print as nothing.
     bare_ok: bool = false,
@@ -237,7 +244,37 @@ pub const Printer = struct {
     }
 
     pub fn print(self: *Printer, t: *const ast.Ast) PrintError!void {
+        @memset(self.alias[0..t.len], 255);
+        // A quarter of patterns (by spelling seed) let groups in different alternatives share a name.
+        if (dialect.active.duplicate_names and allow_duplicate_names and self.spell != 0 and (self.spell >> 13) % 4 == 0)
+            planAliases(t, &self.alias);
         try self.node(t, t.root, .alt);
+    }
+
+    /// First named group (in printing order) in the subtree, or 255.
+    fn firstNamed(t: *const ast.Ast, idx: u8) u8 {
+        const n = t.nodes[idx];
+        if (n.op == .group_named) return idx;
+        if (n.op == .atom) return 255;
+        const l = firstNamed(t, n.a);
+        if (l != 255 or !n.op.isBinary()) return l;
+        return firstNamed(t, n.b);
+    }
+
+    /// For each alternation, the first named group on its right may take the name of the first
+    /// on its left. A name is shared by at most two groups and an aliased group is never a target,
+    /// so the two always sit in different alternatives (the ES2025 rule).
+    fn planAliases(t: *const ast.Ast, alias: *[ast.max_nodes]u8) void {
+        var target_used: [ast.max_nodes]bool = undefined;
+        @memset(target_used[0..t.len], false);
+        for (t.nodes[0..t.len]) |n| {
+            if (n.op != .alt) continue;
+            const i = firstNamed(t, n.a);
+            const j = firstNamed(t, n.b);
+            if (i == 255 or j == 255 or alias[i] != 255 or alias[j] != 255 or target_used[i] or target_used[j]) continue;
+            alias[j] = i;
+            target_used[i] = true;
+        }
     }
 
     fn isQuantAtom(t: *const ast.Ast, idx: u8) bool {
@@ -367,8 +404,12 @@ pub const Printer = struct {
                 try self.putc(')');
             },
             .flag_group => {
-                // Toggles i relative to the pattern's flags (flag groups do not nest).
-                try self.put(if (self.flags.i) "(?-i:" else "(?i:");
+                // Toggles one flag relative to the pattern's flags (flag groups do not nest).
+                const on = if (n.fmod & ast.fmod_i != 0) self.flags.i else if (n.fmod & ast.fmod_s != 0) self.flags.s else self.flags.m;
+                const letter: u8 = if (n.fmod & ast.fmod_i != 0) 'i' else if (n.fmod & ast.fmod_s != 0) dialect.active.dotall_letter else 'm';
+                try self.put(if (on) "(?-" else "(?");
+                try self.putc(letter);
+                try self.putc(':');
                 try self.bareChild(t, n.a);
                 try self.putc(')');
             },
@@ -376,9 +417,10 @@ pub const Printer = struct {
                 // Named after the printed group number, so hosts that number named groups
                 // separately (.NET) can put them back in opening-parenthesis order.
                 self.noteTreeGroup();
+                self.name_num[idx] = if (self.alias[idx] != 255) self.name_num[self.alias[idx]] else self.printed_groups;
                 switch (dialect.active.named_group) {
-                    .angle => try self.fmt("(?<g{d}>", .{self.printed_groups}),
-                    .p_angle => try self.fmt("(?P<g{d}>", .{self.printed_groups}),
+                    .angle => try self.fmt("(?<g{d}>", .{self.name_num[idx]}),
+                    .p_angle => try self.fmt("(?P<g{d}>", .{self.name_num[idx]}),
                     .plain_capture => try self.putc('('),
                 }
                 self.group_counter += 1;
@@ -451,6 +493,11 @@ pub const Printer = struct {
                 try self.putc(']');
             },
             .char => try self.classLiteral(o.syms[0]),
+            .prop => {
+                try self.put("\\p{");
+                try self.put(@tagName(@as(atoms.Prop, @enumFromInt(o.syms[0]))));
+                try self.putc('}');
+            },
             .list, .neglist => {
                 try self.putc('[');
                 if (o.kind == .neglist) try self.putc('^');

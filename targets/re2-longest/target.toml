@@ -1,0 +1,20 @@
+# irx target: RE2 (longest_match)
+# Run: tools/irx_target.py re2-longest [--duration SECONDS]
+
+[target]
+title = "RE2 (longest_match)"
+kind = "shell"   # d8 | perl | shell
+command = "/usr/bin/env IRX_RE2_LONGEST=1 {root}/hosts/bin/re2_host {mode}"
+dialect = "re2-longest"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans
+
+[capture]
+enabled = false  # submatches under leftmost-longest are not modelled
+
+[offset]
+enabled = true  # span of a search from a start offset
+sticky = true   # RE2::ANCHOR_START at the offset

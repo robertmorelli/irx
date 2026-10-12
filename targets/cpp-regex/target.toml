@@ -1,0 +1,20 @@
+# irx target: C++ std::regex (libc++, ECMAScript grammar)
+# Run: tools/irx_target.py cpp-regex [--duration SECONDS]
+
+[target]
+title = "C++ std::regex (libc++)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/cpp_regex_host {mode}"
+dialect = "cpp"   # src/dialects/
+selfcheck = true
+
+[flags]
+# std::regex has icase and multiline only (no dotall, no Unicode modes).
+sets = ["", "i", "m", "im"]
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans
+
+[capture]
+enabled = false  # not modelled yet

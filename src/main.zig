@@ -278,6 +278,17 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     };
     // The pool must live in run.cfg: the local cfg above goes out of scope.
     alpha.active_pool = run.cfg.poolSlice();
+    @import("sample.zig").allow_duplicate_names = run.cfg.duplicate_names;
+    // Pools for rotation: the base pool, then each alternate pool filtered like the base pool.
+    run.pools[0] = alpha.active_pool;
+    run.n_pools = 1;
+    for (alpha.alt_pools) |ap| {
+        var kept: std.ArrayList(u21) = .empty;
+        for (ap) |c| if (std.mem.indexOfScalar(u21, dl.pool_exclude, c) == null and (!dl.ascii_only or c < 0x80)) try kept.append(gpa, c);
+        if (kept.items.len < 4) continue;
+        run.pools[run.n_pools] = try kept.toOwnedSlice(gpa);
+        run.n_pools += 1;
+    }
     run.store.max_per_group = run.cfg.max_findings_per_group;
     run.store.max_per_mode = run.cfg.max_findings_per_mode;
     // Validate every configured flag set's printed-length bound up front.
@@ -302,6 +313,8 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     if (run.cfg.capture) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, cap_mode });
     const off_mode = if (o.shell != null) "shell-offset" else if (o.perl != null) "perl-offset" else "offset";
     if (run.cfg.offset) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, off_mode });
+    const sticky_mode = if (o.shell != null) "shell-sticky" else if (o.perl != null) "perl-sticky" else "sticky";
+    if (run.cfg.sticky) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, sticky_mode });
     // [long]: add the long-input mode, or run it alone (`only = true`).
     if (run.cfg.long_mode or run.cfg.long_mode_only) {
         mode_list = if (run.cfg.long_mode_only) long_mode else try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, long_mode });

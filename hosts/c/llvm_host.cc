@@ -69,6 +69,7 @@ int host_case(const char *flags, const char *a, size_t alen, const char *r, size
     return bits;
 }
 int host_span(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[4]) {
+    if (host_anchored) return 0x40;
     if (host_start[0] || host_start[1]) return 0x40; /* no start-offset search */
     std::string ere;
     if (!translate(std::string(pat, plen), ere)) return 0x04;

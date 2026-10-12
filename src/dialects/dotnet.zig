@@ -15,10 +15,17 @@ fn word(c: u21, _: D.Flags) bool {
     return k[0] == 'L' or (k[0] == 'M' and k[1] == 'n') or (k[0] == 'N' and k[1] == 'd') or (k[0] == 'P' and k[1] == 'c');
 }
 
+/// \b also counts ZWNJ and ZWJ as word characters (RegexCharClass.IsBoundaryWordChar).
+fn boundaryWord(c: u21, f: D.Flags) bool {
+    return c == 0x200C or c == 0x200D or word(c, f);
+}
+
 pub const dialect: D.Dialect = .{
     .scoped_flags = true,
+    .isBoundaryWord = boundaryWord,
     .unicode_props = true,
-    .prop_case = .upper_lower,
+    // IgnoreCase widens \p{Lu} and \p{Ll} to every cased letter (Lu, Ll, Lt).
+    .prop_case = .cased,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
     .name = "dotnet",
@@ -42,5 +49,14 @@ pub const nonbacktracking: D.Dialect = blk: {
     d.empty_iteration = .unmodeled;
     d.allow_lookahead = false;
     d.allow_lookbehind = false;
+    break :blk d;
+};
+
+/// RegexOptions.Compiled on .NET 9: a lazy loop inside a lookbehind can crash code generation
+/// ("Bad label content in ILGenerator": IRX-DOTNET-2, fixed in .NET 11), so none are generated.
+pub const compiled: D.Dialect = blk: {
+    var d = dialect;
+    d.name = "dotnet-compiled";
+    d.lookbehind_no_lazy = true;
     break :blk d;
 };

@@ -27,6 +27,9 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
  * stays visible to lookbehind and \b). The offsets arrive in the flags as "<flags>@<a>,<b>";
  * they are 0 in every other mode. */
 static size_t host_start[2];
+/* Mode "aspan" (sticky): as ospan, but the match must start exactly at host_start[k]. Hosts
+ * without a native anchored search return 0x40 (unsupported). */
+static int host_anchored;
 /* Mode "capture": per subject, whole match then groups 1..6 as byte offsets (-1 = unset /
  * no match); returns 0 or failure bits (see src/capture.zig). */
 #define CAP_PAIRS 7
@@ -95,7 +98,8 @@ int main(int argc, char **argv) {
     int repeat = strcmp(mode, "repeat") == 0 || strcmp(mode, "tierup") == 0;
     /* Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed. */
     int wide = strcmp(mode, "lspan") == 0 || strcmp(mode, "lcapture") == 0;
-    int ospan = strcmp(mode, "ospan") == 0;
+    host_anchored = strcmp(mode, "aspan") == 0;
+    int ospan = strcmp(mode, "ospan") == 0 || host_anchored;
     int span = strcmp(mode, "span") == 0 || strcmp(mode, "lspan") == 0 || ospan;
     int capture = strcmp(mode, "capture") == 0 || strcmp(mode, "lcapture") == 0;
     const int D = wide ? 4 : 2;            /* hex digits per position */

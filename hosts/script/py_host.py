@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
-"""irx host: Python `re`. Patterns arrive in Perl dialect; \\x{H} escapes become raw chars."""
-import json, re, sys
+"""irx host: Python `re`, or the third-party `regex` module (IRX_PY_ENGINE=regex; its default
+VERSION0, which is compatible with `re`). Patterns arrive in Perl dialect; \\x{H} escapes become raw chars."""
+import json, os, sys
+if os.environ.get("IRX_PY_ENGINE") == "regex":
+    import regex as re
+    NAME = f"python-regex-{re.__version__}"
+else:
+    import re
+    NAME = f"python-re-{sys.version.split()[0]}"
 XESC = re.compile(r"\\x\{([0-9A-Fa-f]+)\}")
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "default"
@@ -11,8 +18,8 @@ def main():
     NONE = "f" * (2 * D)
     P = lambda s, e: f"{s:0{D}x}{e:0{D}x}"
     FAIL = lambda b, rest: (f"fffe{b:04x}" if wide else f"fe{b:02x}") + "0" * (D * rest)
-    is_span, is_cap = mode in ("span", "lspan", "ospan"), mode in ("capture", "lcapture")
-    print(f"ready python-re-{sys.version.split()[0]} mode={mode}", flush=True)
+    is_span, is_cap = mode in ("span", "lspan", "ospan", "aspan"), mode in ("capture", "lcapture")
+    print(f"ready {NAME} mode={mode}", flush=True)
     for line in sys.stdin:
         if not line.strip(): continue
         seq, cases = json.loads(line)
@@ -41,7 +48,7 @@ def main():
                 try:
                     s = ""
                     for subj, k in ((a, starts[0]), (r, starts[1])):
-                        m = rx.search(subj, k)
+                        m = rx.match(subj, k) if mode == "aspan" else rx.search(subj, k)
                         s += P(m.start(), m.end()) if m else NONE
                     out.append(s)
                 except Exception: out.append(FAIL(8, 2))

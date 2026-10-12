@@ -1,7 +1,8 @@
 //! nim-regex (re2 API, reference: nim-regex 0.26): Perl-like Unicode classes,
 //! `(?P<name>...)` groups, `$` only at the very end without m. Case-insensitive
-//! ranges add only the simple upper/lower partners of their members (so ſ and the
-//! Kelvin sign miss [a-z] although they match s and k as literals).
+//! ranges also accept the ranges between the endpoints' simple lower and upper forms (so ſ
+//! and the Kelvin sign miss [a-z] although they match s and k as literals, and [à-ÿ] takes
+//! all of U+00C0..U+0178: IRX-NIM-1).
 const ucd = @import("../ucd.zig");
 const atoms = @import("../atoms.zig");
 const perl = @import("perl.zig");
@@ -16,9 +17,7 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
                 return x >= l and x <= h;
             }
         }.f;
-        const u = ucd.simpleUpper(c);
-        const l = ucd.simpleLower(c);
-        const hit = in(c, lo, hi) or (in(u, lo, hi) and ucd.simpleLower(u) == c) or (in(l, lo, hi) and ucd.simpleUpper(l) == c);
+        const hit = in(c, lo, hi) or in(c, ucd.simpleLower(lo), ucd.simpleLower(hi)) or in(c, ucd.simpleUpper(lo), ucd.simpleUpper(hi));
         return hit != spec.neg;
     }
     return atoms.matchesGeneric(spec, flags, c);
@@ -34,5 +33,7 @@ pub const dialect: D.Dialect = blk: {
     d.prop_case = .plain; // \p{Lu} under /i still matches only uppercase
     // `(?<=)`, `(?=)`, `(?<=|b)` are syntax errors; `(?=(?:))` and `(?=a|)` are fine.
     d.bare_empty_in_lookaround = false;
+    // {m,n} around a lookaround aborts the compiler (NIM-1, reported upstream).
+    d.counted_lookaround = false;
     break :blk d;
 };

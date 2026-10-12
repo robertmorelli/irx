@@ -77,8 +77,16 @@ pub const Dialect = struct {
     /// The empty atom may also print as nothing: `(?:|a)`, `a|`, `(?=)` (fuzz cases only;
     /// self-check keeps `(?:)`). POSIX ERE rejects empty branches.
     bare_empty: bool = true,
-    /// Inline flag groups (?i:…) / (?-i:…) are supported.
+    /// Inline flag groups (?i:…) / (?-i:…) are supported, for the flags in scoped_mods
+    /// (ast.fmod_*); dotall_letter spells s (Ruby: m).
     scoped_flags: bool = false,
+    /// Named groups in different alternatives may share a name (ES2025 duplicate named groups).
+    duplicate_names: bool = false,
+    /// Under i, \p{…} also matches the multi-character case folds of its members (Onigmo:
+    /// \p{L} matches "ss" via ß, "ff" via ﬀ): not modelled, so no \p under i.
+    props_multi_fold: bool = false,
+    scoped_mods: u8 = 1 | 2 | 4,
+    dotall_letter: u8 = 's',
     /// `\p{…}` / `\P{…}` general categories are supported (props_need_u: only with u/v, ES).
     unicode_props: bool = false,
     props_need_u: bool = false,
@@ -87,6 +95,9 @@ pub const Dialect = struct {
     /// A bare empty is also accepted inside lookarounds (nim-regex rejects `(?<=)`, `(?=)` and
     /// `(?<=|b)`, but accepts `(?=(?:))` and `(?=a|)`).
     bare_empty_in_lookaround: bool = true,
+    /// A counted repeat {m,n} (any form but * + ?) may contain a lookaround (nim-regex aborts
+    /// the compiler: NIM-1).
+    counted_lookaround: bool = true,
     /// The empty atom may also print as an empty capture `()`.
     empty_capture: bool = true,
     /// \W \D \S negate after case folding (no case variant is in the positive
@@ -149,18 +160,31 @@ pub const Dialect = struct {
 };
 
 pub const es = @import("dialects/es.zig").dialect;
+pub const cpp = @import("dialects/es.zig").cpp;
 pub const perl = @import("dialects/perl.zig").dialect;
+pub const pcre2 = @import("dialects/perl.zig").pcre2;
+pub const perl_a = @import("dialects/perl.zig").perl_a;
+pub const perl_aa = @import("dialects/perl.zig").perl_aa;
+pub const pcre2_ascii = @import("dialects/perl.zig").pcre2_ascii;
+pub const boost = @import("dialects/perl.zig").boost;
 pub const swift = @import("dialects/swift.zig").dialect;
 pub const rust = @import("dialects/rust.zig").dialect;
 pub const fancy = @import("dialects/rust.zig").fancy;
+pub const rust_lite = @import("dialects/rust.zig").lite;
 pub const re2 = @import("dialects/re2.zig").dialect;
 pub const go = @import("dialects/re2.zig").go;
+pub const re2_longest = @import("dialects/re2.zig").re2_longest;
+pub const go_longest = @import("dialects/re2.zig").go_longest;
+pub const re2j = @import("dialects/re2.zig").re2j;
 pub const python = @import("dialects/python.zig").dialect;
+pub const python_regex = @import("dialects/python.zig").regex_module;
 pub const java = @import("dialects/java.zig").dialect;
+pub const java_ascii = @import("dialects/java.zig").ascii;
 pub const ruby = @import("dialects/ruby.zig").dialect;
 pub const oniguruma = @import("dialects/ruby.zig").oniguruma;
 pub const dotnet = @import("dialects/dotnet.zig").dialect;
 pub const dotnet_nb = @import("dialects/dotnet.zig").nonbacktracking;
+pub const dotnet_compiled = @import("dialects/dotnet.zig").compiled;
 pub const icu = @import("dialects/icu.zig").dialect;
 pub const resharp = @import("dialects/resharp.zig").dialect;
 pub const nim = @import("dialects/nim.zig").dialect;
@@ -169,7 +193,8 @@ pub const tcl = @import("dialects/tcl.zig").dialect;
 pub const emacs = @import("dialects/emacs.zig").dialect;
 pub const vectorscan = @import("dialects/vectorscan.zig").dialect;
 pub const llvm = @import("dialects/llvm.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm };
+pub const libc = @import("dialects/llvm.zig").libc;
+pub const all = [_]*const Dialect{ &es, &perl, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm, &libc, &cpp, &boost, &re2j };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
@@ -267,6 +292,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (d.nullable_quant_opt_only and c.min == 0 and q.form != .opt) ok.* = false;
             if (!d.lookahead_in_star and c.f & (tb.aux_la | tb.aux_md) != 0 and q.max >= 2) ok.* = false;
             if (!d.quantify_assertions and c.f & tb.aux_za != 0) ok.* = false;
+            if (!d.counted_lookaround and c.f & tb.aux_lk != 0 and !(q.form == .star or q.form == .plus or q.form == .opt)) ok.* = false;
             const f = tb.quantFlags(c.f, q.min, q.max, ast.inf, q.lazy, q.min == 0 and q.max == 1, q.form == .star or q.form == .plus or q.form == .opt, false);
             return .{ .min = @min(cap, c.min * q.min), .max = if (q.max == ast.inf) cap else @min(cap, c.max * q.max), .f = f };
         },

@@ -24,3 +24,8 @@ batch_deadline_base_ms = 90000
 
 [offset]
 enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true
+
+[flags]
+# i+v sets dropped: IRX-E262-4 (every complement-based class fails under iv) floods the run.
+sets = ["", "i", "m", "s", "u", "v", "iu", "im", "is", "ms", "ims", "imu", "isu", "msu", "msv", "imsu", "su", "sv", "mu", "mv"]

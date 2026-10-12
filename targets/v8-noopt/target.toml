@@ -1,0 +1,12 @@
+# irx target: V8 with regexp optimizations off, and the backtrack fallback
+# Run: tools/irx_target.py v8-noopt [--duration SECONDS]
+
+[target]
+title = "V8 no-optimization and fallback paths"
+kind = "d8"   # d8 | perl | shell
+command = "/opt/homebrew/bin/d8"
+dialect = "es"   # src/dialects/
+selfcheck = true
+# Full-match checks on paths the v8 target never takes: --no-regexp-optimization,
+# --no-regexp-peephole-optimization, and the fallback to the linear engine after 0 backtracks.
+modes = "noopt,nopeephole,fallback0"

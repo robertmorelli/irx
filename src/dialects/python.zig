@@ -3,6 +3,7 @@
 //! IGNORECASE: simple lowercase mapping plus sre's fixed equivalence groups.
 const ucd = @import("../ucd.zig");
 const D = @import("../dialect.zig");
+const perl = @import("perl.zig");
 
 fn lineTerminator(c: u21) bool {
     return c == '\n';
@@ -58,4 +59,21 @@ pub const dialect: D.Dialect = .{
     .strings = .code_points,
     .named_group = .p_angle,
     .lookbehind_fixed = true,
+};
+
+/// The third-party `regex` module (default VERSION0): Perl-like Unicode classes (\w = \p{Word},
+/// \s = White_Space), `re`'s case equivalences (i, I, ı, İ are one class), \p{…} with Lu/Ll
+/// standing for any cased letter under IGNORECASE, and variable-length lookbehind.
+pub const regex_module: D.Dialect = blk: {
+    var d = dialect;
+    d.name = "python-regex";
+    d.isWord = perl.word;
+    d.isSpace = perl.space;
+    d.unicode_props = true;
+    d.prop_case = .cased;
+    d.lookbehind_fixed = false;
+    // IGNORECASE relates ı to I and İ to i but not ı to İ: not an equivalence, so not a fold
+    // function; ı and İ stay out of the pool.
+    d.pool_exclude = &.{ 0x130, 0x131 };
+    break :blk d;
 };

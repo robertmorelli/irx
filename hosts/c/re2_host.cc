@@ -1,7 +1,7 @@
 // RE2 host: linear-time, no lookaround/backrefs. Full match via \A(?:p)\z with inline flags.
 #include <re2/re2.h>
 #include "proto.h"
-const char *host_name(void) { return "re2"; }
+const char *host_name(void) { return getenv("IRX_RE2_LONGEST") ? "re2-longest" : "re2"; }
 int host_case(const char *flags, const char *a, size_t alen, const char *r, size_t rlen, const char *pat, size_t plen, int repeat) {
     std::string w = "(?";
     if (strchr(flags, 'i')) w += 'i';
@@ -9,7 +9,7 @@ int host_case(const char *flags, const char *a, size_t alen, const char *r, size
     if (strchr(flags, 's')) w += 's';
     w = (w == "(?") ? std::string() : w + ")";
     w += "\\A(?:" + std::string(pat, plen) + ")\\z";
-    RE2::Options o; o.set_log_errors(false); o.set_max_mem(64 << 20);
+    RE2::Options o; o.set_log_errors(false); o.set_max_mem(64 << 20); o.set_longest_match(getenv("IRX_RE2_LONGEST") != nullptr);
     RE2 re(w, o);
     if (!re.ok()) return 0x04;
     int bits = 0;
@@ -26,12 +26,12 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
     if (strchr(flags, 's')) w += 's';
     w = (w == "(?") ? std::string() : w + ")";
     w += std::string(pat, plen);
-    RE2::Options o; o.set_log_errors(false); o.set_max_mem(64 << 20);
+    RE2::Options o; o.set_log_errors(false); o.set_max_mem(64 << 20); o.set_longest_match(getenv("IRX_RE2_LONGEST") != nullptr);
     RE2 re(w, o);
     if (!re.ok()) return 0x04;
     for (int k = 0; k < 2; k++) {
         absl::string_view text(subj[k], lens[k]), m;
-        if (re.Match(text, host_start[k], text.size(), RE2::UNANCHORED, &m, 1)) { out[2 * k] = m.data() - text.data(); out[2 * k + 1] = out[2 * k] + (long)m.size(); }
+        if (re.Match(text, host_start[k], text.size(), host_anchored ? RE2::ANCHOR_START : RE2::UNANCHORED, &m, 1)) { out[2 * k] = m.data() - text.data(); out[2 * k + 1] = out[2 * k] + (long)m.size(); }
         else out[2 * k] = out[2 * k + 1] = -1;
     }
     return 0;
@@ -43,7 +43,7 @@ int host_capture(const char *flags, const char *const subj[2], const size_t lens
     if (strchr(flags, 's')) w += 's';
     w = (w == "(?") ? std::string() : w + ")";
     w += std::string(pat, plen);
-    RE2::Options o; o.set_log_errors(false); o.set_max_mem(64 << 20);
+    RE2::Options o; o.set_log_errors(false); o.set_max_mem(64 << 20); o.set_longest_match(getenv("IRX_RE2_LONGEST") != nullptr);
     RE2 re(w, o);
     if (!re.ok()) return 0x04;
     int n = std::min(re.NumberOfCapturingGroups() + 1, CAP_PAIRS);

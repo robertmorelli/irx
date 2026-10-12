@@ -119,11 +119,11 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
 
   // Offset mode (ospan): flags carry "<flags>@<a>,<r>"; search each subject from that
   // lastIndex (g flag), report the span like span mode.
-  function offsetCase(c) {
+  function offsetCase(c, sticky) {
     var at = c[0].indexOf("@");
     var fl = c[0].slice(0, at), offs = c[0].slice(at + 1).split(",");
     var re;
-    try { re = new RegExp(c[3], fl + "g"); } catch (e) { return "fe" + hx((e instanceof SyntaxError) ? 4 : 8) + "0000"; }
+    try { re = new RegExp(c[3], fl + (sticky ? "y" : "g")); } catch (e) { return "fe" + hx((e instanceof SyntaxError) ? 4 : 8) + "0000"; }
     var s = "";
     try {
       for (var k = 1; k <= 2; k++) {
@@ -158,16 +158,20 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
 
   if (bridge) read = (function () { var done = false; return function () { if (done) return null; done = true; return __IRX_BATCH; }; })();
   else out("ready " + ver + " mode=" + mode);
+  // JSC's readline returns "" (not null) at end of input; irx never sends empty lines, so a long
+  // run of them means stdin is closed.
+  var empties = 0;
   for (;;) {
     var line = read();
     if (line === null || line === undefined) break;
-    if (line.length === 0) continue;
+    if (line.length === 0) { if (++empties > 1000) break; continue; }
+    empties = 0;
     var msg = (bridge && typeof __IRX_BATCH_OBJ !== "undefined") ? __IRX_BATCH_OBJ : JSON.parse(line);
     var seq = msg[0], cases = msg[1];
     var parts = new Array(cases.length);
     for (var i = 0; i < cases.length; i++) {
       if (mode === "span" || mode === "lspan") { parts[i] = spanCase(cases[i], mode === "lspan"); continue; }
-      if (mode === "ospan") { parts[i] = offsetCase(cases[i]); continue; }
+      if (mode === "ospan" || mode === "aspan") { parts[i] = offsetCase(cases[i], mode === "aspan"); continue; }
       if (mode === "capture" || mode === "lcapture") { parts[i] = captureCase(cases[i], mode === "lcapture"); continue; }
       var b = runCase(cases[i]);
       parts[i] = HEX[(b >> 4) & 15] + HEX[b & 15];

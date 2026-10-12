@@ -179,13 +179,20 @@ pub const Expect = enum {
     long_capture,
     /// Span of an unanchored search starting at a per-case offset (Case.off_a/off_r).
     offset,
+    /// The match anchored exactly at that offset (sticky / \G / ANCHORED).
+    sticky,
+
+    /// Modes whose requests carry the start offsets.
+    pub fn usesOffsets(e: Expect) bool {
+        return e == .offset or e == .sticky;
+    }
 
     /// Modes that run on each case's long pair (long.zig).
     pub fn isLong(e: Expect) bool {
         return e == .long or e == .long_span or e == .long_capture;
     }
     pub fn isSpan(e: Expect) bool {
-        return e == .span or e == .long_span or e == .offset;
+        return e == .span or e == .long_span or e == .offset or e == .sticky;
     }
     pub fn isCapture(e: Expect) bool {
         return e == .capture or e == .long_capture;
@@ -196,7 +203,7 @@ pub const Expect = enum {
 /// mode 28 (capture.zig); the long modes use two bytes per position.
 pub fn resultWidth(expect: Expect) usize {
     return switch (expect) {
-        .span, .offset => 4,
+        .span, .offset, .sticky => 4,
         .capture => @import("capture.zig").width,
         .long_span => 8,
         .long_capture => 2 * @import("capture.zig").width,
@@ -253,6 +260,10 @@ pub const builtin_modes = [_]ModeSpec{
     .{ .name = "offset", .flags = &.{}, .driver_mode = "ospan", .expect = .offset },
     .{ .name = "shell-offset", .engine = .shell, .flags = &.{}, .driver_mode = "ospan", .expect = .offset },
     .{ .name = "perl-offset", .engine = .perl, .flags = &.{}, .driver_mode = "ospan", .expect = .offset },
+    // The same offsets, but the match must start exactly there (driver mode aspan).
+    .{ .name = "sticky", .flags = &.{}, .driver_mode = "aspan", .expect = .sticky },
+    .{ .name = "shell-sticky", .engine = .shell, .flags = &.{}, .driver_mode = "aspan", .expect = .sticky },
+    .{ .name = "perl-sticky", .engine = .perl, .flags = &.{}, .driver_mode = "aspan", .expect = .sticky },
 };
 
 pub fn findMode(name: []const u8) ?*const ModeSpec {
@@ -962,7 +973,7 @@ pub fn probeMode(gpa: Allocator, spec: *const ModeSpec, opts: ChildOptions) Prob
     var req: std.ArrayList(u8) = .empty;
     defer req.deinit(gpa);
     req.appendSlice(gpa, "[1,[") catch return .{ .ok = false, .reason = "alloc" };
-    const off = spec.expect == .offset;
+    const off = spec.expect.usesOffsets();
     encodeCase(&req, gpa, .{ .flags = if (off) "@1,0" else "", .a = if (wide) &long_a else if (off) &.{ 'a', 'a' } else &.{'a'}, .r = &.{'b'}, .pattern = "a" }) catch return .{ .ok = false, .reason = "alloc" };
     req.appendSlice(gpa, ",") catch return .{ .ok = false, .reason = "alloc" };
     const perl_syntax = spec.engine == .perl or @import("dialect.zig").active.escape == .x_brace;
@@ -989,7 +1000,7 @@ pub fn probeMode(gpa: Allocator, spec: *const ModeSpec, opts: ChildOptions) Prob
         const ok1 = p(bits, 0) == 300 and p(bits, 1) == 301 and p(bits[half..], 0) == 0xFFFF;
         const ok2 = (p(bits[w..], 0) == 0 and p(bits[w..], 1) > 0 and p(bits[w + half ..], 0) == 0xFFFF) or (p(bits[w..], 0) == 0xFFFE and bits[w + 3] == Bits.skipped);
         if (!ok1 or !ok2) return .{ .ok = false, .reason = "known-answer mismatch (long span/capture)" };
-    } else if (spec.expect == .span or spec.expect == .capture or spec.expect == .offset) {
+    } else if (spec.expect == .span or spec.expect == .capture or spec.expect.usesOffsets()) {
         // a in "a" -> [0,1); no match in R; the astral case starts at 0 (end in host units)
         // or is unsupported (lone surrogate R on a UTF-8 host). Capture mode: per subject
         // the whole match comes first, then group slots (none here).

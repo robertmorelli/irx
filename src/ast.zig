@@ -62,13 +62,17 @@ pub const Node = struct {
 
 pub const max_nodes = 255;
 
-/// Node.fmod bits.
+/// Node.fmod bits: the flag a flag group toggles.
 pub const fmod_i: u8 = 1;
+pub const fmod_s: u8 = 2;
+pub const fmod_m: u8 = 4;
 
 /// Flags inside a flag group with modifier `mod`.
 pub fn applyMod(f: Flags, mod: u8) Flags {
     var g = f;
     if (mod & fmod_i != 0) g.i = !g.i;
+    if (mod & fmod_s != 0) g.s = !g.s;
+    if (mod & fmod_m != 0) g.m = !g.m;
     return g;
 }
 

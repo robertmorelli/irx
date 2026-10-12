@@ -28,3 +28,10 @@ batch_deadline_base_ms = 90000
 
 [offset]
 enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true
+
+[weights]
+flag_group = 0  # no ES2025 modifiers: (?i:…) is a syntax error
+
+[grammar]
+duplicate_names = false  # (?<a>x)|(?<a>y) is a syntax error

@@ -50,11 +50,17 @@ def run(name, a):
     kind = meta.get("kind", "shell")
     irx += {"d8": ["--d8", cmd], "perl": ["--perl", cmd]}.get(kind, ["--shell", cmd])
     irx += ["--dialect", meta.get("dialect", "es"), "--config", cfg, "--out", out]
+    # modes / optional_modes ([target]): override the engine's default mode list (d8: interp,
+    # native, tierup) or add optional ones (d8: linear, noopt, nopeephole, fallback0).
+    if meta.get("modes"): irx += ["--modes", meta["modes"]]
+    if meta.get("optional_modes"): irx += ["--optional-modes", meta["optional_modes"]]
     if not a.selfcheck_only:
         irx += ["--jobs", str(a.jobs), "--seed", str(a.seed), "--duration", str(a.duration)]
         if not meta.get("selfcheck", True) or a.no_selfcheck: irx.append("--no-selfcheck")
+    # env ([target]): "NAME=value ..." set for irx and the engine processes it starts.
+    env = dict(os.environ, **dict(kv.split("=", 1) for kv in meta.get("env", "").split()))
     with open(out + ".log", "w") as log:
-        rc = subprocess.run(irx, stdout=log, stderr=subprocess.STDOUT).returncode
+        rc = subprocess.run(irx, stdout=log, stderr=subprocess.STDOUT, env=env).returncode
     print(f"{name}: rc={rc}", flush=True)
     if not a.no_readme and not a.selfcheck_only:
         block = subprocess.run([sys.executable, os.path.join(ROOT, "tools/summarize.py"), out, name, meta.get("title", name), label],

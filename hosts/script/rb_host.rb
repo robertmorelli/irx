@@ -8,7 +8,8 @@ D = WIDE ? 4 : 2
 NONE = "f" * (2 * D)
 def pair(s, e) = format("%0#{D}x%0#{D}x", s, e)
 def failed(b, rest) = (WIDE ? format("fffe%04x", b) : format("fe%02x", b)) + "0" * (D * rest)
-is_span = %w[span lspan ospan].include?(mode); is_cap = %w[capture lcapture].include?(mode)
+sticky = mode == "aspan"  # the match must start at the offset: \G(?:p) with match(s, pos)
+is_span = %w[span lspan ospan aspan].include?(mode); is_cap = %w[capture lcapture].include?(mode)
 $stdout.sync = true
 puts "ready ruby-onigmo-#{RUBY_VERSION} mode=#{mode}"
 $stdin.each_line do |line|
@@ -49,7 +50,8 @@ $stdin.each_line do |line|
     end
     if is_span # unanchored search, code-point offsets (src/span.zig)
       begin
-        rx = Regexp.new(pat.gsub(/\\x\{([0-9A-Fa-f]+)\}/) { [$1.hex].pack("U") }, opt)
+        src = pat.gsub(/\\x\{([0-9A-Fa-f]+)\}/) { [$1.hex].pack("U") }
+        rx = Regexp.new(sticky ? "\\G(?:#{src})" : src, opt)
       rescue RegexpError, ArgumentError
         next failed(4, 2)
       end

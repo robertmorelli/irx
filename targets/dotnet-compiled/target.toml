@@ -5,7 +5,7 @@
 title = ".NET 9 Regex (Compiled)"
 kind = "shell"   # d8 | perl | shell
 command = "{root}/hosts/bin/dotnet/host compiled {mode}"
-dialect = "dotnet"   # src/dialects/
+dialect = "dotnet-compiled"   # src/dialects/
 selfcheck = true
 
 [span]
@@ -24,3 +24,4 @@ deadline_ms_per_case = 40
 
 [offset]
 enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true

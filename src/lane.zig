@@ -62,7 +62,7 @@ pub const Lane = struct {
         for (l.cases) |*c| c.* = .{};
         for (run.modes) |m| {
             if (m.expect.isLong()) l.has_long = true;
-            if (m.expect == .offset) l.has_off = true;
+            if (m.expect.usesOffsets()) l.has_off = true;
         }
         if (l.has_long) {
             l.long_a = try gpa.alloc(std.ArrayList(u16), run.cfg.batch_size);
@@ -349,7 +349,7 @@ pub const Lane = struct {
                 const raw = b.bits[ci * wd ..][0..wd];
                 // Long modes: a case without a long pair carried A/R only as a placeholder.
                 if (is_long and cs.la.len == 0) continue;
-                if (is_span) ck = spanmod.checkFrom(cs, raw, run.cfg.span_units, is_long, c.spec.expect == .offset);
+                if (is_span) ck = spanmod.checkAt(cs, raw, run.cfg.span_units, is_long, c.spec.expect.usesOffsets(), c.spec.expect == .sticky);
                 if (is_cap) cck = capmod.check(cs, raw, &run.cfg, is_long);
                 const bits = if (is_span) ck.bits else if (is_cap) cck.bits else b.bits[ci];
                 if (bits & harness.Bits.skipped != 0) {
@@ -392,7 +392,7 @@ pub const Lane = struct {
     }
 
     fn reqFor(self: *Lane, c: *const harness.Child) []u8 {
-        if (c.spec.expect == .offset) return self.req_off.items;
+        if (c.spec.expect.usesOffsets()) return self.req_off.items;
         return if (c.spec.expect.isLong()) self.req_long.items else self.req.items;
     }
 

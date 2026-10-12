@@ -1,0 +1,22 @@
+# irx target: Python regex module (third-party, VERSION0)
+# Run: tools/irx_target.py python-regex [--duration SECONDS]
+
+[target]
+title = "Python regex module"
+kind = "shell"   # d8 | perl | shell
+command = "/usr/bin/env IRX_PY_ENGINE=regex {root}/vendor/pyregex/bin/python {root}/hosts/script/py_host.py {mode}"
+dialect = "python-regex"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "cp"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+lookbehind = false  # lookbehind runs forward here; JS (and the model) match it right to left
+
+[offset]
+enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true

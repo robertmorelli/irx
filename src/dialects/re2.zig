@@ -42,3 +42,25 @@ pub const go: D.Dialect = blk: {
     d.name = "go";
     break :blk d;
 };
+
+/// RE2 with Options::set_longest_match and Go with Regexp.Longest: leftmost-longest spans (loop
+/// handling no longer affects the overall match, so empty iterations need no special rule).
+fn longest(d0: D.Dialect, name: []const u8) D.Dialect {
+    var d = d0;
+    d.name = name;
+    d.span_semantics = .longest;
+    d.empty_iteration = .stop;
+    return d;
+}
+pub const re2_longest: D.Dialect = longest(dialect, "re2-longest");
+pub const go_longest: D.Dialect = longest(go, "go-longest");
+
+/// re2j (RE2's Java port): RE2 syntax and semantics. Its Unicode tables are old (U+180E is still
+/// Zs, U+1F600 has no category), so both stay out of the pool. (?i)\p{Ll} missing A-Z is a bug
+/// (IRX-RE2J-1), left visible.
+pub const re2j: D.Dialect = blk: {
+    var d = dialect;
+    d.name = "re2j";
+    d.pool_exclude = &.{ 0x180E, 0x1F600 };
+    break :blk d;
+};
