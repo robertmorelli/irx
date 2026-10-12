@@ -151,7 +151,7 @@ engines; Perl 5.38+ follows neither consistently and is not modelled. Details: [
 | Boost | fixed length, and no quantifier at all, not even `{1}` |
 | Java | bounded; rejects unbounded quantifiers over non-atoms, lazy unbounded ones, and counted ones over a group holding an alternation or quantifier |
 | ICU | bounded; no `??`, `*?`, `+?`; no unbounded quantifier even inside a nested lookahead (irx keeps lookarounds out of ICU lookbehinds) |
-| Onigmo, Oniguruma | no lookarounds or quantified captures inside, no captures in a negative lookbehind, and no atom under `i` that could match a multi-character fold |
+| Onigmo, Oniguruma | no lookarounds or quantified captures inside, no captures in a negative lookbehind, and no atom under `i` that could match a multi-character fold; in Oniguruma's Perl, Java and Python syntaxes also no `$` (there it means end or before a final newline) |
 | Racket | bounded |
 | RE2, Go, Rust, Vectorscan, LLVM, libc, std::regex | no lookbehind (std::regex has no lookbehind at all) |
 
@@ -162,7 +162,7 @@ engines; Perl 5.38+ follows neither consistently and is not modelled. Details: [
 | ECMAScript, std::regex | no | no | yes; a reference to a group that has not matched matches empty (libc++ fails it instead: IRX-LIBCXX-4) |
 | Perl family, Java, ICU, Python 3.11+ | yes | yes, including `{m,n}+` | yes; unset group fails |
 | .NET | yes | no | yes |
-| Ruby, Oniguruma | yes | `*+ ++ ?+` only; `x{2,3}+` is `{2,3}` followed by `+` | yes; with any named group present, unnamed groups do not capture and references must be by name (`\k<name>`) |
+| Ruby, Oniguruma | yes | `*+ ++ ?+` only; `x{2,3}+` is `{2,3}` followed by `+`; none in Oniguruma's Python syntax, where `a*+` is a repeated `a*` (IRX-ONIG-2) | yes; in Ruby syntax, with any named group present, unnamed groups do not capture and references must be by name (`\k<name>`); Oniguruma's Perl, Java and Python syntaxes number groups and references normally |
 | Swift | yes | no (`x*+` reads as a quantifier then `+`) | yes |
 | fancy-regex | yes | no | yes; a numbered reference to a named group is a syntax error |
 | Rust `regex`, RE2, Go, nim, Vectorscan | no | no | no |
@@ -214,6 +214,19 @@ libc sometimes misses the leftmost start (IRX-LIBC-2).
 * **Empty branches**: POSIX ERE rejects `(|a)` and `a|`; nim rejects `(?<=)`, `(?=)`.
 * **Counted repeats**: nim and fancy-regex cap big bounds at 100 (`{0,254}` is rejected or too large to compile).
 
+## Oniguruma's syntax modes
+
+Oniguruma can parse patterns as Ruby, Perl, Java or Python would. The modes change more than spelling:
+
+* Ruby's capture rules (unnamed groups stop capturing once a named group exists; references by name only) apply
+  only in Ruby syntax.
+* `$` without `m` means end or before a final newline in the Perl, Java and Python syntaxes, and Oniguruma then
+  rejects it inside lookbehind.
+* `\X` is a grapheme cluster only in the Ruby and Perl syntaxes.
+* The Python syntax accepts atomic groups but not possessive quantifiers, though Python 3.11 added both: `a*+` parses
+  silently as a repeated `a*`, so `a*+a` matches `"a"` where CPython does not (IRX-ONIG-2).
+* The Java and Python syntaxes misread `\x{H}` (see code point escapes above), and the Python syntax has no `\z`.
+
 ## Library-specific limits worth knowing
 
 * Rust's `regex` size limit (10 MB by default; irx raises it to 64 MB) and fancy-regex's delegate NFA limit reject
@@ -233,4 +246,4 @@ position without looking behind it and matches it atomically. PCRE2 breaks betwe
 emoji (IRX-PCRE2-6). Boost's `\X` is a character plus following combining marks (`\r\n` is two), and fails after an optional or
 repeated element (IRX-BOOST-3). PCRE1's
 grapheme data predates Unicode 11 (emoji modifiers were their own class). JavaScript, .NET, Rust, RE2, Go and the
-POSIX engines have no `\X`.
+POSIX engines have no `\X`, and neither do Oniguruma's Java and Python syntaxes (only its Ruby and Perl syntaxes).
