@@ -147,6 +147,10 @@ pub const boost: D.Dialect = blk: {
     // \X is a combining sequence, but after an optional or repeated element regex_match fails
     // (IRX-BOOST-3), which would drown other findings: no \X.
     d.grapheme_escape = .none;
+    // Captures set inside an atomic group (or a possessive loop) survive when backtracking
+    // abandons it (IRX-BOOST-4), which would drown capture findings: no atomic groups.
+    d.atomic_groups = false;
+    d.possessive = false;
     d.full_fold = .none;
     d.pattern_only = &.{};
     d.pool_exclude = &.{ 0xDF, 0x130 };
