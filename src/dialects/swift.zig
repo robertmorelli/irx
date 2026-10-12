@@ -59,6 +59,8 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    .scoped_flags = true,
+    .unicode_props = true,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
     .name = "swift",

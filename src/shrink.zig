@@ -86,18 +86,26 @@ pub const Triage = struct {
         return .{ .failed = .{ .kind = kind, .signal = sig } };
     }
 
+    /// Flags as sent to the host: offset mode appends the start offsets in host units.
+    fn hostFlags(self: *Triage, buf: []u8, spec: *const harness.ModeSpec, c: *const finding.Case) []const u8 {
+        if (spec.expect != .offset) return finding.flagStr(c.flags);
+        const u = self.run.cfg.span_units;
+        return std.fmt.bufPrint(buf, "{s}@{d},{d}", .{ finding.flagStr(c.flags), spanmod.utf16ToHost(c.a.slice(), c.off_a, u), spanmod.utf16ToHost(c.r.slice(), c.off_r, u) }) catch finding.flagStr(c.flags);
+    }
+
     fn runCase(self: *Triage, spec: *const harness.ModeSpec, c: *const finding.Case, fresh: bool) Outcome {
         var req: std.ArrayList(u8) = .empty;
         defer req.deinit(self.gpa);
         req.appendSlice(self.gpa, "[1,[") catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
         // Long mode runs on the long pair.
         const long = spec.expect.isLong();
-        harness.encodeCase(&req, self.gpa, .{ .flags = finding.flagStr(c.flags), .a = if (long) c.la else c.a.slice(), .r = if (long) c.lr else c.r.slice(), .pattern = c.pattern.items }) catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
+        var fb: [64]u8 = undefined;
+        harness.encodeCase(&req, self.gpa, .{ .flags = self.hostFlags(&fb, spec, c), .a = if (long) c.la else c.a.slice(), .r = if (long) c.lr else c.r.slice(), .pattern = c.pattern.items }) catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
         req.appendSlice(self.gpa, "]]\n") catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
         var bits: [harness.max_result_width]u8 = undefined;
         const raw = bits[0..harness.resultWidth(spec.expect)];
         const o = self.runRequest(spec, req.items, 1, raw, fresh);
-        if (spec.expect.isSpan() and o == .bits) return .{ .bits = spanmod.check(c, raw, self.run.cfg.span_units, long).bits };
+        if (spec.expect.isSpan() and o == .bits) return .{ .bits = spanmod.checkFrom(c, raw, self.run.cfg.span_units, long, spec.expect == .offset).bits };
         if (spec.expect.isCapture() and o == .bits) return .{ .bits = capmod.check(c, raw, &self.run.cfg, long).bits };
         return o;
     }
@@ -107,14 +115,15 @@ pub const Triage = struct {
         const long = spec.expect.isLong();
         var req: std.ArrayList(u8) = .empty;
         try req.appendSlice(a, "[1,[");
-        try harness.encodeCase(&req, a, .{ .flags = finding.flagStr(c.flags), .a = if (long) c.la else c.a.slice(), .r = if (long) c.lr else c.r.slice(), .pattern = c.pattern.items });
+        var fb: [64]u8 = undefined;
+        try harness.encodeCase(&req, a, .{ .flags = self.hostFlags(&fb, spec, c), .a = if (long) c.la else c.a.slice(), .r = if (long) c.lr else c.r.slice(), .pattern = c.pattern.items });
         try req.appendSlice(a, "]]\n");
         var buf: [harness.max_result_width]u8 = undefined;
         const raw = buf[0..harness.resultWidth(spec.expect)];
         switch (self.runRequest(spec, req.items, 1, raw, false)) {
             .bits => {
                 try report.appendSlice(a, ",\n  ");
-                if (spec.expect.isSpan()) try spanmod.extraJson(report, a, spanmod.check(c, raw, self.run.cfg.span_units, long), raw) else try capmod.extraJson(report, a, capmod.check(c, raw, &self.run.cfg, long), raw);
+                if (spec.expect.isSpan()) try spanmod.extraJson(report, a, spanmod.checkFrom(c, raw, self.run.cfg.span_units, long, spec.expect == .offset), raw) else try capmod.extraJson(report, a, capmod.check(c, raw, &self.run.cfg, long), raw);
             },
             .failed => {},
         }

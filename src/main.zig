@@ -299,6 +299,8 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     var mode_list: []const u8 = base_modes;
     if (run.cfg.span) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, span_mode });
     if (run.cfg.capture) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, cap_mode });
+    const off_mode = if (o.shell != null) "shell-offset" else if (o.perl != null) "perl-offset" else "offset";
+    if (run.cfg.offset) mode_list = try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, off_mode });
     // [long]: add the long-input mode, or run it alone (`only = true`).
     if (run.cfg.long_mode or run.cfg.long_mode_only) {
         mode_list = if (run.cfg.long_mode_only) long_mode else try std.fmt.allocPrint(gpa, "{s},{s}", .{ mode_list, long_mode });

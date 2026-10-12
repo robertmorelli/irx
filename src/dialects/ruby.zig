@@ -19,6 +19,9 @@ fn space(c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    .scoped_flags = true,
+    .unicode_props = true,
+    .prop_case = .equivalence_invert,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
     .name = "ruby",
@@ -50,6 +53,9 @@ pub const dialect: D.Dialect = .{
 /// seen through non-capturing groups: (?:\b)*, (?:a|^)*, (?:a|(?=a))+ (captures and
 /// sequences are fine: (\b)*, (?:a\b)*).
 pub const oniguruma: D.Dialect = .{
+    .scoped_flags = true,
+    .unicode_props = true,
+    .prop_case = .plain,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
     .name = "oniguruma",

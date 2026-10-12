@@ -35,6 +35,9 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    .scoped_flags = true,
+    .unicode_props = true,
+    .prop_case = .equivalence_invert,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
     // "Look-behind group does not have an obvious maximum length": unbounded repeats of

@@ -38,11 +38,15 @@ pub const Eval = struct {
     budget: u64 = 50_000_000,
     nw: usize = 0,
     masks: [256]?[]u64 = [_]?[]u64{null} ** 256,
+    /// Effective flags per node (inline flag groups).
+    nflags: [ast.max_nodes]Flags = undefined,
     /// Freed bitsets, reused by alloc (all bitsets have nw words).
     pool: std.ArrayList([]u64) = .empty,
 
     pub fn init(gpa: Allocator, t: *const ast.Ast, flags: Flags, w: []const u21) Eval {
-        return .{ .t = t, .flags = flags, .w = w, .gpa = gpa, .nw = (w.len + 1 + 63) / 64 };
+        var ev: Eval = .{ .t = t, .flags = flags, .w = w, .gpa = gpa, .nw = (w.len + 1 + 63) / 64 };
+        ast.nodeFlags(t, flags, &ev.nflags);
+        return ev;
     }
 
     pub fn deinit(self: *Eval) void {
@@ -108,9 +112,9 @@ pub const Eval = struct {
             .atom => switch (n.atom.kind) {
                 .empty => unreachable,
                 .caret, .dollar, .wordb, .nwordb => {
-                    for (0..self.w.len + 1) |i| if (atoms.assertionAt(&n.atom, self.flags, self.w, i)) setBit(m, i);
+                    for (0..self.w.len + 1) |i| if (atoms.assertionAt(&n.atom, self.nflags[idx], self.w, i)) setBit(m, i);
                 },
-                else => for (self.w, 0..) |c, i| if (atoms.matches(&n.atom, self.flags, c)) setBit(m, i),
+                else => for (self.w, 0..) |c, i| if (atoms.matches(&n.atom, self.nflags[idx], c)) setBit(m, i),
             },
             .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => {
                 const every = try self.all();
@@ -198,7 +202,7 @@ pub const Eval = struct {
             },
             .quant => return self.quant(n.a, n.quant, s, forward),
             .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => return self.andMask(s, idx),
-            .group_cap, .group_nc, .group_named => return self.walk(n.a, s, forward),
+            .group_cap, .group_nc, .group_named, .flag_group => return self.walk(n.a, s, forward),
         }
     }
 
@@ -255,14 +259,14 @@ pub const Eval = struct {
 
 /// Leftmost-longest match of an unanchored search: the smallest start with some match, and
 /// its largest end. Outer null: work budget exhausted; inner null: no match.
-pub fn leftmostLongest(gpa: Allocator, t: *const ast.Ast, flags: Flags, w: []const u21) ?(?[2]usize) {
+pub fn leftmostLongest(gpa: Allocator, t: *const ast.Ast, flags: Flags, w: []const u21, min_start: usize) ?(?[2]usize) {
     var ev = Eval.init(gpa, t, flags, w);
     defer ev.deinit();
     const every = ev.all() catch return null;
     defer ev.release(every);
     const starts = ev.bwd(t.root, every) catch return null;
     defer ev.release(starts);
-    var s: usize = 0;
+    var s: usize = min_start;
     while (s <= w.len and !Eval.getBit(starts, s)) s += 1;
     if (s > w.len) return @as(?[2]usize, null);
     const one = ev.alloc() catch return null;

@@ -8,7 +8,7 @@ D = WIDE ? 4 : 2
 NONE = "f" * (2 * D)
 def pair(s, e) = format("%0#{D}x%0#{D}x", s, e)
 def failed(b, rest) = (WIDE ? format("fffe%04x", b) : format("fe%02x", b)) + "0" * (D * rest)
-is_span = %w[span lspan].include?(mode); is_cap = %w[capture lcapture].include?(mode)
+is_span = %w[span lspan ospan].include?(mode); is_cap = %w[capture lcapture].include?(mode)
 $stdout.sync = true
 puts "ready ruby-onigmo-#{RUBY_VERSION} mode=#{mode}"
 $stdin.each_line do |line|
@@ -17,6 +17,11 @@ $stdin.each_line do |line|
   lone = /\\u[dD][89abAB]\h\h(?!\\u[dD][c-fC-F]\h\h)|(?<!\\u[dD][89abAB]\h\h)\\u[dD][c-fC-F]\h\h/
   seq, cases = JSON.parse(line.gsub(lone, "\\uFFFF"))
   out = cases.map do |flags, a, r, pat|
+    # ospan: "<flags>@<a>,<r>" = search start per subject (characters)
+    starts = [0, 0]
+    flags, offs = flags.split("@", 2)
+    flags ||= ""
+    starts = offs.split(",").map(&:to_i) if offs
     next(is_span ? failed(0x40, 2) : is_cap ? failed(0x40, 26) : "40") if [a, r, pat].any? { |s| s.include?("\uFFFF") }
     opt = (flags.include?("i") ? Regexp::IGNORECASE : 0) | (flags.include?("s") ? Regexp::MULTILINE : 0)
     if is_cap # whole match + groups 1..6 per subject (src/capture.zig)
@@ -49,7 +54,7 @@ $stdin.each_line do |line|
         next failed(4, 2)
       end
       begin
-        next [a, r].map { |s| (m = rx.match(s)) ? pair(m.begin(0), m.end(0)) : NONE }.join
+        next [[a, starts[0]], [r, starts[1]]].map { |s, k| (m = rx.match(s, k)) ? pair(m.begin(0), m.end(0)) : NONE }.join
       rescue StandardError
         next failed(8, 2)
       end

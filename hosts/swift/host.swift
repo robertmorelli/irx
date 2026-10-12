@@ -6,7 +6,7 @@ let mode = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : "default
 let rep = (mode == "repeat" || mode == "tierup") ? 2 : 1
 // Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
 let wide = mode == "lspan" || mode == "lcapture"
-let isSpan = mode == "span" || mode == "lspan", isCap = mode == "capture" || mode == "lcapture"
+let isSpan = mode == "span" || mode == "lspan" || mode == "ospan", isCap = mode == "capture" || mode == "lcapture"
 let NONE = wide ? "ffffffff" : "ffff"
 func hxw(_ n: Int) -> String { String(format: wide ? "%04x" : "%02x", n) }
 func failed(_ b: Int, _ rest: Int) -> String { (wide ? String(format: "fffe%04x", b) : String(format: "fe%02x", b)) + String(repeating: "0", count: (wide ? 4 : 2) * rest) }
@@ -53,11 +53,15 @@ func parseRequest(_ line: String) -> (String, [[String]])? {
 /// loops over nullable bodies (IRX-ICU-1); such cases are reported as unsupported.
 struct ICUTimeout: Error {}
 let icuLimit: TimeInterval = 0.05
-func icuFirst(_ re: NSRegularExpression, _ s: String) throws -> NSTextCheckingResult? {
+func icuFirst(_ re: NSRegularExpression, _ s: String, from: Int = 0) throws -> NSTextCheckingResult? {
     var result: NSTextCheckingResult? = nil
     var timedOut = false
     let deadline = Date().addingTimeInterval(icuLimit)
-    re.enumerateMatches(in: s, options: [.reportProgress], range: NSRange(s.startIndex..., in: s)) { m, _, stop in
+    // A search from `from` (UTF-16): transparent, non-anchoring bounds keep the earlier text
+    // visible to lookbehind and \b, and ^ anchored at the real start.
+    let len = (s as NSString).length
+    let opts: NSRegularExpression.MatchingOptions = from > 0 ? [.reportProgress, .withTransparentBounds, .withoutAnchoringBounds] : [.reportProgress]
+    re.enumerateMatches(in: s, options: opts, range: NSRange(location: from, length: len - from)) { m, _, stop in
         if let m = m { result = m; stop.pointee = true; return }
         if Date() > deadline { timedOut = true; stop.pointee = true }
     }
@@ -66,9 +70,17 @@ func icuFirst(_ re: NSRegularExpression, _ s: String) throws -> NSTextCheckingRe
 }
 
 /// Span mode: unanchored search; UTF-16 offsets of the first match in A and R (src/span.zig).
-func spanCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
+func spanCase(_ f0: String, _ a: String, _ r: String, _ p: String) -> String {
     func hx(_ n: Int) -> String { hxw(n) }
     var res = ""
+    // ospan: "<flags>@<a>,<r>" = search start per subject (UTF-16)
+    var f = f0
+    var starts = [0, 0]
+    if let at = f0.firstIndex(of: "@") {
+        starts = f0[f0.index(after: at)...].split(separator: ",").map { Int($0) ?? 0 }
+        f = String(f0[..<at])
+    }
+    if engine != "icu" && (starts[0] > 0 || starts[1] > 0) { return failed(0x40, 2) } // Swift Regex: no start-offset search
     if engine == "icu" {
         var o: NSRegularExpression.Options = []
         if f.contains("i") { o.insert(.caseInsensitive) }
@@ -76,8 +88,8 @@ func spanCase(_ f: String, _ a: String, _ r: String, _ p: String) -> String {
         if f.contains("s") { o.insert(.dotMatchesLineSeparators) }
         guard let re = try? NSRegularExpression(pattern: p, options: o) else { return failed(4, 2) }
         do {
-            for s in [a, r] {
-                if let mm = try icuFirst(re, s) { res += hx(mm.range.location) + hx(mm.range.location + mm.range.length) } else { res += NONE }
+            for (k, s) in [a, r].enumerated() {
+                if let mm = try icuFirst(re, s, from: starts[k]) { res += hx(mm.range.location) + hx(mm.range.location + mm.range.length) } else { res += NONE }
             }
         } catch { return failed(0x40, 2) }
         return res

@@ -51,6 +51,8 @@ For each case irx checks:
   backtracking matcher (leftmost-longest for the POSIX engines).
 * **Capture groups**: the whole match and groups 1–6 from the same reference matcher, with per-engine rules for
   captures inside loops and lookbehinds.
+* **Start offsets**: the match position of a search that starts at a random character boundary (`lastIndex`,
+  `pos`, a start offset), with the text before it still visible to lookbehind and `\b`.
 * **Long inputs**: A is pumped out to 64–4,096 characters by repeating segments the pattern's loops can
   match, and paired with a near-miss long reject (one edit at the start, middle, end or a power-of-two
   boundary). Full match, match position and capture groups are checked on the long pair against a bit-vector
@@ -92,6 +94,7 @@ Every batch of cases goes to one engine process per *mode*; a target enables the
 | repeat (`shell-repeat`, `perl-repeat`, d8 `tierup`) | the same, twice on one compiled regex | same; catches state carried between runs and tier-up bugs |
 | span (`[span]`) | `[start, end)` of the first match of an unanchored search in A and R | the backtracking matcher's first match in priority order, or the relation's leftmost-longest span (POSIX engines) |
 | capture (`[capture]`) | the whole match plus groups 1–6 | the matcher's capture slots, with per-engine loop and lookbehind rules |
+| offset (`[offset]`; `shell-offset`, `perl-offset`, d8 `offset`) | `[start, end)` of a search that starts at a per-case offset in A and R | the matcher's first match from that offset; `^` still means the real start and lookbehind sees the earlier text. Offsets travel in the flags string as `"<flags>@<a>,<r>"` in the host's units (driver mode `ospan`). Enabled where the engine's API has those semantics; Tcl (`-start`), ICU and Racket treat the offset as the string start, Go, Vectorscan, LLVM, Swift Regex, Emacs and RE# have no such API |
 | long (`[long]`; `shell-long`, `perl-long`, d8 `long`) | does the pattern fully match a long accept string? its near-miss reject? | the relation semantics evaluated as bit vectors over positions (`src/long.zig`) |
 | long span, long capture (`[long]` with `[span]`/`[capture]`; `*-long-span`, `*-long-capture`) | span mode and capture mode on the long pair | the same references as span and capture mode, on subjects of any length; positions on the wire are 4 hex digits (driver modes `lspan`, `lcapture`) |
 
@@ -131,16 +134,31 @@ A campaign's configuration is [`weights.toml`](weights.toml) followed by the tar
 
 | Section | Controls | Defaults in `weights.toml` |
 |---|---|---|
-| `[weights]` | how often each construct is generated | concat 4, alt 1.5, atoms 0.7–1, `(?:)` 0.2, quantifiers 0.08–0.25 (lazy ×0.5), lookarounds 0.4, groups 0.03–0.05 |
+| `[weights]` | how often each construct is generated | concat 4, alt 1.5, atoms 0.7–1, `(?:)` 0.2, `\p{…}` 0.7, quantifiers 0.08–0.25 (lazy ×0.5), lookarounds 0.4, groups 0.03–0.05, inline flag groups 0.05 |
 | `[sizes]` | pattern size (tree nodes) | uniform over 4–24 |
 | `[strings]` | subjects A and R | 0–8 code points (empty subjects included), at most 31 decoded symbols; R = A after 1–5 edits; 26-character pool |
 | `[flags]` | flag sets, one per table | 24 sets over `i m s u v` (JS `u`/`v`; other dialects ignore or map them) |
-| `[grammar]` | grammar shape | max size 24, counted repeats up to 3, classes of up to 2 members |
+| `[grammar]` | grammar shape | max size 24, counted repeats up to 3 plus big bounds `[16, 100, 254]` (`{0,N}`, `{1,N}`, `{N,}`, `{N}`, weight ×4, only over a single character atom and never inside another quantifier), classes of up to 2 members |
 | `[limits]` | table and memory budgets, stored findings | 1 GiB per table, 4 GiB host, 100k samples per table, 20 stored findings per signature group |
 | `[harness]` | batches, deadlines, journals | 512 cases per batch, 2 s + 2 s per 512 cases, journals deleted after the run (`keep_journals`) |
 | `[target]` (target.toml) | how to launch the engine | `kind` (`d8`, `perl`, `shell`), `command`, `dialect`, `selfcheck` |
 | `[span]`, `[capture]` (target.toml) | range checks | `enabled`, `units`; `loop`, `lookbehind` |
 | `[long]` | long-input modes (off unless enabled) | `enabled`, `only` (no other modes), `span`/`capture` (long spans and captures where the target supports them; default true), `fraction` 0.25 of cases, `lengths` [64, 256, 1000, 4096] (at most 16000), `guard_factor` 50, `deadline_ms_per_kb` 20, `deadline_ms_per_case` 10, `max_request_bytes` 8 MiB |
+
+Three constructs need engine-specific care:
+
+* **Big repeat counts** stay safe for backtracking engines because they only apply to a single character atom that
+  can't match empty on A or R, and nothing quantifies them again; the relation model computes `{254}` as cheaply as
+  `{3}`.
+* **Unicode properties** `\p{X}` / `\P{X}` over 16 general categories (L, Lu, Ll, N, Nd, P, Pc, Pd, Po, S, So, Z, Zs,
+  Zl, C, Cc). Case-insensitive matching differs by engine (`prop_case`): ES applies case equivalence and complements
+  `\P` before folding; Java, ICU, Onigmo, Rust, RE2 and Go invert `\P` after folding; Perl and PCRE treat Lu/Ll as any
+  cased letter; Oniguruma, Vectorscan and nim ignore `/i`; .NET checks the character's simple upper and lower forms and
+  its case-folding equivalents. The self-check confirms each rule at startup. JS needs `u` or `v`; Python, Tcl,
+  Emacs and LLVM have no properties.
+* **Inline flag groups** `(?i:…)` / `(?-i:…)` toggle case-insensitivity for a subtree. The table keeps a second atom
+  inventory under the toggled flags, separated by a context bit in the pair key, so only a flag group can join the two;
+  the model evaluates each node under its effective flags.
 
 The default character pool is chosen for the places engines get wrong: `a b k s A K S 0 _`, space, `\n`,
 `\r`, `-`, `.`, `ſ` (U+017F), `K` (U+212A Kelvin), U+2028, `😀` (U+1F600, an astral character),

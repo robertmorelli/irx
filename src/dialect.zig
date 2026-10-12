@@ -77,6 +77,13 @@ pub const Dialect = struct {
     /// The empty atom may also print as nothing: `(?:|a)`, `a|`, `(?=)` (fuzz cases only;
     /// self-check keeps `(?:)`). POSIX ERE rejects empty branches.
     bare_empty: bool = true,
+    /// Inline flag groups (?i:…) / (?-i:…) are supported.
+    scoped_flags: bool = false,
+    /// `\p{…}` / `\P{…}` general categories are supported (props_need_u: only with u/v, ES).
+    unicode_props: bool = false,
+    props_need_u: bool = false,
+    /// How case-insensitive matching treats a property (PropCase).
+    prop_case: PropCase = .equivalence,
     /// A bare empty is also accepted inside lookarounds (nim-regex rejects `(?<=)`, `(?=)` and
     /// `(?<=|b)`, but accepts `(?=(?:))` and `(?=a|)`).
     bare_empty_in_lookaround: bool = true,
@@ -201,6 +208,13 @@ pub const Assertions = packed struct {
     }
 };
 
+/// Properties under case-insensitive matching (checked by the startup self-check):
+/// equivalence: case equivalence like any set, \P complemented before folding (ES);
+/// equivalence_invert: the same for \p, \P is the inverse after folding (Java, ICU, Onigmo,
+/// Rust, RE2, Go); cased: Lu/Ll mean any cased letter (Perl, PCRE); plain: /i ignored
+/// (Oniguruma, Vectorscan, nim); upper_lower: c, its simple upper or lower form (.NET).
+pub const PropCase = enum { equivalence, equivalence_invert, cased, plain, upper_lower };
+
 pub const SpanSemantics = enum { first, longest };
 /// `unmodeled`: the engine's rule is implementation-specific (automata engines: RE2, Go,
 /// Rust); span checks skip patterns where a quantified body can match empty.
@@ -253,7 +267,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (d.nullable_quant_opt_only and c.min == 0 and q.form != .opt) ok.* = false;
             if (!d.lookahead_in_star and c.f & (tb.aux_la | tb.aux_md) != 0 and q.max >= 2) ok.* = false;
             if (!d.quantify_assertions and c.f & tb.aux_za != 0) ok.* = false;
-            const f = tb.quantFlags(c.f, q.min, q.max, ast.inf, q.lazy, q.min == 0 and q.max == 1, q.form == .star or q.form == .plus or q.form == .opt);
+            const f = tb.quantFlags(c.f, q.min, q.max, ast.inf, q.lazy, q.min == 0 and q.max == 1, q.form == .star or q.form == .plus or q.form == .opt, false);
             return .{ .min = @min(cap, c.min * q.min), .max = if (q.max == ast.inf) cap else @min(cap, c.max * q.max), .f = f };
         },
         .look_ahead, .neg_look_ahead => {
@@ -272,7 +286,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (d.lookbehind_no_lazy and c.f & tb.aux_lz != 0) ok.* = false;
             return .{ .min = 0, .max = 0, .f = tb.aux_lk | tb.aux_za | (c.f & inherit) };
         },
-        .group_nc => return lenOf(t, n.a, ok),
+        .group_nc, .flag_group => return lenOf(t, n.a, ok),
         .group_cap, .group_named => {
             const c = lenOf(t, n.a, ok);
             return .{ .min = c.min, .max = c.max, .f = (c.f & inherit) | tb.aux_cp };

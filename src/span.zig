@@ -70,17 +70,27 @@ pub const Span = struct {
 /// Reference span of an unanchored search of `subject` (UTF-16, any length). Null if the
 /// reference ran out of steps.
 pub fn reference(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16) ?Span {
+    return referenceFrom(t, flags, subject, 0);
+}
+
+/// The same search starting at UTF-16 offset `start` (a character boundary); the text before
+/// it stays visible to lookbehind and assertions. Null if `start` is not a boundary.
+pub fn referenceFrom(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16, start: u16) ?Span {
     var syms: [31]u21 = undefined;
     const w = decodeAny(subject, flags, &syms) orelse return null;
     defer freeSyms(w, &syms);
     const n = w.len;
+    // Model position of the start offset.
+    var k: usize = 0;
+    while (k < n and utf16Offset(w, k) < start) k += 1;
+    if (utf16Offset(w, k) != start) return null;
     var s_model: usize = 0;
     var e_model: usize = 0;
     var found = false;
     switch (dialect.active.span_semantics) {
         .first => {
             var mt: ast.Matcher = .{ .t = t, .flags = flags, .w = w, .budget = 200_000 + 200 * n };
-            var i: usize = 0;
+            var i: usize = k;
             while (i <= n) : (i += 1) {
                 const r = mt.matchAt(i) orelse return null;
                 if (r) {
@@ -94,12 +104,12 @@ pub fn reference(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16) ?S
         .longest => {
             if (n > relmod.Rel16.max_len) {
                 // Long subjects: the leftmost start that reaches any end, then its last end.
-                const se = longmod.leftmostLongest(std.heap.smp_allocator, t, flags, w) orelse return null;
+                const se = longmod.leftmostLongest(std.heap.smp_allocator, t, flags, w, k) orelse return null;
                 if (se) |x| return .{ .found = true, .s = utf16Offset(w, x[0]), .e = utf16Offset(w, x[1]) };
                 return .{ .found = false };
             }
             const rel = ast.evalRel(relmod.Rel16, t, t.root, flags, w);
-            var i: usize = 0;
+            var i: usize = k;
             outer: while (i <= n) : (i += 1) {
                 var j: usize = n + 1;
                 while (j > i) {
@@ -122,6 +132,33 @@ pub fn utf16Offset(w: []const u21, pos: usize) u16 {
     var off: u16 = 0;
     for (w[0..pos]) |c| off += if (c > 0xFFFF) 2 else 1;
     return off;
+}
+
+/// A UTF-16 offset of `subject` (at a character boundary) in the host's `units`.
+pub fn utf16ToHost(subject: []const u16, off: u16, units: config.SpanUnits) u16 {
+    if (units == .utf16) return off;
+    var native: u16 = 0;
+    var i: usize = 0;
+    while (i < off and i < subject.len) {
+        const u = subject[i];
+        const pair = u >= 0xD800 and u <= 0xDBFF and i + 1 < subject.len and subject[i + 1] >= 0xDC00 and subject[i + 1] <= 0xDFFF;
+        const cp: u21 = if (pair) 0x10000 + ((@as(u21, u) - 0xD800) << 10) + (@as(u21, subject[i + 1]) - 0xDC00) else u;
+        native += switch (units) {
+            .cp => 1,
+            .utf8 => if (cp < 0x80) 1 else if (cp < 0x800) 2 else if (cp < 0x10000) 3 else 4,
+            .utf16 => unreachable,
+        };
+        i += if (pair) 2 else 1;
+    }
+    return native;
+}
+
+/// A random character boundary of `subject` (UTF-16 offset), in model positions for `flags`.
+pub fn randomBoundary(rng: anytype, subject: []const u16, flags: alpha.Flags) u16 {
+    var syms: [31]u21 = undefined;
+    const n = alpha.decode(subject, flags, &syms) orelse return 0;
+    const k: usize = @intCast(rng.below(n + 1));
+    return utf16Offset(syms[0..n], k);
 }
 
 /// Map a host offset in `units` to a UTF-16 offset of `subject`; null if it falls inside
@@ -173,7 +210,7 @@ pub fn minLen(t: *const ast.Ast, idx: u8) u32 {
         .alt => @min(minLen(t, n.a), minLen(t, n.b)),
         .quant => minLen(t, n.a) * n.quant.min,
         .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => 0,
-        .group_cap, .group_nc, .group_named => minLen(t, n.a),
+        .group_cap, .group_nc, .group_named, .flag_group => minLen(t, n.a),
     };
 }
 
@@ -184,18 +221,23 @@ pub fn hasNullableLoop(t: *const ast.Ast, idx: u8) bool {
         .atom => false,
         .concat, .alt => hasNullableLoop(t, n.a) or hasNullableLoop(t, n.b),
         .quant => minLen(t, n.a) == 0 or hasNullableLoop(t, n.a),
-        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .group_cap, .group_nc, .group_named => hasNullableLoop(t, n.a),
+        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .group_cap, .group_nc, .group_named, .flag_group => hasNullableLoop(t, n.a),
     };
 }
 
-/// Check one case's raw span result; `long`: the long pair, with 16-bit positions.
+/// Check one case's raw span result; `long`: the long pair, with 16-bit positions;
+/// `from_offset`: the search starts at the case's offsets (offset mode).
 pub fn check(c: *const finding.Case, raw: []const u8, units: config.SpanUnits, long: bool) Check {
+    return checkFrom(c, raw, units, long, false);
+}
+
+pub fn checkFrom(c: *const finding.Case, raw: []const u8, units: config.SpanUnits, long: bool, from_offset: bool) Check {
     if (failBits(raw, long)) |b| return .{ .bits = b };
     if (dialect.active.empty_iteration == .unmodeled and hasNullableLoop(&c.tree, c.tree.root)) return .{ .bits = harness.Bits.skipped };
     const sa = if (long) c.la else c.a.slice();
     const sr = if (long) c.lr else c.r.slice();
-    const ra = reference(&c.tree, c.flags, sa) orelse return .{ .bits = harness.Bits.skipped };
-    const rr = reference(&c.tree, c.flags, sr) orelse return .{ .bits = harness.Bits.skipped };
+    const ra = referenceFrom(&c.tree, c.flags, sa, if (from_offset) c.off_a else 0) orelse return .{ .bits = harness.Bits.skipped };
+    const rr = referenceFrom(&c.tree, c.flags, sr, if (from_offset) c.off_r else 0) orelse return .{ .bits = harness.Bits.skipped };
     const ga = hostSpan(sa, wirePos(raw, long, 0), wirePos(raw, long, 1), units);
     const gr = hostSpan(sr, wirePos(raw, long, 2), wirePos(raw, long, 3), units);
     var bits: u8 = 0;

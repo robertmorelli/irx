@@ -177,13 +177,15 @@ pub const Expect = enum {
     long,
     long_span,
     long_capture,
+    /// Span of an unanchored search starting at a per-case offset (Case.off_a/off_r).
+    offset,
 
     /// Modes that run on each case's long pair (long.zig).
     pub fn isLong(e: Expect) bool {
         return e == .long or e == .long_span or e == .long_capture;
     }
     pub fn isSpan(e: Expect) bool {
-        return e == .span or e == .long_span;
+        return e == .span or e == .long_span or e == .offset;
     }
     pub fn isCapture(e: Expect) bool {
         return e == .capture or e == .long_capture;
@@ -194,7 +196,7 @@ pub const Expect = enum {
 /// mode 28 (capture.zig); the long modes use two bytes per position.
 pub fn resultWidth(expect: Expect) usize {
     return switch (expect) {
-        .span => 4,
+        .span, .offset => 4,
         .capture => @import("capture.zig").width,
         .long_span => 8,
         .long_capture => 2 * @import("capture.zig").width,
@@ -246,6 +248,11 @@ pub const builtin_modes = [_]ModeSpec{
     .{ .name = "long-capture", .flags = &.{"--no-regexp-tier-up"}, .driver_mode = "lcapture", .expect = .long_capture },
     .{ .name = "shell-long-capture", .engine = .shell, .flags = &.{}, .driver_mode = "lcapture", .expect = .long_capture },
     .{ .name = "perl-long-capture", .engine = .perl, .flags = &.{}, .driver_mode = "lcapture", .expect = .long_capture },
+    // Span of a search from a start offset; offsets travel in the flags string as
+    // "<flags>@<a>,<r>" in the host's units (driver mode ospan).
+    .{ .name = "offset", .flags = &.{}, .driver_mode = "ospan", .expect = .offset },
+    .{ .name = "shell-offset", .engine = .shell, .flags = &.{}, .driver_mode = "ospan", .expect = .offset },
+    .{ .name = "perl-offset", .engine = .perl, .flags = &.{}, .driver_mode = "ospan", .expect = .offset },
 };
 
 pub fn findMode(name: []const u8) ?*const ModeSpec {
@@ -955,12 +962,13 @@ pub fn probeMode(gpa: Allocator, spec: *const ModeSpec, opts: ChildOptions) Prob
     var req: std.ArrayList(u8) = .empty;
     defer req.deinit(gpa);
     req.appendSlice(gpa, "[1,[") catch return .{ .ok = false, .reason = "alloc" };
-    encodeCase(&req, gpa, .{ .flags = "", .a = if (wide) &long_a else &.{'a'}, .r = &.{'b'}, .pattern = "a" }) catch return .{ .ok = false, .reason = "alloc" };
+    const off = spec.expect == .offset;
+    encodeCase(&req, gpa, .{ .flags = if (off) "@1,0" else "", .a = if (wide) &long_a else if (off) &.{ 'a', 'a' } else &.{'a'}, .r = &.{'b'}, .pattern = "a" }) catch return .{ .ok = false, .reason = "alloc" };
     req.appendSlice(gpa, ",") catch return .{ .ok = false, .reason = "alloc" };
     const perl_syntax = spec.engine == .perl or @import("dialect.zig").active.escape == .x_brace;
     const astral_pat = if (perl_syntax) "\\x{1F600}" else "\\u{1F600}";
     const astral_r: []const u16 = if (perl_syntax) &.{'a'} else &.{0xD83D};
-    encodeCase(&req, gpa, .{ .flags = "u", .a = &.{ 0xD83D, 0xDE00 }, .r = astral_r, .pattern = astral_pat }) catch return .{ .ok = false, .reason = "alloc" };
+    encodeCase(&req, gpa, .{ .flags = if (off) "u@0,0" else "u", .a = &.{ 0xD83D, 0xDE00 }, .r = astral_r, .pattern = astral_pat }) catch return .{ .ok = false, .reason = "alloc" };
     req.appendSlice(gpa, "]]\n") catch return .{ .ok = false, .reason = "alloc" };
     var buf: [2 * max_result_width]u8 = undefined;
     const bits = buf[0 .. 2 * resultWidth(spec.expect)];
@@ -981,13 +989,14 @@ pub fn probeMode(gpa: Allocator, spec: *const ModeSpec, opts: ChildOptions) Prob
         const ok1 = p(bits, 0) == 300 and p(bits, 1) == 301 and p(bits[half..], 0) == 0xFFFF;
         const ok2 = (p(bits[w..], 0) == 0 and p(bits[w..], 1) > 0 and p(bits[w + half ..], 0) == 0xFFFF) or (p(bits[w..], 0) == 0xFFFE and bits[w + 3] == Bits.skipped);
         if (!ok1 or !ok2) return .{ .ok = false, .reason = "known-answer mismatch (long span/capture)" };
-    } else if (spec.expect == .span or spec.expect == .capture) {
+    } else if (spec.expect == .span or spec.expect == .capture or spec.expect == .offset) {
         // a in "a" -> [0,1); no match in R; the astral case starts at 0 (end in host units)
         // or is unsupported (lone surrogate R on a UTF-8 host). Capture mode: per subject
         // the whole match comes first, then group slots (none here).
         const w = resultWidth(spec.expect);
         const half = w / 2;
-        const ok1 = bits[0] == 0 and bits[1] == 1 and bits[half] == 0xFF;
+        // Offset mode: "aa" searched from 1 -> [1,2).
+        const ok1 = (if (off) bits[0] == 1 and bits[1] == 2 else bits[0] == 0 and bits[1] == 1) and bits[half] == 0xFF;
         const ok2 = (bits[w] == 0 and bits[w + 1] > 0 and bits[w + half] == 0xFF) or (bits[w] == 0xFE and bits[w + 1] == Bits.skipped);
         if (!ok1 or !ok2) return .{ .ok = false, .reason = "known-answer mismatch (span/capture)" };
     } else {

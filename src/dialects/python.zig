@@ -43,6 +43,7 @@ fn fold(c: u21) u21 {
 }
 
 pub const dialect: D.Dialect = .{
+    .scoped_flags = true,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
     .name = "python",

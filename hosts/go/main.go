@@ -83,6 +83,11 @@ func main() {
 				}
 				continue
 			}
+			if mode == "ospan" {
+				// No start-offset search in regexp (slicing changes ^ and \b): unsupported.
+				sb.WriteString(failHex(0x40, 2))
+				continue
+			}
 			if mode == "span" || mode == "lspan" {
 				if loneSurrogate(string(raw)) {
 					sb.WriteString(failHex(0x40, 2))

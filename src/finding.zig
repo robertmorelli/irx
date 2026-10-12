@@ -48,6 +48,10 @@ pub const Case = struct {
     /// owned by whoever filled the case (a lane buffer or the triage arena).
     la: []const u16 = &.{},
     lr: []const u16 = &.{},
+    /// Offset mode: where the search starts in A and R (UTF-16 offsets, at character
+    /// boundaries). Lookbehind and \b still see the text before the offset.
+    off_a: u16 = 0,
+    off_r: u16 = 0,
     /// Expected (test(A), test(R)) from the model. Fuzz cases are (true, false).
     exp_a: bool = true,
     exp_r: bool = false,
@@ -174,6 +178,7 @@ pub fn writeCaseRecord(out: *std.ArrayList(u8), gpa: Allocator, c: *const Case, 
         try out.appendSlice(gpa, "\nlr=");
         try hexUnits(out, gpa, c.lr);
     }
+    if (c.off_a != 0 or c.off_r != 0) try out.print(gpa, "\noff_a={d}\noff_r={d}", .{ c.off_a, c.off_r });
     try out.print(gpa, "\nexp_a={d}\nexp_r={d}\n", .{ @intFromBool(c.exp_a), @intFromBool(c.exp_r) });
     try out.appendSlice(gpa, "pattern=");
     try out.appendSlice(gpa, c.pattern.items);
@@ -204,7 +209,7 @@ pub fn readCaseRecord(gpa: Allocator, text: []const u8, out: *LoadedCase) !void 
             const n = @min(v.len, out.mode_buf.len);
             @memcpy(out.mode_buf[0..n], v[0..n]);
             out.pred.mode = out.mode_buf[0..n];
-        } else if (e(u8, k, "observed")) out.pred.observed = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "expected")) out.pred.expected = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "diff")) out.pred.diff = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "signal")) out.pred.signal = try std.fmt.parseInt(u8, v, 10) else if (e(u8, k, "exit")) out.pred.exit_code = try std.fmt.parseInt(u8, v, 10) else if (e(u8, k, "flags")) out.case.flags = try Flags.parse(v) else if (e(u8, k, "a")) try parseUnits(v, &out.case.a) else if (e(u8, k, "r")) try parseUnits(v, &out.case.r) else if (e(u8, k, "la")) out.case.la = try parseLong(gpa, v) else if (e(u8, k, "lr")) out.case.lr = try parseLong(gpa, v) else if (e(u8, k, "exp_a")) out.case.exp_a = v.len > 0 and v[0] == '1' else if (e(u8, k, "exp_r")) out.case.exp_r = v.len > 0 and v[0] == '1' else if (e(u8, k, "pattern")) {
+        } else if (e(u8, k, "observed")) out.pred.observed = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "expected")) out.pred.expected = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "diff")) out.pred.diff = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "signal")) out.pred.signal = try std.fmt.parseInt(u8, v, 10) else if (e(u8, k, "exit")) out.pred.exit_code = try std.fmt.parseInt(u8, v, 10) else if (e(u8, k, "flags")) out.case.flags = try Flags.parse(v) else if (e(u8, k, "a")) try parseUnits(v, &out.case.a) else if (e(u8, k, "r")) try parseUnits(v, &out.case.r) else if (e(u8, k, "la")) out.case.la = try parseLong(gpa, v) else if (e(u8, k, "off_a")) out.case.off_a = try std.fmt.parseInt(u16, v, 10) else if (e(u8, k, "off_r")) out.case.off_r = try std.fmt.parseInt(u16, v, 10) else if (e(u8, k, "lr")) out.case.lr = try parseLong(gpa, v) else if (e(u8, k, "exp_a")) out.case.exp_a = v.len > 0 and v[0] == '1' else if (e(u8, k, "exp_r")) out.case.exp_r = v.len > 0 and v[0] == '1' else if (e(u8, k, "pattern")) {
             out.case.pattern = .empty;
             try out.case.pattern.appendSlice(gpa, v);
         } else if (e(u8, k, "spell")) out.case.spell = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "ast")) out.case.tree = try ast.parse(v) else if (e(u8, k, "size")) out.case.size = try std.fmt.parseInt(u16, v, 10) else if (e(u8, k, "table_seq")) out.case.table.seq = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "table_attempt")) out.case.table.attempt = try std.fmt.parseInt(u32, v, 10) else if (e(u8, k, "table_seed")) out.case.table.seed = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "table_digest")) {
@@ -252,6 +257,10 @@ pub fn writeRepro(out: *std.ArrayList(u8), gpa: Allocator, c: *const Case, pred:
     try jsString(out, gpa, if (long) c.la else c.a.slice());
     try out.appendSlice(gpa, ";\nvar R = ");
     try jsString(out, gpa, if (long) c.lr else c.r.slice());
+    if (spec != null and spec.?.expect == .offset) {
+        try out.print(gpa, ";\n// offset mode: unanchored search starting at lastIndex\nvar re = new RegExp(src, flags + \"g\");\nfunction at(s, k) {{ re.lastIndex = k; var m = re.exec(s); return m ? [m.index, m.index + m[0].length] : null; }}\nprint(JSON.stringify([at(A, {d}), at(R, {d})]));\n", .{ c.off_a, c.off_r });
+        return;
+    }
     try out.appendSlice(gpa, ";\nvar re = new RegExp(src, flags);\nvar got = [re.test(A), re.test(R)");
     if (spec != null and spec.?.expect == .tierup) try out.appendSlice(gpa, ", re.test(A), re.test(R)");
     try out.print(gpa, "];\nprint(JSON.stringify(got), \"expected\", JSON.stringify([{}, {}]));\n", .{ c.exp_a, c.exp_r });
@@ -354,6 +363,8 @@ pub const Store = struct {
         try out.append(gpa, 0);
         try out.appendSlice(gpa, std.mem.sliceAsBytes(c.lr));
         try out.append(gpa, 0);
+        try out.appendSlice(gpa, std.mem.asBytes(&c.off_a));
+        try out.appendSlice(gpa, std.mem.asBytes(&c.off_r));
         try out.appendSlice(gpa, c.pattern.items);
         return out.toOwnedSlice(gpa);
     }

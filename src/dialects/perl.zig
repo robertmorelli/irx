@@ -27,6 +27,9 @@ fn lineTerminator(c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    .scoped_flags = true,
+    .unicode_props = true,
+    .prop_case = .cased,
     .name = "perl",
     // An empty loop iteration ends the loop (PCRE: "the loop is forcibly broken").
     .empty_iteration = .stop,

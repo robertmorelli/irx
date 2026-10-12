@@ -11,13 +11,16 @@ def main():
     NONE = "f" * (2 * D)
     P = lambda s, e: f"{s:0{D}x}{e:0{D}x}"
     FAIL = lambda b, rest: (f"fffe{b:04x}" if wide else f"fe{b:02x}") + "0" * (D * rest)
-    is_span, is_cap = mode in ("span", "lspan"), mode in ("capture", "lcapture")
+    is_span, is_cap = mode in ("span", "lspan", "ospan"), mode in ("capture", "lcapture")
     print(f"ready python-re-{sys.version.split()[0]} mode={mode}", flush=True)
     for line in sys.stdin:
         if not line.strip(): continue
         seq, cases = json.loads(line)
         out = []
         for flags, a, r, pat in cases:
+            # ospan: "<flags>@<a>,<r>" = search start per subject (code points)
+            starts = (0, 0)
+            if "@" in flags: flags, o = flags.split("@", 1); starts = tuple(int(x) for x in o.split(","))
             if any(0xD800 <= ord(ch) <= 0xDFFF for ch in a + r + pat): out.append(FAIL(0x40, 2) if is_span else FAIL(0x40, 26) if is_cap else "40"); continue
             f = (re.I if "i" in flags else 0) | (re.M if "m" in flags else 0) | (re.S if "s" in flags else 0)
             if is_cap:  # whole match + groups 1..6 per subject (src/capture.zig)
@@ -37,8 +40,8 @@ def main():
                 except Exception: out.append(FAIL(4, 2)); continue
                 try:
                     s = ""
-                    for subj in (a, r):
-                        m = rx.search(subj)
+                    for subj, k in ((a, starts[0]), (r, starts[1])):
+                        m = rx.search(subj, k)
                         s += P(m.start(), m.end()) if m else NONE
                     out.append(s)
                 except Exception: out.append(FAIL(8, 2))

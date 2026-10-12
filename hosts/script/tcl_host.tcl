@@ -33,7 +33,7 @@ proc jstr {s idx} {
 }
 # Long span mode (lspan): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
 set wide [expr {$mode eq "lspan"}]
-set isSpan [expr {$mode eq "span" || $wide}]
+set isSpan [expr {$mode eq "span" || $wide || $mode eq "ospan"}]
 proc failed {b} { if {$::wide} { return [format fffe%04x00000000 $b] } else { return [format fe%02x0000 $b] } }
 proc pair {s e} { if {$::wide} { return [format %04x%04x $s $e] } else { return [format %02x%02x $s $e] } }
 while {[gets stdin line] >= 0} {
@@ -46,6 +46,10 @@ while {[gets stdin line] >= 0} {
         incr i
         set ::lone 0
         set f [jstr $line i]; incr i; set a [jstr $line i]; incr i; set r [jstr $line i]; incr i; set p [jstr $line i]; incr i
+        # ospan: "<flags>@<a>,<r>" = search start per subject (characters, regexp -start)
+        set starts {0 0}
+        set at [string first @ $f]
+        if {$at >= 0} { set starts [split [string range $f [expr {$at + 1}] end] ,]; set f [string range $f 0 [expr {$at - 1}]] }
         if {$::lone} { append out [expr {$isSpan ? [failed 0x40] : "40"}]; continue }
         # Expand \x{H} escapes to raw characters without subst (patterns contain [ ]).
         set p2 ""
@@ -65,8 +69,8 @@ while {[gets stdin line] >= 0} {
             # quantifiers (leftmost-longest) are checked.
             if {[regexp {[*+?\}]\?} $p]} { append out [failed 0x40]; continue }
             if {[catch {regexp {*}$opts -- $p ""} err]} { append out [failed [expr {[string match "*too complex*" $err] ? 0x40 : 0x04}]]; continue }
-            foreach s [list $a $r] {
-                if {[regexp {*}$opts -indices -- $p $s ix]} {
+            foreach s [list $a $r] st $starts {
+                if {[regexp {*}$opts -indices -start $st -- $p $s ix]} {
                     append out [pair [lindex $ix 0] [expr {[lindex $ix 1] + 1}]]
                 } else { append out [expr {$wide ? "ffffffff" : "ffff"}] }
             }

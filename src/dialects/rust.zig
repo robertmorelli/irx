@@ -10,6 +10,9 @@ fn lineTerminator(c: u21) bool {
 }
 
 const base: D.Dialect = .{
+    .scoped_flags = true,
+    .unicode_props = true,
+    .prop_case = .equivalence_invert,
     .name = "rust",
     // Span mode: empty-loop handling of the automata (and fancy-regex's delegation to
     // them) is implementation-specific; not modelled.

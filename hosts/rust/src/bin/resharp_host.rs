@@ -13,6 +13,8 @@ fn main() {
         }
         bits
     }, |flags, a, r, pat| {
+        // No start-offset search (offset mode): unsupported.
+        if irx_hosts::start(0) > 0 || irx_hosts::start(1) > 0 { return Err(0x40); }
         // find_all yields leftmost-longest, non-overlapping matches; the first is the span.
         let src = format!("{}{}", irx_hosts::inline_flags(flags), pat);
         let re = resharp::Regex::with_options(&src, resharp::RegexOptions::default().unicode(resharp::UnicodeMode::Full).multiline(false)).map_err(|_| 0x04u8)?;

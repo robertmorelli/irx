@@ -39,7 +39,7 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
     pcre2_match_data *md = pcre2_match_data_create_from_pattern(re, NULL);
     int e = 0;
     for (int k = 0; k < 2; k++) {
-        int rc = pcre2_match(re, (PCRE2_SPTR)subj[k], lens[k], 0, 0, md, NULL);
+        int rc = pcre2_match(re, (PCRE2_SPTR)subj[k], lens[k], host_start[k], 0, md, NULL);
         if (rc >= 0) { PCRE2_SIZE *ov = pcre2_get_ovector_pointer(md); out[2 * k] = (long)ov[0]; out[2 * k + 1] = (long)ov[1]; }
         else if (rc == PCRE2_ERROR_NOMATCH) out[2 * k] = out[2 * k + 1] = -1;
         else { e = 0x08; break; }

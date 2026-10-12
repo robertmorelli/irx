@@ -74,6 +74,34 @@ sub span_case {
     return $out;
 }
 
+# Offset mode (ospan): flags carry "<flags>@<a>,<r>" (code points); search from pos().
+sub offset_case {
+    my ($c) = @_;
+    my ($flags, $a, $r, $src) = @$c;
+    my ($fl, $offs) = split /\@/, $flags, 2;
+    my @off = split /,/, $offs;
+    return 'fe040000' if $src =~ /\(\?\??\{/;
+    my $mods = '';
+    $mods .= 'i' if $fl =~ /i/;
+    $mods .= 'm' if $fl =~ /m/;
+    $mods .= 's' if $fl =~ /s/;
+    $mods .= 'u' if $fl =~ /[uv]/;
+    my $re = eval { qr/(?^$mods:$src)/ };
+    return 'fe040000' unless defined $re;
+    my $out = '';
+    my $ok = eval {
+        my $k = 0;
+        for my $s0 ($a, $r) {
+            my $s = $s0;
+            pos($s) = $off[$k++];
+            $out .= ($s =~ /$re/g) ? sprintf('%02x%02x', $-[0], $+[0]) : 'ffff';
+        }
+        1;
+    };
+    return 'fe080000' unless $ok;
+    return $out;
+}
+
 # Capture mode: whole match then groups 1..6 per subject (ffff = unset; src/capture.zig).
 sub capture_case {
     my ($c) = @_;
@@ -118,6 +146,7 @@ while (defined(my $line = <STDIN>)) {
     }
     my ($seq, $cases) = @$msg;
     if ($mode eq 'span' || $mode eq 'lspan') { print $seq, ' ', join('', map { span_case($_) } @$cases), "\n"; next; }
+    if ($mode eq 'ospan') { print $seq, ' ', join('', map { offset_case($_) } @$cases), "\n"; next; }
     if ($mode eq 'capture' || $mode eq 'lcapture') { print $seq, ' ', join('', map { capture_case($_) } @$cases), "\n"; next; }
     print $seq, ' ', join('', map { sprintf '%02x', run_case($_) } @$cases), "\n";
 }

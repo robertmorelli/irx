@@ -7,7 +7,7 @@
 (printf "ready racket-~a mode=~a\n" (version) mode) (flush-output)
 ;; Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
 (define wide (and (member mode '("lspan" "lcapture")) #t))
-(define is-span (and (member mode '("span" "lspan")) #t))
+(define is-span (and (member mode '("span" "lspan" "ospan")) #t))
 (define is-cap (and (member mode '("capture" "lcapture")) #t))
 (define D (if wide 4 2))
 (define (hx n) (let ([h (number->string n 16)]) (string-append (make-string (max 0 (- D (string-length h))) #\0) h)))
@@ -26,7 +26,11 @@
     (define out (open-output-string))
     (fprintf out "~a " (car msg))
     (for ([c (cadr msg)])
-      (define f (car c)) (define a (cadr c)) (define r (caddr c)) (define p (cadddr c))
+      (define f0 (car c)) (define a (cadr c)) (define r (caddr c)) (define p (cadddr c))
+      ;; ospan: "<flags>@<a>,<r>" = search start per subject (characters)
+      (define at (let loop ([i 0]) (cond [(>= i (string-length f0)) #f] [(char=? (string-ref f0 i) #\@) i] [else (loop (add1 i))])))
+      (define f (if at (substring f0 0 at) f0))
+      (define starts (if at (map string->number (string-split (substring f0 (add1 at)) ",")) '(0 0)))
       (cond
         [(for/or ([s (list a r p)]) (string-contains? s "￿")) (write-string (cond [is-span (failed #x40 2)] [is-cap (failed #x40 26)] [else "40"]) out)]
         [is-cap
@@ -55,8 +59,9 @@
             [else
              (with-handlers ([exn:fail? (lambda (e) (failed 8 2))])
                (apply string-append
-                      (for/list ([s (list a r)])
-                        (define m (regexp-match-positions rx s))
+                      (for/list ([s (list a r)] [st starts])
+                        ;; The text before the start is the input prefix (lookbehind, ^).
+                        (define m (regexp-match-positions rx s st #f #f (string->bytes/utf-8 (substring s 0 st))))
                         (if m (string-append (hx (caar m)) (hx (cdar m))) NONE))))])
           out)]
         [else

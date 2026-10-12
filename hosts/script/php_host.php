@@ -3,7 +3,7 @@
 $mode = $argv[1] ?? "default"; $rep = in_array($mode, ["repeat", "tierup"]) ? 2 : 1;
 // Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
 $wide = in_array($mode, ["lspan", "lcapture"]); $D = $wide ? 4 : 2; $NONE = str_repeat("f", 2 * $D);
-$isSpan = in_array($mode, ["span", "lspan"]); $isCap = in_array($mode, ["capture", "lcapture"]);
+$isSpan = in_array($mode, ["span", "lspan", "ospan"]); $isCap = in_array($mode, ["capture", "lcapture"]);
 function pair($s, $e) { global $D; return sprintf("%0{$D}x%0{$D}x", $s, $e); }
 function failed($b, $rest) { global $wide, $D; return ($wide ? sprintf("fffe%04x", $b) : sprintf("fe%02x", $b)) . str_repeat("0", $D * $rest); }
 echo "ready php-pcre-" . PCRE_VERSION . " mode=$mode\n"; fflush(STDOUT);
@@ -16,6 +16,9 @@ while (($line = fgets(STDIN)) !== false) {
     [$seq, $cases] = $msg;
     $out = "";
     foreach ($cases as [$flags, $a, $r, $pat]) {
+        // ospan: "<flags>@<a>,<r>" = search start per subject (bytes)
+        $starts = [0, 0];
+        if (($at = strpos($flags, "@")) !== false) { $starts = array_map("intval", explode(",", substr($flags, $at + 1))); $flags = substr($flags, 0, $at); }
         if (str_contains($a . $r . $pat, "\u{FFFF}")) { $out .= $isSpan ? failed(0x40, 2) : ($isCap ? failed(0x40, 26) : "40"); continue; }
         $m = "u" . (str_contains($flags, "i") ? "i" : "") . (str_contains($flags, "m") ? "m" : "") . (str_contains($flags, "s") ? "s" : "");
         if ($isCap) { // whole match + groups 1..6 per subject, byte offsets (src/capture.zig)
@@ -33,7 +36,7 @@ while (($line = fgets(STDIN)) !== false) {
         if ($isSpan) { // unanchored search, byte offsets (src/span.zig)
             $re = "\x01" . $pat . "\x01" . $m; $s = "";
             foreach ([$a, $r] as $j => $subj) {
-                $res = @preg_match($re, $subj, $mm, PREG_OFFSET_CAPTURE);
+                $res = @preg_match($re, $subj, $mm, PREG_OFFSET_CAPTURE, $starts[$j]);
                 if ($res === false) { $s = failed((preg_last_error() === PREG_INTERNAL_ERROR && $j == 0) ? 4 : 8, 2); break; }
                 $s .= $res === 1 ? pair($mm[0][1], $mm[0][1] + strlen($mm[0][0])) : $NONE;
             }

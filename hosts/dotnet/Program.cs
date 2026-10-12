@@ -5,7 +5,7 @@ var mode = args.Length > 1 ? args[1] : "default";
 int rep = (mode == "repeat" || mode == "tierup") ? 2 : 1;
 // Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
 bool wide = mode == "lspan" || mode == "lcapture";
-bool isSpan = mode == "span" || mode == "lspan", isCap = mode == "capture" || mode == "lcapture";
+bool isSpan = mode == "span" || mode == "lspan" || mode == "ospan", isCap = mode == "capture" || mode == "lcapture";
 string X = wide ? "x4" : "x2";
 string NONE = new string('f', wide ? 8 : 4);
 string Failed(int b, int rest) => (wide ? "fffe" + b.ToString("x4") : "fe" + b.ToString("x2")) + new string('0', (wide ? 4 : 2) * rest);
@@ -28,6 +28,10 @@ while ((line = stdin.ReadLine()) != null) {
         string f, a, r, p;
         try { f = c[0].GetString(); a = c[1].GetString(); r = c[2].GetString(); p = c[3].GetString(); }
         catch (InvalidOperationException) { sb.Append(isSpan ? Failed(0x40, 2) : isCap ? Failed(0x40, 26) : "40"); continue; } // undecodable (lone surrogate)
+        // ospan: "<flags>@<a>,<r>" = search start per subject (UTF-16, Regex.Match(s, startat))
+        int[] starts = { 0, 0 };
+        int at = f.IndexOf('@');
+        if (at >= 0) { var offs = f.Substring(at + 1).Split(','); starts[0] = int.Parse(offs[0]); starts[1] = int.Parse(offs[1]); f = f.Substring(0, at); }
         bool lone = (a + r + p).Contains('\uFFFF');
         foreach (var s in new[] { a, r, p }) for (int i = 0; i < s.Length; i++) {
             if (char.IsHighSurrogate(s[i]) && i + 1 < s.Length && char.IsLowSurrogate(s[i + 1])) { i++; continue; }
@@ -73,7 +77,7 @@ while ((line = stdin.ReadLine()) != null) {
             try { re = new Regex(p, o, Limit); } catch (Exception) { sb.Append(Failed(4, 2)); continue; }
             try {
                 var sp = new StringBuilder();
-                foreach (var s in new[] { a, r }) { var m = re.Match(s); sp.Append(m.Success ? m.Index.ToString(X) + (m.Index + m.Length).ToString(X) : NONE); }
+                foreach (var (s, k) in new[] { (a, starts[0]), (r, starts[1]) }) { var m = re.Match(s, k); sp.Append(m.Success ? m.Index.ToString(X) + (m.Index + m.Length).ToString(X) : NONE); }
                 sb.Append(sp);
             } catch (RegexMatchTimeoutException) { sb.Append(Failed(0x40, 2)); } catch (Exception) { sb.Append(Failed(8, 2)); }
             continue;

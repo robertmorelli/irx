@@ -12,7 +12,22 @@ const Flags = alpha.Flags;
 const ucd = @import("ucd.zig");
 const dialect = @import("dialect.zig");
 
-pub const Kind = enum(u8) { lit, dot, esc, range, cls, vset, caret, dollar, wordb, nwordb, empty };
+pub const Kind = enum(u8) { lit, dot, esc, range, cls, vset, caret, dollar, wordb, nwordb, empty, prop };
+
+/// Unicode general categories for `\p{…}` / `\P{…}` (a selection that the character pool
+/// exercises: letters and their cases, digits, the pool's punctuation, symbols, separators,
+/// controls).
+pub const Prop = enum(u8) {
+    L, Lu, Ll, N, Nd, P, Pc, Pd, Po, S, So, Z, Zs, Zl, C, Cc,
+
+    /// Does code point x have this general category (one letter: the major class)?
+    pub fn has(p: Prop, x: u21) bool {
+        const cat = ucd.category(x);
+        const name = @tagName(p);
+        if (cat[0] != name[0]) return false;
+        return name.len == 1 or cat[1] == name[1];
+    }
+};
 pub const Esc = enum(u8) { d, D, w, W, s, S };
 pub const VOp = enum(u8) { sub, inter, uni };
 
@@ -20,7 +35,7 @@ pub const VOp = enum(u8) { sub, inter, uni };
 /// refers back to a table's inventory.
 pub const AtomSpec = struct {
     kind: Kind,
-    /// Esc for .esc, VOp for .vset.
+    /// Esc for .esc, VOp for .vset, Prop for .prop.
     sub: u8 = 0,
     /// Negated class spelling `[^…]`.
     neg: bool = false,
@@ -37,7 +52,7 @@ pub const AtomSpec = struct {
     }
     pub fn isConsuming(a: AtomSpec) bool {
         return switch (a.kind) {
-            .lit, .dot, .esc, .range, .cls, .vset => true,
+            .lit, .dot, .esc, .range, .cls, .vset, .prop => true,
             else => false,
         };
     }
@@ -47,7 +62,7 @@ pub const AtomSpec = struct {
 };
 
 /// Construct categories for weights.
-pub const Category = enum(u8) { literal, dot, class, range, escape, vset, caret, dollar, backslash_b, backslash_B, empty };
+pub const Category = enum(u8) { literal, dot, class, range, escape, vset, caret, dollar, backslash_b, backslash_B, empty, property };
 
 pub fn category(a: AtomSpec) Category {
     return switch (a.kind) {
@@ -62,6 +77,7 @@ pub fn category(a: AtomSpec) Category {
         .wordb => .backslash_b,
         .nwordb => .backslash_B,
         .empty => .empty,
+        .prop => .property,
     };
 }
 
@@ -100,7 +116,7 @@ pub const explicit_ranges = [_][2]u21{ .{ 'a', 'c' }, .{ 'a', 'z' }, .{ 'A', 'Z'
 // ---------------------------------------------------------------------------
 // CharSet expressions
 
-const SetKind = enum { list, range, digit, space, word, dotset, all, comp, fold, uni, inter, diff };
+const SetKind = enum { list, range, digit, space, word, dotset, all, comp, fold, uni, inter, diff, prop };
 const SetNode = struct {
     kind: SetKind,
     lo: u21 = 0,
@@ -137,6 +153,13 @@ fn has(n: *const SetNode, flags: Flags, x: u21) bool {
         .uni => has(n.a.?, flags, x) or has(n.b.?, flags, x),
         .inter => has(n.a.?, flags, x) and has(n.b.?, flags, x),
         .diff => has(n.a.?, flags, x) and !has(n.b.?, flags, x),
+        // General category (lo = Prop). Perl-style /i: Lu and Ll stand for any cased letter.
+        .prop => blk: {
+            const p: Prop = @enumFromInt(n.lo);
+            if (flags.i and dialect.active.prop_case == .cased and (p == .Lu or p == .Ll))
+                break :blk Prop.Lu.has(x) or Prop.Ll.has(x) or std.mem.eql(u8, &ucd.category(x), "Lt");
+            break :blk p.has(x);
+        },
     };
 }
 
@@ -206,6 +229,17 @@ fn compile(spec: *const AtomSpec, flags: Flags, ar: *SetArena) Compiled {
             }
             return .{ .root = contents, .invert = spec.neg };
         },
+        .prop => {
+            // \p{X}: the property's set. \P{X} is its complement taken before any case
+            // folding (ES u-mode CharacterClassEscape), unlike an inverted class [^\p{X}]; under
+            // v the set is simple-case-folded first (MaybeSimpleCaseFolding).
+            var set = ar.add(.{ .kind = .prop, .lo = spec.sub });
+            if (flags.v) set = ar.add(.{ .kind = .fold, .a = set });
+            // equivalence_invert: \P as the inverse after case equivalence, like [^\p{X}].
+            if (dialect.active.prop_case == .equivalence_invert and !flags.v) return .{ .root = set, .invert = spec.neg };
+            if (spec.neg) set = ar.add(.{ .kind = .comp, .a = set });
+            return .{ .root = set, .invert = false };
+        },
         .vset => {
             std.debug.assert(flags.v);
             const l = operandSet(ar, &v_operands[spec.syms[0]], flags);
@@ -240,6 +274,24 @@ pub fn matches(spec: *const AtomSpec, flags: Flags, c: u21) bool {
 /// The generic CharacterSetMatcher (with the dialect's fold), for overrides to fall back on.
 pub fn matchesGeneric(spec: *const AtomSpec, flags: Flags, c: u21) bool {
     if (spec.kind == .esc and dialect.active.escapes_ignore_case) return matchesCaseless(spec, flags, c);
+    // Properties as plain membership tests in dialects where /i does not reach them (or only
+    // through the cased-letter rule in `has`).
+    if (spec.kind == .prop) switch (dialect.active.prop_case) {
+        .equivalence, .equivalence_invert => {},
+        .cased, .plain => return matchesCaseless(spec, flags, c),
+        .upper_lower => {
+            // .NET: c, its simple upper/lower forms, or a case-folding equivalent (ß ~ ẞ).
+            const p: Prop = @enumFromInt(spec.sub);
+            const Ctx = struct { p: Prop };
+            const hit = p.has(c) or (flags.i and (p.has(ucd.simpleUpper(c)) or p.has(ucd.simpleLower(c)) or
+                ucd.forEachEquivalent(c, true, Ctx{ .p = p }, struct {
+                fn f(ctx: Ctx, x: u21) bool {
+                    return ctx.p.has(x);
+                }
+            }.f)));
+            return hit != spec.neg;
+        },
+    };
     var ar: SetArena = .{};
     const cs = compile(spec, flags, &ar);
     const found = alpha.existsEquivalent(c, flags, HasCtx{ .n = cs.root, .flags = flags }, hasCtx);
@@ -321,6 +373,12 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
     try out.append(gpa, .{ .kind = .dot });
     for (std.enums.values(Esc)) |e| try out.append(gpa, .{ .kind = .esc, .sub = @intFromEnum(e) });
     for (explicit_ranges) |rg| try out.append(gpa, .{ .kind = .range, .syms = .{ rg[0], rg[1], 0, 0 } });
+    // Unicode properties where the dialect has them (ES: only with u or v).
+    if (dialect.active.unicode_props and (flags.unicode() or !dialect.active.props_need_u)) {
+        for (std.enums.values(Prop)) |p| for ([_]bool{ false, true }) |neg| {
+            try out.append(gpa, .{ .kind = .prop, .sub = @intFromEnum(p), .neg = neg });
+        };
+    }
 
     // Enumerated class templates: up to k listed pool members, positive or negated.
     const k = @min(cfg.class_max_members, 4);

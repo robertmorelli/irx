@@ -72,12 +72,19 @@ pub const aux_cp: u32 = 1 << 24;
 pub const aux_cq: u32 = 1 << 25;
 /// contains a lazy `??`, `*?` or `+?` (ICU rejects them inside lookbehind; `{m,n}?` is fine)
 pub const aux_lz: u32 = 1 << 26;
+/// contains a big repeat count (config big_rep_bounds): a big count may not nest in another
+/// (engines that expand counted repeats would exceed their compiled-size limits)
+pub const aux_bq: u32 = 1 << 27;
+/// built from the alternate flag context (inline flag groups: flags with i toggled); only a
+/// flag_group turns it back into the table's own context
+pub const aux_ctx: u32 = 1 << 28;
 /// flags a parent inherits from its children (atom/za are positional)
-pub const aux_inherit: u32 = aux_la | aux_md | aux_vq | aux_uq | aux_cx | aux_lk | aux_cp | aux_cq | aux_lz;
+pub const aux_inherit: u32 = aux_la | aux_md | aux_vq | aux_uq | aux_cx | aux_lk | aux_cp | aux_cq | aux_lz | aux_bq | aux_ctx;
 
 /// The quantifier flags of `q` applied to a body with flags `bf` (shared with dialect.treeAllowed).
-pub fn quantFlags(bf: u32, min: u32, max: u32, inf: u32, lazy: bool, opt_like: bool, shorthand: bool) u32 {
+pub fn quantFlags(bf: u32, min: u32, max: u32, inf: u32, lazy: bool, opt_like: bool, shorthand: bool, big: bool) u32 {
     var f = (bf & aux_inherit) | aux_cx;
+    if (big) f |= aux_bq;
     if (lazy and shorthand) f |= aux_lz;
     if (min != max) f |= aux_vq;
     if (bf & aux_cp != 0) f |= aux_cq;
@@ -96,7 +103,7 @@ pub const Grammar = struct {
     allow_diagonal_lookarounds: bool,
     /// Weight by quant parameter id, and by op for non-quant, non-atom ops.
     quant_w: []f64,
-    op_w: [11]f64,
+    op_w: [@typeInfo(Op).@"enum".fields.len]f64,
     /// >0 (Perl): track max match length saturating at this cap and only
     /// apply lookbehind to bodies shorter than it.
     lookbehind_len_cap: u16 = 0,
@@ -121,12 +128,33 @@ pub const Grammar = struct {
     lb_no_lazy: bool = false,
     /// Only the `?` form may quantify a nullable body (min length 0).
     nullable_opt_only: bool = false,
+    /// Repeat bounds above this are "big" (config big_rep_bounds): only over bodies that
+    /// cannot match empty on A or R.
+    small_rep_bound: u8 = 255,
+    /// Inline flag groups: atoms[i] with atom_alt[i] belong to the alternate context
+    /// (alt_flags = flags with i toggled), reachable only under a flag_group.
+    has_alt: bool = false,
+    alt_flags: Flags = .{},
+    atom_alt: []bool = &.{},
 
     pub fn init(gpa: Allocator, cfg: *const config.Config, flags: Flags) !Grammar {
         const W = &cfg.weights;
-        const inv = try atoms.buildInventory(gpa, .{ .pool = alpha.active_pool, .class_max_members = cfg.class_max_members }, flags);
+        const inv0 = try atoms.buildInventory(gpa, .{ .pool = alpha.active_pool, .class_max_members = cfg.class_max_members }, flags);
+        // Inline flag groups: a second inventory under the toggled flags, appended.
+        const has_alt = W.get(.flag_group) > 0 and dialect_mod.active.scoped_flags;
+        const alt_flags = ast.applyMod(flags, ast.fmod_i);
+        const inv1: []AtomSpec = if (has_alt) try atoms.buildInventory(gpa, .{ .pool = alpha.active_pool, .class_max_members = cfg.class_max_members }, alt_flags) else &.{};
+        const inv = try gpa.alloc(AtomSpec, inv0.len + inv1.len);
+        @memcpy(inv[0..inv0.len], inv0);
+        @memcpy(inv[inv0.len..], inv1);
+        const n0 = inv0.len;
+        gpa.free(inv0);
+        if (inv1.len > 0) gpa.free(inv1);
+        const atom_alt = try gpa.alloc(bool, inv.len);
+        @memset(atom_alt[0..n0], false);
+        @memset(atom_alt[n0..], true);
         var cat_count = [_]u32{0} ** @typeInfo(atoms.Category).@"enum".fields.len;
-        for (inv) |a| cat_count[@intFromEnum(atoms.category(a))] += 1;
+        for (inv[0..n0]) |a| cat_count[@intFromEnum(atoms.category(a))] += 1;
         const aw = try gpa.alloc(f64, inv.len);
         for (inv, 0..) |a, i| {
             const cat = atoms.category(a);
@@ -149,6 +177,13 @@ pub const Grammar = struct {
         while (m <= B) : (m += 1) try qs.append(gpa, .{ .form = .open, .min = m, .max = ast.inf });
         m = 1;
         while (m <= B) : (m += 1) try qs.append(gpa, .{ .form = .exact, .min = m, .max = m });
+        const n_small = qs.items.len;
+        for (cfg.big_rep_bounds[0..cfg.n_big_rep_bounds]) |N| {
+            try qs.append(gpa, .{ .form = .range, .min = 0, .max = N });
+            try qs.append(gpa, .{ .form = .range, .min = 1, .max = N });
+            try qs.append(gpa, .{ .form = .open, .min = N, .max = ast.inf });
+            try qs.append(gpa, .{ .form = .exact, .min = N, .max = N });
+        }
         const n_greedy = qs.items.len;
         if (W.get(.lazy) > 0) {
             for (0..n_greedy) |i| {
@@ -158,8 +193,9 @@ pub const Grammar = struct {
             }
         }
         if (qs.items.len > 65536) return error.QuantInventoryTooLarge;
+        // Weights are split among a form's small bounds; big bounds get big_rep_weight of a share.
         var form_count = [_]u32{0} ** 6;
-        for (qs.items[0..n_greedy]) |q| form_count[@intFromEnum(q.form)] += 1;
+        for (qs.items[0..n_small]) |q| form_count[@intFromEnum(q.form)] += 1;
 
         var un: std.ArrayList(UnaryEntry) = .empty;
         for (qs.items, 0..) |q, i| {
@@ -171,7 +207,8 @@ pub const Grammar = struct {
                 .open => .rep_open,
                 .exact => .rep_exact,
             };
-            var w = W.get(c) / @as(f64, @floatFromInt(form_count[@intFromEnum(q.form)]));
+            var w = W.get(c) / @as(f64, @floatFromInt(@max(1, form_count[@intFromEnum(q.form)])));
+            if (isBig(q, B)) w *= cfg.big_rep_weight;
             if (q.lazy) w *= W.get(.lazy);
             if (q.lazy and !dialect_mod.active.allow_lazy) continue;
             if (w > 0) try un.append(gpa, .{ .op = .quant, .arg = @intCast(i), .w = w });
@@ -184,11 +221,13 @@ pub const Grammar = struct {
             .{ .op = .group_cap, .c = .group },
             .{ .op = .group_nc, .c = .nc_group },
             .{ .op = .group_named, .c = .named_group },
+            .{ .op = .flag_group, .c = .flag_group },
         };
         const dl = dialect_mod.active;
         for (others) |o| {
             if ((o.op == .look_ahead or o.op == .neg_look_ahead) and !dl.allow_lookahead) continue;
             if ((o.op == .look_behind or o.op == .neg_look_behind) and !dl.allow_lookbehind) continue;
+            if (o.op == .flag_group and !has_alt) continue;
             if (W.get(o.c) > 0) try un.append(gpa, .{ .op = o.op, .arg = 0, .w = W.get(o.c) });
         }
 
@@ -197,6 +236,10 @@ pub const Grammar = struct {
         if (W.get(.alt) > 0) try bin.append(gpa, .{ .op = .alt, .w = W.get(.alt) });
 
         var g: Grammar = .{
+            .has_alt = has_alt,
+            .alt_flags = alt_flags,
+            .atom_alt = atom_alt,
+            .small_rep_bound = if (cfg.n_big_rep_bounds > 0) B else 255,
             .flags = flags,
             .atoms = inv,
             .atom_w = aw,
@@ -220,6 +263,10 @@ pub const Grammar = struct {
         };
         try g.indexWeights(gpa);
         return g;
+    }
+
+    pub fn isBig(q: QuantSpec, small: u8) bool {
+        return q.min > small or (q.max != ast.inf and q.max > small);
     }
 
     pub fn indexWeights(self: *Grammar, gpa: Allocator) !void {
@@ -260,6 +307,8 @@ pub const Grammar = struct {
         if (self.no_quant_assert) m |= aux_za;
         if (self.lb_onig) m |= aux_lk | aux_cp | aux_cq;
         if (self.lb_no_lazy) m |= aux_lz;
+        if (self.small_rep_bound < 255) m |= aux_bq | aux_atom;
+        if (self.has_alt) m |= aux_ctx;
         return m;
     }
 
@@ -271,6 +320,8 @@ pub const Grammar = struct {
         h.update(&[_]u8{self.flags.bits()});
         h.update(std.mem.asBytes(&self.lookbehind_len_cap));
         h.update(std.mem.asBytes(&self.len_cap));
+        h.update(std.mem.asBytes(&self.small_rep_bound));
+        h.update(&[_]u8{ @intFromBool(self.has_alt), self.alt_flags.bits() });
         h.update(&[_]u8{ @intFromBool(self.no_empty_quant), @intFromBool(self.lookbehind_fixed), @intFromBool(self.no_la_in_star), @intFromBool(self.nullable_opt_only), @intFromBool(self.lb_no_unbounded_group), @intFromBool(self.lb_no_var), @intFromBool(self.no_quant_assert), @intFromBool(self.lb_onig), @intFromBool(self.lb_no_lazy) });
         for (self.atoms, self.atom_w) |a, w| {
             h.update(std.mem.asBytes(&a.kind));
@@ -909,9 +960,12 @@ fn Builder(comptime R: type) type {
             const dr = self.wr.len + 1;
             var na: R = undefined;
             var nr: R = undefined;
+            if (u.op == .flag_group and ky.aux & aux_ctx == 0) return;
             switch (u.op) {
                 .quant => {
                     const q = self.g.quants[u.arg];
+                    // A big count over a body that can match empty would backtrack exponentially.
+                    if (Grammar.isBig(q, self.g.small_rep_bound) and (ra.hasEmpty(da) or rr.hasEmpty(dr))) return;
                     na = ast.quantRel(R, ra, q, da);
                     nr = ast.quantRel(R, rr, q, dr);
                 },
@@ -951,9 +1005,15 @@ fn Builder(comptime R: type) type {
                         if (self.g.no_la_in_star and yf & (aux_la | aux_md) != 0 and q.max >= 2) return;
                         if (self.g.no_quant_assert and yf & aux_za != 0) return;
                         if (self.g.nullable_opt_only and ymin == 0 and q.form != .opt) return;
+                        // Big counts only over a single consuming atom (engines that expand counted
+                        // repeats reject large bodies times large counts as too big to compile), and
+                        // never inside another quantifier ((?:x{0,100})+ backtracks exponentially).
+                        const big = Grammar.isBig(q, self.g.small_rep_bound);
+                        if (yf & aux_bq != 0) return;
+                        if (big and yf & aux_atom == 0) return;
                         mx = if (q.max == ast.inf) cap else @min(cap, ymax * @as(u32, q.max));
                         mn = @min(cap, ymin * @as(u32, q.min));
-                        f = quantFlags(yf, q.min, q.max, ast.inf, q.lazy, q.min == 0 and q.max == 1, q.form == .star or q.form == .plus or q.form == .opt);
+                        f = quantFlags(yf, q.min, q.max, ast.inf, q.lazy, q.min == 0 and q.max == 1, q.form == .star or q.form == .plus or q.form == .opt, big);
                     },
                     .look_ahead, .neg_look_ahead => f = aux_la | aux_lk | aux_za | (yf & aux_inherit),
                     .look_behind, .neg_look_behind => {
@@ -969,6 +1029,11 @@ fn Builder(comptime R: type) type {
                         mx = ymax;
                         mn = ymin;
                         f = yf;
+                    },
+                    .flag_group => {
+                        mx = ymax;
+                        mn = ymin;
+                        f = yf & ~aux_ctx;
                     },
                     .group_cap, .group_named => {
                         mx = ymax;
@@ -990,6 +1055,7 @@ fn Builder(comptime R: type) type {
         fn applyBinary(self: *Self, op: Op, y: u32, z: u32) void {
             const ky = self.keys.items[y];
             const kz = self.keys.items[z];
+            if ((ky.aux ^ kz.aux) & aux_ctx != 0) return; // different flag contexts
             const cap: u32 = self.g.len_cap;
             const aux: u32 = if (!self.g.tracksAux()) 0 else blk: {
                 const amax = ky.aux & aux_len_mask;
@@ -1065,12 +1131,14 @@ fn Builder(comptime R: type) type {
             self.setQuota(1);
             for (self.g.atoms, 0..) |*a, i| {
                 if (self.g.atom_w[i] <= 0) continue;
-                var af: u32 = 0;
+                const alt = self.g.has_alt and self.g.atom_alt[i];
+                const af_flags = if (alt) self.g.alt_flags else self.g.flags;
+                var af: u32 = if (alt) aux_ctx else 0;
                 if (a.kind == .dollar and self.g.flags.m) af |= aux_md;
                 if (a.isConsuming()) af |= aux_atom;
                 if (a.kind == .caret or a.kind == .dollar or a.kind == .wordb or a.kind == .nwordb) af |= aux_za;
                 const len: u32 = if (self.g.len_cap > 0 and a.isConsuming()) (1 | (@as(u32, 1) << aux_min_shift)) else 0;
-                const key = keyAux(atoms.relation(R, a, self.g.flags, wa), atoms.relation(R, a, self.g.flags, wr), len | (af & self.g.flagMask()));
+                const key = keyAux(atoms.relation(R, a, af_flags, wa), atoms.relation(R, a, af_flags, wr), len | (af & self.g.flagMask()));
                 self.record(.atom, @intCast(i), none, none, &key);
                 tab.stats.atoms += 1;
                 if (self.stopped) break;
@@ -1148,7 +1216,7 @@ fn Builder(comptime R: type) type {
 
         fn isStart(self: *const Self, x: u32) bool {
             const kx = self.keys.items[x];
-            return relA(kx).get(0, self.wa.len) and !relR(kx).get(0, self.wr.len);
+            return kx.aux & aux_ctx == 0 and relA(kx).get(0, self.wa.len) and !relR(kx).get(0, self.wr.len);
         }
 
         fn finalize(self: *Self, in: BuildInput) BuildError!void {

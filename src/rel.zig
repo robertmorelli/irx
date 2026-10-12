@@ -127,6 +127,12 @@ pub fn Rel(comptime N: comptime_int) type {
             return r;
         }
 
+        /// Does the relation contain an empty span (i, i) for some i < dim?
+        pub fn hasEmpty(a: Self, dim: usize) bool {
+            for (0..dim) |i| if ((a.rows[i] >> @intCast(i)) & 1 != 0) return true;
+            return false;
+        }
+
         pub fn isDiagonal(a: Self) bool {
             for (0..N) |i| {
                 if (a.rows[i] & ~(@as(Row, 1) << @intCast(i)) != 0) return false;

@@ -23,6 +23,10 @@ int host_case(const char *flags, const char *a, size_t alen, const char *r, size
 const char *host_name(void);
 int host_span(const char *flags, const char *const subj[2], const size_t lens[2],
               const char *pat, size_t plen, long out[4]);
+/* Mode "ospan": like span, but each search starts at host_start[k] (bytes; the text before it
+ * stays visible to lookbehind and \b). The offsets arrive in the flags as "<flags>@<a>,<b>";
+ * they are 0 in every other mode. */
+static size_t host_start[2];
 /* Mode "capture": per subject, whole match then groups 1..6 as byte offsets (-1 = unset /
  * no match); returns 0 or failure bits (see src/capture.zig). */
 #define CAP_PAIRS 7
@@ -91,7 +95,8 @@ int main(int argc, char **argv) {
     int repeat = strcmp(mode, "repeat") == 0 || strcmp(mode, "tierup") == 0;
     /* Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed. */
     int wide = strcmp(mode, "lspan") == 0 || strcmp(mode, "lcapture") == 0;
-    int span = strcmp(mode, "span") == 0 || strcmp(mode, "lspan") == 0;
+    int ospan = strcmp(mode, "ospan") == 0;
+    int span = strcmp(mode, "span") == 0 || strcmp(mode, "lspan") == 0 || ospan;
     int capture = strcmp(mode, "capture") == 0 || strcmp(mode, "lcapture") == 0;
     const int D = wide ? 4 : 2;            /* hex digits per position */
     const long NONE = wide ? 0xffff : 0xff;
@@ -118,6 +123,11 @@ int main(int argc, char **argv) {
             int ok = parse_str(&p, &f) && *p++ == ',' && parse_str(&p, &a) && *p++ == ',' &&
                      parse_str(&p, &r) && *p++ == ',' && parse_str(&p, &pat) && *p++ == ']';
             if (!ok) { fprintf(stderr, "bad case\n"); return 1; }
+            host_start[0] = host_start[1] = 0;
+            if (ospan) {
+                char *at = strchr(f.buf, '@');
+                if (at) { *at = 0; char *q = at + 1; host_start[0] = strtoul(q, &q, 10); if (*q == ',') host_start[1] = strtoul(q + 1, NULL, 10); }
+            }
             if (capture || span) {
                 /* Positions: capture = 2 subjects x CAP_PAIRS pairs; span = 2 subjects x 1 pair. */
                 const int np = capture ? 2 * 2 * CAP_PAIRS : 4;

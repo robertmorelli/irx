@@ -154,7 +154,7 @@ pub const Sampler = struct {
             },
             else => {
                 const a = try self.expand(p.a, k - 1);
-                return self.out.add(.{ .op = op, .a = a });
+                return self.out.add(.{ .op = op, .a = a, .fmod = if (op == .flag_group) ast.fmod_i else 0 });
             },
         }
     }
@@ -244,7 +244,7 @@ pub const Printer = struct {
         const n = t.nodes[idx];
         return switch (n.op) {
             .atom => n.atom.isConsuming() or n.atom.kind == .empty,
-            .group_cap, .group_nc, .group_named => true,
+            .group_cap, .group_nc, .group_named, .flag_group => true,
             else => false,
         };
     }
@@ -363,6 +363,12 @@ pub const Printer = struct {
             },
             .group_nc => {
                 try self.put("(?:");
+                try self.bareChild(t, n.a);
+                try self.putc(')');
+            },
+            .flag_group => {
+                // Toggles i relative to the pattern's flags (flag groups do not nest).
+                try self.put(if (self.flags.i) "(?-i:" else "(?i:");
                 try self.bareChild(t, n.a);
                 try self.putc(')');
             },
@@ -490,6 +496,11 @@ pub const Printer = struct {
             .wordb => try self.put(dialect.active.word_boundary),
             .nwordb => try self.put(dialect.active.nonword_boundary),
             .empty => try self.put("(?:)"),
+            .prop => {
+                try self.put(if (a.neg) "\\P{" else "\\p{");
+                try self.put(@tagName(@as(atoms.Prop, @enumFromInt(a.sub))));
+                try self.putc('}');
+            },
         }
     }
 };

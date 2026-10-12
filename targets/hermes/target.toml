@@ -25,3 +25,6 @@ loop = "reset"  # loop bodies' captures per iteration (docs/phase2-captures.md)
 # small batches and a long deadline leave room for that bisection.
 batch_size = 64
 batch_deadline_base_ms = 90000
+
+[offset]
+enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)

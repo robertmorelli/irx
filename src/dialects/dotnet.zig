@@ -16,6 +16,9 @@ fn word(c: u21, _: D.Flags) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    .scoped_flags = true,
+    .unicode_props = true,
+    .prop_case = .upper_lower,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
     .name = "dotnet",

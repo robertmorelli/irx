@@ -31,6 +31,7 @@ pub const dialect: D.Dialect = blk: {
     d.dollar_before_final_terminator = false;
     d.caret_after_trailing_newline = true;
     d.matchAtom = matchAtom;
+    d.prop_case = .plain; // \p{Lu} under /i still matches only uppercase
     // `(?<=)`, `(?=)`, `(?<=|b)` are syntax errors; `(?=(?:))` and `(?=a|)` are fine.
     d.bare_empty_in_lookaround = false;
     break :blk d;

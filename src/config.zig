@@ -9,7 +9,12 @@ pub const n_constructs = ast.n_constructs;
 pub const Construct = ast.Construct;
 
 pub const Weights = struct {
-    w: [n_constructs]f64 = [_]f64{1.0} ** n_constructs,
+    // Inline flag groups are off unless a config weights them (they add a second atom context).
+    w: [n_constructs]f64 = blk: {
+        var a = [_]f64{1.0} ** n_constructs;
+        a[@intFromEnum(Construct.flag_group)] = 0;
+        break :blk a;
+    },
 
     pub fn get(self: *const Weights, c: Construct) f64 {
         return self.w[@intFromEnum(c)];
@@ -47,6 +52,12 @@ pub const Config = struct {
     // [grammar]
     max_size: u8 = 24,
     max_rep_bound: u8 = 3,
+    /// Large repeat bounds N added as {0,N}, {1,N}, {N,} and {N} (and lazy forms), each at
+    /// `big_rep_weight` times a small bound's weight. Only applied to a single consuming atom
+    /// (so a large count never means exponential backtracking or an oversized compiled program).
+    big_rep_bounds: [8]u8 = .{ 16, 100, 254, 0, 0, 0, 0, 0 },
+    n_big_rep_bounds: u8 = 3,
+    big_rep_weight: f64 = 4.0,
     class_max_members: u8 = 2,
     max_pattern_bytes: u32 = 16 * 1024,
     allow_diagonal_lookarounds: bool = false,
@@ -122,6 +133,12 @@ pub const Config = struct {
     /// Index unit the host reports spans in.
     span_units: SpanUnits = .utf16,
 
+    // [offset]
+    /// Run the offset mode: span of a search that starts at a random character boundary of
+    /// A and R (lastIndex, pos, start offset), with the text before it still visible to
+    /// lookbehind and \b, and ^ matching only at the real start.
+    offset: bool = false,
+
     // [capture]
     /// Run the capture mode too: like span mode, plus the spans of the first groups.
     capture: bool = false,
@@ -187,6 +204,8 @@ pub const Config = struct {
         if (self.long_fraction > 0 and (self.long_min < 1 or self.long_min > self.long_max or self.long_max > self.max_symbols)) return error.InvalidLongRange;
         if (self.n_flag_sets == 0) return error.NoFlagSets;
         if (self.max_rep_bound > 254) return error.RepBoundTooLarge;
+        for (self.big_rep_bounds[0..self.n_big_rep_bounds]) |b| if (b <= self.max_rep_bound or b > 254) return error.BadBigRepBound;
+        if (self.big_rep_weight < 0) return error.BadBigRepWeight;
         if (self.class_max_members > 4) return error.ClassMembersTooLarge;
         if (self.batch_size == 0) return error.InvalidBatchSize;
         if (self.max_pairs == 0 or self.max_prods == 0) return error.InvalidLimits;
@@ -382,6 +401,19 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
         }
         return error.UnknownKey;
     }
+    if (eq(u8, section, "grammar") and eq(u8, key, "big_rep_bounds")) {
+        const arr = switch (v) {
+            .nums => |x| x,
+            else => return error.ExpectedArray,
+        };
+        if (arr.len > cfg.big_rep_bounds.len) return error.BadBigRepBound;
+        for (arr, 0..) |x, i| {
+            if (x != @floor(x) or x < 1 or x > 254) return error.BadBigRepBound;
+            cfg.big_rep_bounds[i] = @intFromFloat(x);
+        }
+        cfg.n_big_rep_bounds = @intCast(arr.len);
+        return;
+    }
     if (eq(u8, section, "long")) {
         if (eq(u8, key, "enabled")) {
             cfg.long_mode = try asBool(v);
@@ -430,6 +462,13 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
                 cfg.long_mode_lengths[i] = @intFromFloat(x);
             }
             cfg.n_long_mode_lengths = @intCast(arr.len);
+            return;
+        }
+        return error.UnknownKey;
+    }
+    if (eq(u8, section, "offset")) {
+        if (eq(u8, key, "enabled")) {
+            cfg.offset = try asBool(v);
             return;
         }
         return error.UnknownKey;
@@ -484,7 +523,7 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
 
 fn sectionOf(comptime name: []const u8) ?[]const u8 {
     @setEvalBranchQuota(100_000);
-    const grammar = .{ "max_size", "max_rep_bound", "class_max_members", "max_pattern_bytes", "allow_diagonal_lookarounds", "usefulness_pass", "usefulness_workspace" };
+    const grammar = .{ "max_size", "max_rep_bound", "big_rep_weight", "class_max_members", "max_pattern_bytes", "allow_diagonal_lookarounds", "usefulness_pass", "usefulness_workspace" };
     const strings = .{ "min_len", "max_len", "max_symbols", "max_edit_distance", "long_fraction", "long_min", "long_max" };
     const limits = .{ "max_pairs", "max_combos", "max_prods", "max_count_terms", "max_table_bytes", "max_host_bytes", "max_table_attempts", "samples_per_table", "alias_cache", "alias_arena_bytes", "max_pending_findings", "max_pending_finding_bytes", "max_findings_per_group" };
     const harness = .{ "batch_size", "max_request_bytes", "startup_deadline_ms", "batch_deadline_base_ms", "batch_deadline_per512_ms", "recycle_cases", "novelty_cap", "novelty_bytes", "journal_bytes", "stderr_tail_bytes", "keep_journals" };

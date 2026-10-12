@@ -1,12 +1,12 @@
 ## irx host: nim-regex (re2 API). Perl-dialect patterns; inline flags (?ims).
-import std/[json, strutils, strformat, os]
+import std/[json, strutils, strformat, os, sequtils]
 import regex
 
 let mode = if paramCount() > 0: paramStr(1) else: "default"
 let rep = if mode in ["repeat", "tierup"]: 2 else: 1
 # Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
 let wide = mode in ["lspan", "lcapture"]
-let isSpan = mode in ["span", "lspan"]
+let isSpan = mode in ["span", "lspan", "ospan"]
 let isCap = mode in ["capture", "lcapture"]
 let D = if wide: 4 else: 2
 let NONE = "f".repeat(2 * D)
@@ -33,7 +33,13 @@ while readLine(stdin, line):
   let msg = parseJson(clean)
   var outp = $msg[0].getInt & " "
   for c in msg[1]:
-    let f = c[0].getStr; let a = c[1].getStr; let r = c[2].getStr; let p = c[3].getStr
+    var f = c[0].getStr; let a = c[1].getStr; let r = c[2].getStr; let p = c[3].getStr
+    # ospan: "<flags>@<a>,<r>" = search start per subject (bytes)
+    var starts = @[0, 0]
+    let at = f.find('@')
+    if at >= 0:
+      starts = f[at + 1 .. ^1].split(',').mapIt(parseInt(it))
+      f = f[0 ..< at]
     if "\uFFFF" in a or "\uFFFF" in r or "\uFFFF" in p:
       outp.add(if isSpan: failed(0x40, 2) elif isCap: failed(0x40, 26) else: "40"); continue
     var fl = ""
@@ -65,9 +71,9 @@ while readLine(stdin, line):
       var sp = ""
       try:
         let rx = re2((if fl.len > 0: "(?" & fl & ")" else: "") & p)
-        for s in [a, r]:
+        for k, s in [a, r]:
           var m: RegexMatch2
-          if find(s, rx, m):
+          if find(s, rx, m, starts[k]):
             sp.add hx(m.boundaries.a) & hx(m.boundaries.b + 1)
           else: sp.add NONE
       except RegexError:

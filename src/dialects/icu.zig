@@ -10,6 +10,9 @@ fn lineTerminator(c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    .scoped_flags = true,
+    .unicode_props = true,
+    .prop_case = .equivalence_invert,
     // "Look-Behind pattern matches must have a bounded maximum length": no unbounded loops.
     .lookbehind_len_cap = 16,
     // `(?<=a??)` and `(?<=a+?)` are rejected; `(?<=a{0,1}?)` compiles.

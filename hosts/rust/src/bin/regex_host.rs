@@ -13,7 +13,8 @@ fn main() {
     }, |flags, a, r, pat| {
         let src = format!("{}{}", irx_hosts::inline_flags(flags), pat);
         let re = regex::RegexBuilder::new(&src).size_limit(64 << 20).build().map_err(|_| 0x04u8)?;
-        Ok([a, r].map(|s| re.find(s).map(|m| (m.start(), m.end()))))
+        let (s0, s1) = (irx_hosts::start(0), irx_hosts::start(1));
+        Ok([(a, s0), (r, s1)].map(|(s, k)| re.find_at(s, k).map(|m| (m.start(), m.end()))))
     }, |flags, a, r, pat| {
         let src = format!("{}{}", irx_hosts::inline_flags(flags), pat);
         let re = regex::RegexBuilder::new(&src).size_limit(64 << 20).build().map_err(|_| 0x04u8)?;

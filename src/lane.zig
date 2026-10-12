@@ -32,6 +32,9 @@ pub const Lane = struct {
     /// are skipped when checked), and per-case buffers the cases' la/lr point into.
     req_long: std.ArrayList(u8) = .empty,
     has_long: bool = false,
+    /// Offset mode: the same cases with "<flags>@<a>,<r>" (host-unit start offsets).
+    req_off: std.ArrayList(u8) = .empty,
+    has_off: bool = false,
     long_a: []std.ArrayList(u16) = &.{},
     long_r: []std.ArrayList(u16) = &.{},
     long_stats: longmod.Stats = .{},
@@ -57,9 +60,10 @@ pub const Lane = struct {
             .bits = try gpa.alloc([]u8, nm + run.sanity_modes.len),
         };
         for (l.cases) |*c| c.* = .{};
-        for (run.modes) |m| if (m.expect.isLong()) {
-            l.has_long = true;
-        };
+        for (run.modes) |m| {
+            if (m.expect.isLong()) l.has_long = true;
+            if (m.expect == .offset) l.has_off = true;
+        }
         if (l.has_long) {
             l.long_a = try gpa.alloc(std.ArrayList(u16), run.cfg.batch_size);
             l.long_r = try gpa.alloc(std.ArrayList(u16), run.cfg.batch_size);
@@ -127,9 +131,11 @@ pub const Lane = struct {
         const run = self.run;
         self.req.clearRetainingCapacity();
         self.req_long.clearRetainingCapacity();
+        self.req_off.clearRetainingCapacity();
         self.batch_seq += 1;
         try self.req.print(self.gpa, "[{d},[", .{self.batch_seq});
         if (self.has_long) try self.req_long.print(self.gpa, "[{d},[", .{self.batch_seq});
+        if (self.has_off) try self.req_off.print(self.gpa, "[{d},[", .{self.batch_seq});
         var t_long: u64 = 0;
         var count: usize = 0;
         try self.scratch.ensure(self.gpa, tab.max_prods_per_pair, tab.max_size);
@@ -168,6 +174,13 @@ pub const Lane = struct {
             c.selfcheck = false;
             c.la = &.{};
             c.lr = &.{};
+            c.off_a = 0;
+            c.off_r = 0;
+            if (self.has_off) {
+                var orng = rngmod.Rng.fromParts(0x0FF5, &.{ run.global_seed, tab.id.seq, tab.id.attempt, idx });
+                c.off_a = spanmod.randomBoundary(&orng, c.a.slice(), c.flags);
+                c.off_r = spanmod.randomBoundary(&orng, c.r.slice(), c.flags);
+            }
             if (self.has_long) {
                 // A separate stream so the long pair never perturbs the case's other draws.
                 const tl = sys.nowNs();
@@ -184,6 +197,13 @@ pub const Lane = struct {
             const t3 = sys.nowNs();
             const before = self.req.items.len;
             const before_long = self.req_long.items.len;
+            const before_off = self.req_off.items.len;
+            if (self.has_off) {
+                if (count > 0) try self.req_off.append(self.gpa, ',');
+                var fb: [64]u8 = undefined;
+                const fl = try std.fmt.bufPrint(&fb, "{s}@{d},{d}", .{ finding.flagStr(c.flags), spanmod.utf16ToHost(c.a.slice(), c.off_a, run.cfg.span_units), spanmod.utf16ToHost(c.r.slice(), c.off_r, run.cfg.span_units) });
+                try harness.encodeCase(&self.req_off, self.gpa, .{ .flags = fl, .a = c.a.slice(), .r = c.r.slice(), .pattern = c.pattern.items });
+            }
             if (count > 0) try self.req.append(self.gpa, ',');
             try harness.encodeCase(&self.req, self.gpa, .{ .flags = finding.flagStr(c.flags), .a = c.a.slice(), .r = c.r.slice(), .pattern = c.pattern.items });
             if (self.has_long) {
@@ -198,12 +218,14 @@ pub const Lane = struct {
                 // Split by encoded length: this case goes to the next batch.
                 self.req.shrinkRetainingCapacity(before);
                 self.req_long.shrinkRetainingCapacity(before_long);
+                self.req_off.shrinkRetainingCapacity(before_off);
                 break;
             }
             self.case_counter += 1;
             count += 1;
         }
         try self.req.appendSlice(self.gpa, "]]\n");
+        if (self.has_off) try self.req_off.appendSlice(self.gpa, "]]\n");
         if (self.has_long) {
             try self.req_long.appendSlice(self.gpa, "]]\n");
             _ = run.long_ns.fetchAdd(t_long, .monotonic);
@@ -327,7 +349,7 @@ pub const Lane = struct {
                 const raw = b.bits[ci * wd ..][0..wd];
                 // Long modes: a case without a long pair carried A/R only as a placeholder.
                 if (is_long and cs.la.len == 0) continue;
-                if (is_span) ck = spanmod.check(cs, raw, run.cfg.span_units, is_long);
+                if (is_span) ck = spanmod.checkFrom(cs, raw, run.cfg.span_units, is_long, c.spec.expect == .offset);
                 if (is_cap) cck = capmod.check(cs, raw, &run.cfg, is_long);
                 const bits = if (is_span) ck.bits else if (is_cap) cck.bits else b.bits[ci];
                 if (bits & harness.Bits.skipped != 0) {
@@ -370,6 +392,7 @@ pub const Lane = struct {
     }
 
     fn reqFor(self: *Lane, c: *const harness.Child) []u8 {
+        if (c.spec.expect == .offset) return self.req_off.items;
         return if (c.spec.expect.isLong()) self.req_long.items else self.req.items;
     }
 

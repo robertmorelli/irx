@@ -48,9 +48,13 @@ public class Host {
                 if (L.charAt(pos) == ',') { pos++; continue; }
                 pos++;
                 String f = str(); pos++; String a = str(); pos++; String r = str(); pos++; String p = str(); pos++;
+                // ospan: "<flags>@<a>,<r>" = search start per subject (UTF-16, Matcher.find(int))
+                int[] starts = { 0, 0 };
+                int at = f.indexOf('@');
+                if (at >= 0) { String[] o = f.substring(at + 1).split(","); starts[0] = Integer.parseInt(o[0]); starts[1] = Integer.parseInt(o[1]); f = f.substring(0, at); }
                 // Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
                 boolean wide = mode.equals("lspan") || mode.equals("lcapture");
-                boolean span = mode.equals("span") || mode.equals("lspan"), capture = mode.equals("capture") || mode.equals("lcapture");
+                boolean span = mode.equals("span") || mode.equals("lspan") || mode.equals("ospan"), capture = mode.equals("capture") || mode.equals("lcapture");
                 String PF = wide ? "%04x%04x" : "%02x%02x", NONE = wide ? "ffffffff" : "ffff";
                 java.util.function.BiFunction<Integer, Integer, String> failed = (b, rest) -> (wide ? String.format("fffe%04x", b) : String.format("fe%02x", b)) + "0".repeat((wide ? 4 : 2) * rest);
                 if (hasLone(a) || hasLone(r) || hasLone(p)) { res.append(span ? failed.apply(0x40, 2) : capture ? failed.apply(0x40, 26) : "40"); continue; }
@@ -76,9 +80,9 @@ public class Host {
                     try { pat = Pattern.compile(p, fl); } catch (Exception e) { res.append(failed.apply(4, 2)); continue; }
                     StringBuilder sp = new StringBuilder();
                     try {
-                        for (String s : new String[] { a, r }) {
-                            java.util.regex.Matcher m = pat.matcher(s);
-                            sp.append(m.find() ? String.format(PF, m.start(), m.end()) : NONE);
+                        for (int k = 0; k < 2; k++) {
+                            java.util.regex.Matcher m = pat.matcher(k == 0 ? a : r);
+                            sp.append(m.find(starts[k]) ? String.format(PF, m.start(), m.end()) : NONE);
                         }
                         res.append(sp);
                     } catch (StackOverflowError t) { res.append(failed.apply(0x40, 2)); } catch (Throwable t) { res.append(failed.apply(8, 2)); }

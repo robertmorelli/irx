@@ -24,7 +24,7 @@ fn main() {
         let re = fancy_regex::Regex::new(&src).map_err(|_| 0x04u8)?;
         let mut out = [None, None];
         for (k, s) in [a, r].iter().enumerate() {
-            out[k] = re.find(s).map_err(err_bits)?.map(|m| (m.start(), m.end()));
+            out[k] = re.find_from_pos(s, irx_hosts::start(k)).map_err(err_bits)?.map(|m| (m.start(), m.end()));
         }
         Ok(out)
     }, |flags, a, r, pat| {

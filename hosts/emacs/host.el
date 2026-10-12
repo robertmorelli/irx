@@ -91,6 +91,7 @@
        ;; Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
        (wide (member mode '("lspan" "lcapture")))
        (is-span (member mode '("span" "lspan")))
+       (is-ospan (equal mode "ospan"))
        (is-cap (member mode '("capture" "lcapture")))
        (pf (if wide "%04x%04x" "%02x%02x"))
        (none (if wide "ffffffff" "ffff"))
@@ -107,6 +108,8 @@
             (setq out
                   (concat out
                           (cond
+                           ;; ospan: no start-offset search with standard ^ semantics: unsupported.
+                           (is-ospan (funcall failed #x40 2))
                            ((cl-some (lambda (x) (string-search "￿" x)) (list a r p)) (cond (is-span (funcall failed #x40 2)) (is-cap (funcall failed #x40 26)) (t "40")))
                            (is-cap
                             ;; Whole match + groups 1..6 per subject, character offsets (src/capture.zig).

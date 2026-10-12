@@ -15,6 +15,7 @@ dollar = 1.0
 backslash_b = 1.0
 backslash_B = 1.0
 empty = 0.2
+property = 0.7        # \p{…} / \P{…} general categories (dialects that support them)
 concat = 4.0
 alt = 1.5
 star = 0.25
@@ -31,6 +32,7 @@ neg_lookbehind = 0.4
 group = 0.05
 nc_group = 0.05
 named_group = 0.03
+flag_group = 0.05      # (?i:…) / (?-i:…) in dialects that have inline flag groups
 
 [sizes]
 uniform = [4, 24]     # or: weights = [D(1), D(2), ...]
@@ -48,6 +50,9 @@ max_edit_distance = 5   # >0: R = A after 1..k edits (edit distance <= k)
 [grammar]
 max_size = 24
 max_rep_bound = 3
+# large bounds as {0,N} {1,N} {N,} {N}, only over bodies that can't match empty on A/R
+big_rep_bounds = [16, 100, 254]
+big_rep_weight = 4.0
 class_max_members = 2
 max_pattern_bytes = 16384
 allow_diagonal_lookarounds = false

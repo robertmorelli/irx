@@ -22,6 +22,8 @@ pub const Op = enum(u8) {
     group_cap = 8,
     group_nc = 9,
     group_named = 10,
+    /// Inline flag group (?i:…) / (?-i:…): the child sees the flags toggled by Node.fmod.
+    flag_group = 11,
 
     pub fn isBinary(op: Op) bool {
         return op == .concat or op == .alt;
@@ -54,9 +56,35 @@ pub const Node = struct {
     quant: QuantSpec = .{ .form = .star, .min = 0, .max = inf },
     a: u8 = 0,
     b: u8 = 0,
+    /// flag_group: flags toggled for the subtree (fmod_i).
+    fmod: u8 = 0,
 };
 
 pub const max_nodes = 255;
+
+/// Node.fmod bits.
+pub const fmod_i: u8 = 1;
+
+/// Flags inside a flag group with modifier `mod`.
+pub fn applyMod(f: Flags, mod: u8) Flags {
+    var g = f;
+    if (mod & fmod_i != 0) g.i = !g.i;
+    return g;
+}
+
+/// Effective flags of every node under `base` (flag groups change them for their subtree).
+pub fn nodeFlags(t: *const Ast, base: Flags, out: *[max_nodes]Flags) void {
+    nodeFlagsRec(t, t.root, base, out);
+}
+
+fn nodeFlagsRec(t: *const Ast, idx: u8, f: Flags, out: *[max_nodes]Flags) void {
+    out[idx] = f;
+    const n = t.nodes[idx];
+    if (n.op == .atom) return;
+    const g = if (n.op == .flag_group) applyMod(f, n.fmod) else f;
+    nodeFlagsRec(t, n.a, g, out);
+    if (Op.isBinary(n.op)) nodeFlagsRec(t, n.b, g, out);
+}
 
 /// A tree in a fixed-capacity node buffer; nodes[root] is the root.
 pub const Ast = struct {
@@ -121,6 +149,7 @@ pub fn evalRel(comptime R: type, t: *const Ast, idx: u8, flags: Flags, w: []cons
         .look_behind => evalRel(R, t, n.a, flags, w).lookbehind(dim, false),
         .neg_look_behind => evalRel(R, t, n.a, flags, w).lookbehind(dim, true),
         .group_cap, .group_nc, .group_named => evalRel(R, t, n.a, flags, w),
+        .flag_group => evalRel(R, t, n.a, applyMod(flags, n.fmod), w),
     };
 }
 
@@ -159,6 +188,17 @@ pub const Matcher = struct {
     caps: ?*Caps = null,
     /// Clear a loop body's captures at the start of each iteration (ES, Perl >= 5.38).
     reset_loop_captures: bool = false,
+    /// Effective flags per node (flag groups), computed on first use.
+    nflags: [max_nodes]Flags = undefined,
+    nflags_ready: bool = false,
+
+    fn flagsAt(self: *Matcher, idx: u8) Flags {
+        if (!self.nflags_ready) {
+            nodeFlags(self.t, self.flags, &self.nflags);
+            self.nflags_ready = true;
+        }
+        return self.nflags[idx];
+    }
 
     const Dir = enum { fwd, back };
     const ContKind = enum { done, accept, record, seq, rep, close };
@@ -259,16 +299,17 @@ pub const Matcher = struct {
             .atom => {
                 const a = &n.atom;
                 if (a.kind == .empty) return self.run(c, pos);
+                const fl = self.flagsAt(idx);
                 if (a.isAssertion()) {
                     // At this position only: a whole-string mask is O(n) per step and only 32 bits.
-                    if (!atoms.assertionAt(a, self.flags, self.w, pos)) return false;
+                    if (!atoms.assertionAt(a, fl, self.w, pos)) return false;
                     return self.run(c, pos);
                 }
                 if (dir == .fwd) {
-                    if (pos >= self.w.len or !atoms.matches(a, self.flags, self.w[pos])) return false;
+                    if (pos >= self.w.len or !atoms.matches(a, fl, self.w[pos])) return false;
                     return self.run(c, pos + 1);
                 } else {
-                    if (pos == 0 or !atoms.matches(a, self.flags, self.w[pos - 1])) return false;
+                    if (pos == 0 or !atoms.matches(a, fl, self.w[pos - 1])) return false;
                     return self.run(c, pos - 1);
                 }
             },
@@ -310,7 +351,7 @@ pub const Matcher = struct {
                 const k: Cont = .{ .kind = .close, .node = caps.ordinal[idx], .dir = dir, .start = pos, .next = c };
                 return self.m(n.a, pos, dir, &k);
             },
-            .group_nc => return self.m(n.a, pos, dir, c),
+            .group_nc, .flag_group => return self.m(n.a, pos, dir, c),
         }
     }
 };
@@ -382,6 +423,11 @@ fn serNode(t: *const Ast, idx: u8, out: *std.ArrayList(u8), gpa: std.mem.Allocat
             try serNode(t, n.a, out, gpa);
             try out.append(gpa, ')');
         },
+        .flag_group => {
+            try out.print(gpa, "(flag_group {d} ", .{n.fmod});
+            try serNode(t, n.a, out, gpa);
+            try out.append(gpa, ')');
+        },
         .concat, .alt => {
             try out.print(gpa, "({s} ", .{@tagName(n.op)});
             try serNode(t, n.a, out, gpa);
@@ -446,6 +492,10 @@ const Parser = struct {
                 n.a = try p.node(t);
                 n.b = try p.node(t);
             },
+            .flag_group => {
+                n.fmod = try p.int(u8, 10);
+                n.a = try p.node(t);
+            },
             else => n.a = try p.node(t),
         }
         try p.expect(')');
@@ -456,7 +506,7 @@ const Parser = struct {
 // ---------------------------------------------------------------------------
 // Construct multiset (for grouping/adaptive weights)
 
-pub const Construct = enum(u8) { literal, dot, class, range, escape, vset, caret, dollar, backslash_b, backslash_B, empty, concat, alt, star, plus, opt, rep, rep_open, rep_exact, lazy, lookahead, neg_lookahead, lookbehind, neg_lookbehind, group, nc_group, named_group };
+pub const Construct = enum(u8) { literal, dot, class, range, escape, vset, caret, dollar, backslash_b, backslash_B, empty, property, concat, alt, star, plus, opt, rep, rep_open, rep_exact, lazy, lookahead, neg_lookahead, lookbehind, neg_lookbehind, group, nc_group, named_group, flag_group };
 pub const n_constructs = @typeInfo(Construct).@"enum".fields.len;
 
 pub fn constructCounts(t: *const Ast, out: *[n_constructs]u16) void {
@@ -485,6 +535,7 @@ fn countRec(t: *const Ast, idx: u8, out: *[n_constructs]u16) void {
         .group_cap => .group,
         .group_nc => .nc_group,
         .group_named => .named_group,
+        .flag_group => .flag_group,
     };
     out[@intFromEnum(c)] +|= 1;
     if (n.op == .quant and n.quant.lazy) out[@intFromEnum(Construct.lazy)] +|= 1;

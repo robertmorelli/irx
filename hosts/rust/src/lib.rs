@@ -46,6 +46,12 @@ fn parse_str(b: &[u8], i: &mut usize) -> Option<(String, bool)> {
 /// First match of an unanchored search in A and R as byte ranges, or failure bits.
 pub type SpanResult = Result<[Option<(usize, usize)>; 2], u8>;
 
+/// Offset mode (ospan): where subject k's search starts (bytes); 0 in every other mode.
+static START: [std::sync::atomic::AtomicUsize; 2] = [std::sync::atomic::AtomicUsize::new(0), std::sync::atomic::AtomicUsize::new(0)];
+pub fn start(k: usize) -> usize {
+    START[k].load(std::sync::atomic::Ordering::Relaxed)
+}
+
 /// Run the protocol loop. `case(flags, a, r, pattern, repeat) -> bits`.
 pub fn serve(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8) {
     serve_span(name, case, |_, _, _, _| Err(0x40));
@@ -100,9 +106,18 @@ pub fn serve_all(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, 
                 }
                 continue;
             }
-            if mode == "span" || mode == "lspan" {
+            if mode == "span" || mode == "lspan" || mode == "ospan" {
                 if f.iter().any(|x| x.1) { resp.push_str(&failed(0x40, 2)); continue; }
-                match span(&f[0].0, &f[1].0, &f[2].0, &f[3].0) {
+                // ospan: "<flags>@<a>,<r>" sets the search starts.
+                let mut fl = f[0].0.clone();
+                START[0].store(0, std::sync::atomic::Ordering::Relaxed);
+                START[1].store(0, std::sync::atomic::Ordering::Relaxed);
+                if let Some(at) = fl.find('@') {
+                    let offs: Vec<usize> = fl[at + 1..].split(',').map(|x| x.parse().unwrap_or(0)).collect();
+                    for (k, o) in offs.iter().take(2).enumerate() { START[k].store(*o, std::sync::atomic::Ordering::Relaxed); }
+                    fl.truncate(at);
+                }
+                match span(&fl, &f[1].0, &f[2].0, &f[3].0) {
                     Err(e) => resp.push_str(&failed(e, 2)),
                     Ok(ms) => for m in ms { match m { Some((s, e)) => resp.push_str(&pair(s, e)), None => resp.push_str(none) } },
                 }
