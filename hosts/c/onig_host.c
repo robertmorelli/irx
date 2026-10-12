@@ -1,14 +1,51 @@
-/* Oniguruma host (Ruby syntax). Note Ruby's /m is dotall; ^/$ are always line anchors. */
+/* Oniguruma host. Default Ruby syntax (Ruby's /m is dotall; ^/$ are always line anchors).
+ * IRX_ONIG_SYNTAX=perl|java|python|oniguruma picks another syntax; those start single-line
+ * (^/$ at string ends), so the m flag sets ONIG_OPTION_NEGATE_SINGLELINE. IRX_ONIG_ASCII makes
+ * \w \d \s and POSIX classes ASCII-only. */
 #include <oniguruma.h>
 #include "proto.h"
-const char *host_name(void) { static char b[64]; snprintf(b, sizeof b, "oniguruma-%s", onig_version()); return b; }
-int host_case(const char *flags, const char *a, size_t alen, const char *r, size_t rlen, const char *pat, size_t plen, int repeat) {
+static OnigSyntaxType *syntax(void) {
+    const char *s = getenv("IRX_ONIG_SYNTAX");
+    if (!s || !*s || !strcmp(s, "ruby")) return ONIG_SYNTAX_RUBY;
+    if (!strcmp(s, "perl")) return ONIG_SYNTAX_PERL;
+    if (!strcmp(s, "java")) return ONIG_SYNTAX_JAVA;
+    if (!strcmp(s, "python")) return ONIG_SYNTAX_PYTHON;
+    return ONIG_SYNTAX_ONIGURUMA;
+}
+/* Java and Python syntax have no \\x{H} (Java syntax silently misreads it): write it as the
+ * literal character, escaped if it is a metacharacter. Returns a malloc'd buffer. */
+static Str native(const char *pat, size_t plen) {
+    Str o = {0};
+    int lit = syntax() == ONIG_SYNTAX_JAVA || syntax() == ONIG_SYNTAX_PYTHON;
+    for (size_t i = 0; i < plen; i++) {
+        if (lit && pat[i] == '\\' && i + 2 < plen && pat[i + 1] == 'x' && pat[i + 2] == '{') {
+            size_t e = i + 3; uint32_t cp = 0;
+            while (e < plen && pat[e] != '}') { char c = pat[e++]; cp = cp * 16 + (uint32_t)(c <= '9' ? c - '0' : (c | 32) - 'a' + 10); }
+            if (cp < 0x80 && strchr("^$\\.*+?()[]{}|-/", (int)cp)) put(&o, "\\", 1);
+            put_cp(&o, cp); i = e;
+        } else if (pat[i] == '\\' && i + 1 < plen) { put(&o, pat + i, 2); i++; }
+        else put(&o, pat + i, 1);
+    }
+    if (!o.buf) put(&o, "", 0);
+    return o;
+}
+static OnigOptionType options(const char *flags) {
     OnigOptionType opt = ONIG_OPTION_NONE;
     if (strchr(flags, 'i')) opt |= ONIG_OPTION_IGNORECASE;
-    if (strchr(flags, 's')) opt |= ONIG_OPTION_MULTILINE;  /* Ruby: dot matches newline */
-    Str w = {0}; put(&w, "\\A(?:", 5); put(&w, pat, plen); put(&w, ")\\z", 3);
+    if (strchr(flags, 's')) opt |= ONIG_OPTION_MULTILINE;  /* Oniguruma's MULTILINE is dotall */
+    if (strchr(flags, 'm') && syntax() != ONIG_SYNTAX_RUBY) opt |= ONIG_OPTION_NEGATE_SINGLELINE;
+    if (getenv("IRX_ONIG_ASCII")) opt |= ONIG_OPTION_WORD_IS_ASCII | ONIG_OPTION_DIGIT_IS_ASCII | ONIG_OPTION_SPACE_IS_ASCII | ONIG_OPTION_POSIX_IS_ASCII;
+    return opt;
+}
+const char *host_name(void) { static char b[64]; snprintf(b, sizeof b, "oniguruma-%s%s%s%s", onig_version(), getenv("IRX_ONIG_SYNTAX") ? "-" : "", getenv("IRX_ONIG_SYNTAX") ? getenv("IRX_ONIG_SYNTAX") : "", getenv("IRX_ONIG_ASCII") ? "-ascii" : ""); return b; }
+int host_case(const char *flags, const char *a, size_t alen, const char *r, size_t rlen, const char *pat, size_t plen, int repeat) {
+    OnigOptionType opt = options(flags);
+    /* Python syntax has no \\z; its \\Z is the absolute end. */
+    const char *end = syntax() == ONIG_SYNTAX_PYTHON ? ")\\Z" : ")\\z";
+    Str np = native(pat, plen);
+    Str w = {0}; put(&w, "\\A(?:", 5); put(&w, np.buf, np.len); put(&w, end, 3); free(np.buf);
     regex_t *re; OnigErrorInfo ei;
-    int rc = onig_new(&re, (UChar *)w.buf, (UChar *)w.buf + w.len, opt, ONIG_ENCODING_UTF8, ONIG_SYNTAX_RUBY, &ei);
+    int rc = onig_new(&re, (UChar *)w.buf, (UChar *)w.buf + w.len, opt, ONIG_ENCODING_UTF8, syntax(), &ei);
     free(w.buf);
     if (rc != ONIG_NORMAL) return 0x04;
     int bits = 0;
@@ -25,11 +62,12 @@ done:
     return bits;
 }
 int host_span(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[4]) {
-    OnigOptionType opt = ONIG_OPTION_NONE;
-    if (strchr(flags, 'i')) opt |= ONIG_OPTION_IGNORECASE;
-    if (strchr(flags, 's')) opt |= ONIG_OPTION_MULTILINE;
+    OnigOptionType opt = options(flags);
     regex_t *re; OnigErrorInfo ei;
-    if (onig_new(&re, (const UChar *)pat, (const UChar *)pat + plen, opt, ONIG_ENCODING_UTF8, ONIG_SYNTAX_RUBY, &ei) != ONIG_NORMAL) return 0x04;
+    Str np = native(pat, plen);
+    int rc0 = onig_new(&re, (const UChar *)np.buf, (const UChar *)np.buf + np.len, opt, ONIG_ENCODING_UTF8, syntax(), &ei);
+    free(np.buf);
+    if (rc0 != ONIG_NORMAL) return 0x04;
     OnigRegion *rg = onig_region_new();
     int e = 0;
     for (int k = 0; k < 2; k++) {
@@ -44,11 +82,12 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
     return e;
 }
 int host_capture(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[2][2 * CAP_PAIRS]) {
-    OnigOptionType opt = ONIG_OPTION_NONE;
-    if (strchr(flags, 'i')) opt |= ONIG_OPTION_IGNORECASE;
-    if (strchr(flags, 's')) opt |= ONIG_OPTION_MULTILINE;
+    OnigOptionType opt = options(flags);
     regex_t *re; OnigErrorInfo ei;
-    if (onig_new(&re, (const UChar *)pat, (const UChar *)pat + plen, opt, ONIG_ENCODING_UTF8, ONIG_SYNTAX_RUBY, &ei) != ONIG_NORMAL) return 0x04;
+    Str np = native(pat, plen);
+    int rc0 = onig_new(&re, (const UChar *)np.buf, (const UChar *)np.buf + np.len, opt, ONIG_ENCODING_UTF8, syntax(), &ei);
+    free(np.buf);
+    if (rc0 != ONIG_NORMAL) return 0x04;
     OnigRegion *rg = onig_region_new();
     int e = 0;
     for (int k = 0; k < 2 && !e; k++) {

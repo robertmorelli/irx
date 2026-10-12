@@ -6,6 +6,7 @@ int rep = (mode == "repeat" || mode == "tierup") ? 2 : 1;
 // Long modes (lspan, lcapture): 4 hex digits per position, ffff = none, fffe + 00bb = failed.
 bool wide = mode == "lspan" || mode == "lcapture";
 // aspan (sticky): the match must start at the offset: \G(?:p) with Regex.Match(s, startat).
+System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 bool sticky = mode == "aspan";
 bool isSpan = mode == "span" || mode == "lspan" || mode == "ospan" || sticky, isCap = mode == "capture" || mode == "lcapture";
 string X = wide ? "x4" : "x2";
@@ -42,7 +43,11 @@ while ((line = stdin.ReadLine()) != null) {
         if (lone) { sb.Append(isSpan ? Failed(0x40, 2) : isCap ? Failed(0x40, 26) : "40"); continue; }
         // \x{H} -> raw char; surrogate halves (UTF-16 dialect literals) become single chars.
         p = xesc.Replace(p, m => { int cp = Convert.ToInt32(m.Groups[1].Value, 16); return cp >= 0xD800 && cp <= 0xDFFF ? ((char)cp).ToString() : char.ConvertFromUtf32(cp); });
-        var o = RegexOptions.CultureInvariant;
+        // ecma: RegexOptions.ECMAScript, which allows only IgnoreCase, Multiline and Compiled (the
+        // current culture is pinned to the invariant one instead); s has no ECMAScript form.
+        bool ecma = engine == "ecma";
+        if (ecma && f.Contains('s')) { sb.Append(isSpan ? Failed(0x40, 2) : isCap ? Failed(0x40, 26) : "40"); continue; }
+        var o = ecma ? RegexOptions.ECMAScript : RegexOptions.CultureInvariant;
         if (f.Contains('i')) o |= RegexOptions.IgnoreCase;
         if (f.Contains('m')) o |= RegexOptions.Multiline;
         if (f.Contains('s')) o |= RegexOptions.Singleline;

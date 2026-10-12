@@ -51,6 +51,11 @@ static START: [std::sync::atomic::AtomicUsize; 2] = [std::sync::atomic::AtomicUs
 pub fn start(k: usize) -> usize {
     START[k].load(std::sync::atomic::Ordering::Relaxed)
 }
+/// Sticky mode (aspan): the match must start at start(k). Only hosts that check it enable it.
+static STICKY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+pub fn sticky() -> bool {
+    STICKY.load(std::sync::atomic::Ordering::Relaxed)
+}
 
 /// Run the protocol loop. `case(flags, a, r, pattern, repeat) -> bits`.
 pub fn serve(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8) {
@@ -106,7 +111,8 @@ pub fn serve_all(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, 
                 }
                 continue;
             }
-            if mode == "span" || mode == "lspan" || mode == "ospan" {
+            if mode == "span" || mode == "lspan" || mode == "ospan" || mode == "aspan" {
+                STICKY.store(mode == "aspan", std::sync::atomic::Ordering::Relaxed);
                 if f.iter().any(|x| x.1) { resp.push_str(&failed(0x40, 2)); continue; }
                 // ospan: "<flags>@<a>,<r>" sets the search starts.
                 let mut fl = f[0].0.clone();

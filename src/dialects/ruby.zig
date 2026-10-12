@@ -92,3 +92,31 @@ pub const oniguruma: D.Dialect = .{
     // Capture mode: with named groups present, unnamed ones don't capture.
     .named_groups_only = true,
 };
+
+/// Oniguruma with its Perl, Java or Python syntax (the host writes \x{H} as a literal for Java
+/// and Python syntax, which lack it) (IRX_ONIG_SYNTAX): the same matcher, but ^ and $
+/// start single-line (string ends, $ also before a final \n) and (?m) / the m flag make them line
+/// anchors; (?s) is dotall. Python syntax spells named groups (?P<…>).
+fn onigSyntax(name: []const u8, p_angle: bool) D.Dialect {
+    var d = oniguruma;
+    d.name = name;
+    d.anchors_always_multiline = false;
+    d.dollar_before_final_terminator = true;
+    d.scoped_mods = 1 | 2 | 4;
+    d.dotall_letter = 's';
+    if (p_angle) d.named_group = .p_angle;
+    return d;
+}
+pub const onig_perl: D.Dialect = onigSyntax("onig-perl", false);
+pub const onig_java: D.Dialect = onigSyntax("onig-java", false);
+pub const onig_python: D.Dialect = onigSyntax("onig-python", true);
+/// IRX_ONIG_ASCII: ONIG_OPTION_{WORD,DIGIT,SPACE,POSIX}_IS_ASCII.
+pub const onig_ascii: D.Dialect = blk: {
+    var d = oniguruma;
+    d.name = "onig-ascii";
+    d.isWord = perl.asciiWord;
+    d.isDigit = perl.asciiDigit;
+    d.isSpace = perl.asciiSpace;
+    d.escapes_ignore_case = true;
+    break :blk d;
+};

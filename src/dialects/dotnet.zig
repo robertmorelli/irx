@@ -60,3 +60,21 @@ pub const compiled: D.Dialect = blk: {
     d.lookbehind_no_lazy = true;
     break :blk d;
 };
+
+/// RegexCharClass.ECMAWordClass: [0-9A-Z_a-z] plus U+0130 (İ).
+fn ecmaWord(c: u21, f: D.Flags) bool {
+    return c == 0x130 or perl.asciiWord(c, f);
+}
+
+/// RegexOptions.ECMAScript: ECMAScript-style classes (\w = ECMAWordClass, \d = [0-9], ASCII
+/// \s) and word boundaries on the same .NET matcher; no Singleline.
+pub const ecma: D.Dialect = blk: {
+    var d = dialect;
+    d.name = "dotnet-ecma";
+    d.isWord = ecmaWord;
+    d.isDigit = perl.asciiDigit;
+    d.isSpace = perl.asciiSpace;
+    d.isBoundaryWord = null;
+    d.escapes_ignore_case = true;
+    break :blk d;
+};

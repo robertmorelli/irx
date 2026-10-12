@@ -1,0 +1,23 @@
+# irx target: Oniguruma (python syntax)
+# Run: tools/irx_target.py onig-python [--duration SECONDS]
+
+[target]
+title = "Oniguruma (python syntax)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/onig_host {mode}"
+env = "IRX_ONIG_SYNTAX=python"
+dialect = "onig-python"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+lookbehind = false  # lookbehind runs forward here; JS (and the model) match it right to left
+
+[offset]
+enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true
