@@ -21,7 +21,9 @@ fn boundaryWord(c: u21, f: D.Flags) bool {
 }
 
 pub const dialect: D.Dialect = .{
-    .atomic_groups = true,
+    // An atomic group as a loop body is backtracked into, or not given back (IRX-DOTNET-11),
+    // which would drown other findings: no atomic groups.
+    .atomic_groups = false,
     .backrefs = true,
     .extended_mode = true,
     .scoped_flags = true,
