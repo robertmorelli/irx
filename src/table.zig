@@ -78,8 +78,11 @@ pub const aux_bq: u32 = 1 << 27;
 /// built from the alternate flag context (inline flag groups: flags with i toggled); only a
 /// flag_group turns it back into the table's own context
 pub const aux_ctx: u32 = 1 << 28;
+/// contains a \p{…} under case-insensitive matching (Onigmo rejects these in lookbehind: case
+/// folding can make them match more than one character)
+pub const aux_pi: u32 = 1 << 29;
 /// flags a parent inherits from its children (atom/za are positional)
-pub const aux_inherit: u32 = aux_la | aux_md | aux_vq | aux_uq | aux_cx | aux_lk | aux_cp | aux_cq | aux_lz | aux_bq | aux_ctx;
+pub const aux_inherit: u32 = aux_la | aux_md | aux_vq | aux_uq | aux_cx | aux_lk | aux_cp | aux_cq | aux_lz | aux_bq | aux_ctx | aux_pi;
 
 /// The quantifier flags of `q` applied to a body with flags `bf` (shared with dialect.treeAllowed).
 pub fn quantFlags(bf: u32, min: u32, max: u32, inf: u32, lazy: bool, opt_like: bool, shorthand: bool, big: bool) u32 {
@@ -305,7 +308,7 @@ pub const Grammar = struct {
         if (self.lb_no_var) m |= aux_la | aux_vq;
         if (self.lb_no_unbounded_group) m |= aux_uq | aux_atom | aux_cx;
         if (self.no_quant_assert) m |= aux_za;
-        if (self.lb_onig) m |= aux_lk | aux_cp | aux_cq;
+        if (self.lb_onig) m |= aux_lk | aux_cp | aux_cq | aux_pi;
         if (self.lb_no_lazy) m |= aux_lz;
         if (self.small_rep_bound < 255) m |= aux_bq | aux_atom;
         if (self.has_alt) m |= aux_ctx;
@@ -1021,7 +1024,7 @@ fn Builder(comptime R: type) type {
                         if (self.g.lookbehind_fixed and (ymin != ymax or ymax >= cap)) return;
                         if (self.g.lb_no_unbounded_group and yf & aux_uq != 0) return;
                         if (self.g.lb_no_var and yf & (aux_vq | aux_la) != 0) return;
-                        if (self.g.lb_onig and (yf & (aux_lk | aux_cq) != 0 or (u.op == .neg_look_behind and yf & aux_cp != 0))) return;
+                        if (self.g.lb_onig and (yf & (aux_lk | aux_cq | aux_pi) != 0 or (u.op == .neg_look_behind and yf & aux_cp != 0))) return;
                         if (self.g.lb_no_lazy and yf & aux_lz != 0) return;
                         f = aux_lk | aux_za | (yf & aux_inherit);
                     },
@@ -1033,7 +1036,8 @@ fn Builder(comptime R: type) type {
                     .flag_group => {
                         mx = ymax;
                         mn = ymin;
-                        f = yf & ~aux_ctx;
+                        // A flag group is a group, not a bare atom (Java's lookbehind rules).
+                        f = yf & ~(aux_ctx | aux_atom);
                     },
                     .group_cap, .group_named => {
                         mx = ymax;
@@ -1136,6 +1140,7 @@ fn Builder(comptime R: type) type {
                 var af: u32 = if (alt) aux_ctx else 0;
                 if (a.kind == .dollar and self.g.flags.m) af |= aux_md;
                 if (a.isConsuming()) af |= aux_atom;
+                if (a.kind == .prop and af_flags.i) af |= aux_pi;
                 if (a.kind == .caret or a.kind == .dollar or a.kind == .wordb or a.kind == .nwordb) af |= aux_za;
                 const len: u32 = if (self.g.len_cap > 0 and a.isConsuming()) (1 | (@as(u32, 1) << aux_min_shift)) else 0;
                 const key = keyAux(atoms.relation(R, a, af_flags, wa), atoms.relation(R, a, af_flags, wr), len | (af & self.g.flagMask()));

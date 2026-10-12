@@ -286,7 +286,11 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (d.lookbehind_no_lazy and c.f & tb.aux_lz != 0) ok.* = false;
             return .{ .min = 0, .max = 0, .f = tb.aux_lk | tb.aux_za | (c.f & inherit) };
         },
-        .group_nc, .flag_group => return lenOf(t, n.a, ok),
+        .group_nc => return lenOf(t, n.a, ok),
+        .flag_group => {
+            const c = lenOf(t, n.a, ok);
+            return .{ .min = c.min, .max = c.max, .f = c.f & ~tb.aux_atom };
+        },
         .group_cap, .group_named => {
             const c = lenOf(t, n.a, ok);
             return .{ .min = c.min, .max = c.max, .f = (c.f & inherit) | tb.aux_cp };
