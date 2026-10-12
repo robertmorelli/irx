@@ -144,7 +144,9 @@ fn boostLineTerminator(c: u21) bool {
 /// case folding, an ASCII pool, fixed-length lookbehind, no \p{…} (that needs the ICU traits).
 pub const boost: D.Dialect = blk: {
     var d = asciiClasses(dialect, "boost");
-    d.grapheme_escape = .combining;
+    // \X is a combining sequence, but after an optional or repeated element regex_match fails
+    // (IRX-BOOST-3), which would drown other findings: no \X.
+    d.grapheme_escape = .none;
     d.full_fold = .none;
     d.pattern_only = &.{};
     d.pool_exclude = &.{ 0xDF, 0x130 };

@@ -229,6 +229,7 @@ libc sometimes misses the leftmost start (IRX-LIBC-2).
 Perl, ICU, Java, Ruby (Onigmo) and Python's `regex` module follow UAX #29 including GB9c (a Devanagari consonant,
 virama, consonant sequence is one cluster); Oniguruma 6.9 and PCRE2 10.49 lack GB9c. Every engine starts the cluster at the current
 position without looking behind it and matches it atomically. PCRE2 breaks between a Prepend character and an
-emoji (IRX-PCRE2-6). Boost's `\X` is a character plus following combining marks (`\r\n` is two). PCRE1's
+emoji (IRX-PCRE2-6). Boost's `\X` is a character plus following combining marks (`\r\n` is two), and fails after an optional or
+repeated element (IRX-BOOST-3). PCRE1's
 grapheme data predates Unicode 11 (emoji modifiers were their own class). JavaScript, .NET, Rust, RE2, Go and the
 POSIX engines have no `\X`.
