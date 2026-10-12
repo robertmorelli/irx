@@ -1,101 +1,105 @@
 <title>Regex Shootout 2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Recursive:slnt,wght,CASL,CRSV,MONO@-15..0,300..1000,0..1,0..1,0..1&display=swap">
 <style>
-/* Layout: one reading column; the tier board leads, then speed, the four splits, features and
-   bugs. Data cells use mono numerals; the diverging ramp is blue for faster than Rust, red for slower. */
+/* Regex Shootout 2. One left-aligned column. The tier board is the loud element (TierMaker's own
+   row colours on a dark board); everything else sits directly on the page, set in one family,
+   Recursive: sans for text and figures, its mono axis only for regex, casual heavy for the title.
+   Speed cells use a diverging ramp: blue faster than Rust, red slower. */
 :root {
-  --bg: #f4f6f8; --surface: #ffffff; --ink: #11161d; --ink-2: #4a5462; --muted: #7b8594;
-  --line: #dde2e8; --accent: #1f5fd6; --code: #eef1f5; --board: #1b1f26;
-  --tier-s: #b8860b; --tier-a: #1e8a4c; --tier-b: #2f7d8c; --tier-c: #c27a12; --tier-d: #d0582a; --tier-f: #b9312f;
-  --d-n3: #1d4f9e; --d-n2: #4a86d8; --d-n1: #b4cff2; --d-mid: #eceef1; --d-p1: #f4c9bd; --d-p2: #e9927c; --d-p3: #d4573f; --d-p4: #a8341f; --d-p5: #6c1d10;
-  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --bg: #f4f6f5; --ink: #1f2624; --ink-2: #5e6966; --muted: #8c9693; --line: #d9dfdc; --wash: #e9edeb;
+  --accent: #2b6cb0; --board: #1c1f1e; --tile: #fbfcfb; --tile-ink: #1f2624;
+  --tier-s: #ff7f7f; --tier-a: #ffbf7f; --tier-b: #ffdf7f; --tier-c: #ffff7f; --tier-d: #bfff7f; --tier-f: #7fffff;
+  --d-n3: #1d4f9e; --d-n2: #4a86d8; --d-n1: #b4cff2; --d-mid: #e4e9e7; --d-p1: #f4c9bd; --d-p2: #e9927c; --d-p3: #d4573f; --d-p4: #a8341f; --d-p5: #6c1d10;
+  --font: "Recursive", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e1116; --surface: #161b22; --ink: #eef2f6; --ink-2: #b4bdc9; --muted: #8590a0; --line: #2a313b; --accent: #6c9cf0; --code: #1f2630; --board: #05070a;
-    --tier-s: #e0b13a; --tier-a: #43b874; --tier-b: #4fb2c2; --tier-c: #e3a03c; --tier-d: #ec7d4e; --tier-f: #e05a57;
-    --d-n3: #9cc2f5; --d-n2: #4f8fe6; --d-n1: #1f3d66; --d-mid: #2a3038; --d-p1: #5a2f27; --d-p2: #8f3d2e; --d-p3: #c4523b; --d-p4: #e5745b; --d-p5: #f6ad9b;
+    --bg: #161a19; --ink: #e8edeb; --ink-2: #aab4b1; --muted: #7d8885; --line: #2e3533; --wash: #222826;
+    --accent: #7fb0ee; --board: #0c0e0d; --tile: #262c2a; --tile-ink: #e8edeb;
+    --d-n3: #9cc2f5; --d-n2: #4f8fe6; --d-n1: #1f3d66; --d-mid: #2a302e; --d-p1: #5a2f27; --d-p2: #8f3d2e; --d-p3: #c4523b; --d-p4: #e5745b; --d-p5: #f6ad9b;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0e1116; --surface: #161b22; --ink: #eef2f6; --ink-2: #b4bdc9; --muted: #8590a0; --line: #2a313b; --accent: #6c9cf0; --code: #1f2630; --board: #05070a;
-  --tier-s: #e0b13a; --tier-a: #43b874; --tier-b: #4fb2c2; --tier-c: #e3a03c; --tier-d: #ec7d4e; --tier-f: #e05a57;
-  --d-n3: #9cc2f5; --d-n2: #4f8fe6; --d-n1: #1f3d66; --d-mid: #2a3038; --d-p1: #5a2f27; --d-p2: #8f3d2e; --d-p3: #c4523b; --d-p4: #e5745b; --d-p5: #f6ad9b;
+  --bg: #161a19; --ink: #e8edeb; --ink-2: #aab4b1; --muted: #7d8885; --line: #2e3533; --wash: #222826;
+  --accent: #7fb0ee; --board: #0c0e0d; --tile: #262c2a; --tile-ink: #e8edeb;
+  --d-n3: #9cc2f5; --d-n2: #4f8fe6; --d-n1: #1f3d66; --d-mid: #2a302e; --d-p1: #5a2f27; --d-p2: #8f3d2e; --d-p3: #c4523b; --d-p4: #e5745b; --d-p5: #f6ad9b;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
-.wrap { max-width: 1020px; margin: 0 auto; padding-inline: 18px; padding-block: 36px 64px; display: grid; gap: 44px; }
-header { display: grid; gap: 12px; }
-.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
-h1 { font-family: var(--font-display); font-stretch: 78%; font-weight: 800; font-size: clamp(36px, 7vw, 64px); line-height: 0.98; margin: 0; letter-spacing: -0.01em; }
-h2 { font-family: var(--font-display); font-stretch: 85%; font-weight: 700; font-size: 26px; line-height: 1.15; margin: 0; text-wrap: balance; }
-p { margin: 0; max-width: 72ch; color: var(--ink-2); }
-p strong { color: var(--ink); font-weight: 600; }
-code { font-family: var(--font-mono); font-size: 0.86em; background: var(--code); padding: 1px 5px; border-radius: 4px; color: var(--ink); overflow-wrap: anywhere; }
-section { display: grid; gap: 14px; min-width: 0; }
-.facts { display: flex; flex-wrap: wrap; gap: 10px 32px; margin: 6px 0 0; padding: 0; }
-.facts div { display: grid; }
-.facts dt { font-size: 12px; color: var(--muted); }
-.facts dd { margin: 0; font-family: var(--font-display); font-stretch: 85%; font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.card { background: var(--surface); border-radius: 10px; box-shadow: 0 0 0 1px var(--line); padding: 18px; min-width: 0; }
-.note { font-size: 13px; color: var(--muted); max-width: 80ch; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-variation-settings: "MONO" 0, "CASL" 0; font-size: 16px; line-height: 1.55; font-feature-settings: "tnum" 1; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 56px 80px; display: grid; gap: 64px; }
+header { display: grid; gap: 18px; }
+h1 { font-weight: 1000; font-variation-settings: "CASL" 1, "MONO" 0; font-size: clamp(48px, 9vw, 104px); line-height: 0.9; letter-spacing: -0.035em; margin: 0; }
+h2 { font-weight: 800; font-size: 26px; line-height: 1.2; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; color: var(--ink-2); }
+p strong { color: var(--ink); font-weight: 650; }
+#lede { font-size: 19px; line-height: 1.5; color: var(--ink); max-width: 60ch; }
+code { font-variation-settings: "MONO" 1, "CASL" 0; font-size: 0.9em; color: var(--ink); overflow-wrap: anywhere; }
+section { display: grid; gap: 16px; min-width: 0; }
+.facts { display: none; }
+.card { min-width: 0; }
+.note { font-size: 14px; color: var(--muted); max-width: 80ch; }
 /* Tier board */
-/* Tier board: a classic tier list. Square letter cells, flat bands, rectangular tiles. */
-.tiers { display: grid; gap: 2px; background: var(--board); padding: 2px; }
-.tier { display: grid; grid-template-columns: 76px 1fr; gap: 2px; align-items: stretch; }
-.tier .badge { display: grid; place-items: center; color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 34px; font-stretch: 80%; min-height: 64px; text-shadow: 0 1px 0 rgba(0,0,0,0.25); }
-.tier .rule { font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
-.tier .row { background: var(--surface); padding: 8px 10px; min-width: 0; }
-.chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.chip { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 5px 9px; border-radius: 2px; background: var(--code); border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; }
-.chip small { font-family: var(--font-mono); font-size: 10.5px; font-weight: 400; color: var(--muted); }
-.empty { font-size: 13px; color: var(--muted); font-style: italic; }
+.tiers { display: grid; gap: 3px; background: var(--board); padding: 3px; }
+.tier { display: grid; grid-template-columns: 92px 1fr; gap: 3px; align-items: stretch; }
+.tier .badge { display: grid; place-items: center; color: #1c1f1e; font-weight: 1000; font-variation-settings: "CASL" 1; font-size: 42px; min-height: 78px; }
+.tier .row { background: var(--board); padding: 8px; min-width: 0; display: grid; align-content: center; }
+.tier .rule { font-size: 12.5px; color: #9aa5a2; margin: 0 0 6px 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 3px; }
+.chip { display: inline-flex; flex-direction: column; gap: 0; padding: 7px 11px 6px; background: var(--tile); color: var(--tile-ink); font-size: 14.5px; font-weight: 650; white-space: nowrap; line-height: 1.25; }
+.chip small { font-size: 12px; font-weight: 450; color: var(--muted); }
+.empty { font-size: 14px; color: #6f7a77; padding: 6px 2px; }
+/* View switch */
+.switch { display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 15px; }
+.switch label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; color: var(--ink-2); }
+.switch input { accent-color: var(--ink); width: 16px; height: 16px; }
+.switch input:checked + * , .switch label:has(input:checked) { color: var(--ink); font-weight: 650; }
+.switch input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mark { font-size: 11.5px; font-weight: 450; color: var(--muted); margin-left: 8px; }
 /* Tables */
 .scrollx { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-th, td { padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; text-align: right; font-size: 13px; }
-th { font-weight: 600; color: var(--ink-2); font-size: 12px; position: sticky; top: 0; background: var(--surface); }
-th:first-child, td:first-child { text-align: left; }
-td.num { font-family: var(--font-mono); font-size: 12.5px; }
-td.cell { font-family: var(--font-mono); font-size: 12px; text-align: center; min-width: 58px; }
-td .tag { display: inline-block; width: 22px; text-align: center; border-radius: 4px; color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 13px; }
-.fam { color: var(--muted); font-size: 11px; margin-left: 6px; }
-.feat td.cell { min-width: 34px; }
-.yes { color: var(--tier-a); font-weight: 700; }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 6px 8px; white-space: nowrap; text-align: right; font-size: 14px; }
+thead th { font-weight: 650; color: var(--ink-2); font-size: 13px; border-bottom: 1.5px solid var(--ink); }
+tbody tr + tr td { border-top: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; padding-left: 0; }
+td.num { font-size: 14px; color: var(--ink); }
+td.cell { font-size: 13px; text-align: center; min-width: 54px; font-weight: 550; }
+td .tag { display: inline-block; min-width: 24px; text-align: center; color: #1c1f1e; font-weight: 900; font-variation-settings: "CASL" 1; font-size: 13px; padding: 1px 0; }
+.fam { color: var(--muted); font-size: 12px; margin-left: 8px; font-weight: 450; }
+.feat td.cell { min-width: 38px; }
+.yes { color: var(--ink); }
 .no { color: var(--line); }
-.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
-.axis { fill: var(--muted); font-size: 11px; font-family: var(--font-mono); }
-.lbl { fill: var(--ink); font-size: 12.5px; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--ink-2); align-items: center; margin-top: 10px; }
-.ramp { height: 10px; width: 240px; max-width: 60vw; border-radius: 3px; }
-.key { display: inline-flex; align-items: center; gap: 6px; }
-.key i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; box-shadow: inset 0 0 0 1px var(--line); }
-.cross th.grp { text-align: center; border-bottom: 1px solid var(--line); font-size: 12px; }
-.cross th.set { text-align: center; font-family: var(--font-display); font-stretch: 85%; font-size: 14px; color: var(--ink); }
-.cross th.sep, .cross td.sep { border-left: 2px solid var(--line); }
-.cross td.cell { min-width: 46px; padding: 4px 5px; }
-.switch { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; }
-.switch label { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
-.switch input { accent-color: var(--accent); }
-.switch input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.mark { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); margin-left: 5px; }
-.bugs { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2); white-space: normal; text-align: left; max-width: 420px; }
-footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+.cross th.grp { text-align: center; font-size: 13px; border-bottom: 1px solid var(--line); font-weight: 600; }
+.cross th.set { text-align: center; font-size: 16px; color: var(--ink); font-weight: 800; border-bottom: none; }
+.cross th.sep, .cross td.sep { border-left: 1.5px solid var(--ink); }
+.cross td.cell { min-width: 46px; padding: 5px 4px; }
+.cross thead tr:not(:last-child) th { border-bottom: none; }
+.bugs { font-variation-settings: "MONO" 1; font-size: 12px; color: var(--ink-2); white-space: normal; text-align: left; max-width: 460px; }
+/* Charts */
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; font-family: var(--font); }
+.axis { fill: var(--muted); font-size: 11.5px; }
+.lbl { fill: var(--ink); font-size: 13px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 13px; color: var(--ink-2); align-items: center; margin-top: 12px; }
+.key { display: inline-flex; align-items: center; gap: 7px; }
+.key i { width: 14px; height: 4px; display: inline-block; }
+footer { font-size: 13.5px; color: var(--muted); display: grid; gap: 8px; max-width: 80ch; }
 a { color: var(--accent); }
+@media (max-width: 560px) {
+  .tier { grid-template-columns: 58px 1fr; }
+  .tier .badge { font-size: 30px; min-height: 60px; }
+  .wrap { gap: 48px; padding-block: 36px 56px; }
+}
 </style>
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Regex engines · speed, features, correctness · irx bench mode · Rust <code>regex</code> = 1.0</div>
     <h1>Regex Shootout 2</h1>
     <p id="lede"></p>
-    <dl class="facts" id="facts"></dl>
+    <dl class="facts" id="facts" hidden></dl>
   </header>
 
   <section aria-labelledby="h-tiers">
@@ -164,8 +168,8 @@ try { if (localStorage.getItem("shootout2-view") === "own") VIEW = "own"; } catc
 // The speed object an engine is shown with: its strict shared set (core set for core engines,
 // the all-engine set otherwise) or everything it ran.
 const MX = n => VIEW === "strict" ? S[n].rank : S[n];
-const setMark = n => S[n].extra ? `<span class="mark" title="${esc(S[n].note || "")}">not an irx engine · untiered</span>` : VIEW === "strict" ? (S[n].core ? "" : `<span class="mark" title="ranked on the ${M.strict.all_inputs} inputs every engine ran">all-engine set</span>`) : "";
-const TIER_RULE = { S: "correct · fast · featureful", A: "correct · fast or featureful", B: "correct only", C: "bugs · fast · featureful", D: "bugs · fast or featureful", F: "bugs · neither" };
+const setMark = n => S[n].extra ? `<span class="mark" title="${esc(S[n].note || "")}">not an irx engine, untiered</span>` : VIEW === "strict" ? (S[n].core ? "" : `<span class="mark" title="ranked on the ${M.strict.all_inputs} inputs every engine ran">all-engine set</span>`) : "";
+const TIER_RULE = { S: "No open bugs, fast and featureful", A: "No open bugs, fast or featureful", B: "No open bugs", C: "Has bugs, but fast and featureful", D: "Has bugs, fast or featureful", F: "Has bugs, slow, few features" };
 const tierColor = t => t === "–" ? "var(--muted)" : `var(--tier-${t.toLowerCase()})`;
 const names = Object.keys(S0).filter(n => S0[n].rank.overall.geo);
 const speedNames = names.concat(Object.keys(EX).filter(n => S[n].rank && S[n].rank.overall.geo));
@@ -195,7 +199,7 @@ function render() {
 // Tier board
 document.getElementById("tiers").innerHTML = TIER_ORDER.map(t => {
   const es = names.filter(n => S[n].tier === t).sort((a, b) => MX(a).overall.geo - MX(b).overall.geo);
-  return `<div class="tier"><div class="badge" style="background:${tierColor(t)}">${t}</div><div class="row"><div class="rule">${TIER_RULE[t]}</div>${es.length ? `<div class="chips">${es.map(n => `<span class="chip">${esc(label(n))}<small>${fmt(MX(n).overall.geo)}×${S[n].open_bugs.length ? " · " + S[n].open_bugs.length + " bug" + (S[n].open_bugs.length > 1 ? "s" : "") : ""}</small></span>`).join("")}</div>` : `<div class="empty">none</div>`}</div></div>`;
+  return `<div class="tier"><div class="badge" style="background:${tierColor(t)}">${t}</div><div class="row"><div class="rule">${TIER_RULE[t]}</div>${es.length ? `<div class="chips">${es.map(n => `<span class="chip">${esc(label(n))}<small>${fmt(MX(n).overall.geo)}× Rust${S[n].open_bugs.length ? ", " + S[n].open_bugs.length + " bug" + (S[n].open_bugs.length > 1 ? "s" : "") : ""}</small></span>`).join("")}</div>` : `<div class="empty">none</div>`}</div></div>`;
 }).join("");
 
 // Speed chart (log x)
@@ -210,8 +214,8 @@ document.getElementById("tiers").innerHTML = TIER_ORDER.map(t => {
   bySpeed.forEach((n, i) => {
     const y = top + i * rowH, v = MX(n).overall.geo;
     s += `<text class="lbl" x="${left - 10}" y="${y + 13}" text-anchor="end"${S[n].extra ? ' font-style="italic"' : ""}>${esc(label(n))}${S[n].extra ? " *" : ""}</text>`;
-    s += `<rect x="${Math.min(x(1), x(v))}" y="${y + 3}" width="${Math.max(1.5, Math.abs(x(v) - x(1)))}" height="${rowH - 7}" rx="2" fill="${tierColor(S[n].tier)}"/>`;
-    s += `<text class="axis" x="${Math.max(x(1), x(v)) + 6}" y="${y + 13}">${fmt(v)}× · ${S[n].extra ? "not irx, untiered" : VIEW === "strict" ? (S[n].core ? "core set" : "all-engine set") : Math.round(S[n].coverage * 100) + "% ran"}</text>`;
+    s += `<rect x="${Math.min(x(1), x(v))}" y="${y + 3}" width="${Math.max(1.5, Math.abs(x(v) - x(1)))}" height="${rowH - 7}" fill="${tierColor(S[n].tier)}" stroke="var(--ink)" stroke-width="0.8"/>`;
+    s += `<text class="axis" x="${Math.max(x(1), x(v)) + 6}" y="${y + 13}">${fmt(v)}×${S[n].extra ? ", not an irx engine" : VIEW === "strict" ? (S[n].core ? "" : ", all-engine set") : ", " + Math.round(S[n].coverage * 100) + "% ran"}</text>`;
   });
   document.getElementById("c-speed").innerHTML = s + "</svg>";
 }
