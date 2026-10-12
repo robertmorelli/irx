@@ -313,6 +313,8 @@ pub const Store = struct {
     /// Findings per signature group, and the cap on stored ones (0 = none).
     group_counts: std.AutoHashMapUnmanaged(u64, GroupCount) = .empty,
     max_per_group: u32 = 0,
+    max_per_mode: u32 = 0,
+    mode_counts: std.AutoHashMapUnmanaged(u64, u32) = .empty,
     over_cap: u64 = 0,
     const Seen = struct { id: u64, canon: []u8 };
     const GroupCount = struct { stored: u32 = 0, total: u64 = 0, kind: Kind, mode: [32]u8 = undefined, mode_len: u8 = 0 };
@@ -395,11 +397,16 @@ pub const Store = struct {
             }
             // Hash collision with different content: never coalesce.
         }
-        // Signature group (navigation and the storage cap).
+        // Signature group (navigation and the storage cap): which constructs occur, not how
+        // often, so a family of findings shares a group.
         var counts: [ast.n_constructs]u16 = undefined;
         ast.constructCounts(&c.tree, &counts);
+        var present: u64 = 0;
+        for (counts, 0..) |n, k| if (n > 0) {
+            present |= @as(u64, 1) << @intCast(k);
+        };
         var ch = std.hash.Wyhash.init(0);
-        ch.update(std.mem.sliceAsBytes(&counts));
+        ch.update(std.mem.asBytes(&present));
         const ghash = ch.final();
         var gh = std.hash.Wyhash.init(ghash);
         gh.update(@tagName(pred.kind));
@@ -413,6 +420,17 @@ pub const Store = struct {
             gop.value_ptr.mode_len = @intCast(ml);
         }
         gop.value_ptr.total += 1;
+        // Also at most max_per_mode stored findings per (kind, mode).
+        var mh = std.hash.Wyhash.init(0x6D6F6465);
+        mh.update(@tagName(pred.kind));
+        mh.update(pred.mode);
+        const mop = try self.mode_counts.getOrPut(gpa, mh.final());
+        if (!mop.found_existing) mop.value_ptr.* = 0;
+        if (self.max_per_mode > 0 and mop.value_ptr.* >= self.max_per_mode) {
+            gpa.free(canon);
+            self.over_cap += 1;
+            return .{ .id = 0, .new = false };
+        }
         if (self.max_per_group > 0 and gop.value_ptr.stored >= self.max_per_group) {
             // Over the cap: counted only. The case stays reproducible from (seed, table, index).
             gpa.free(canon);
@@ -420,6 +438,7 @@ pub const Store = struct {
             return .{ .id = 0, .new = false };
         }
         gop.value_ptr.stored += 1;
+        mop.value_ptr.* += 1;
         const id = self.next_id;
         self.next_id += 1;
         c.id = id;

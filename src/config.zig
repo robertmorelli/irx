@@ -109,6 +109,8 @@ pub const Config = struct {
     /// only counted (groups/counts.txt). 0 = no cap. A run is reproducible from its seed,
     /// so stored findings are a sample, not the record.
     max_findings_per_group: u32 = 20,
+    /// And at most this many per (kind, mode) in a run (0 = no cap).
+    max_findings_per_mode: u32 = 2000,
     max_pending_finding_bytes: u64 = 64 << 20,
 
     // [harness]
@@ -525,7 +527,7 @@ fn sectionOf(comptime name: []const u8) ?[]const u8 {
     @setEvalBranchQuota(100_000);
     const grammar = .{ "max_size", "max_rep_bound", "big_rep_weight", "class_max_members", "max_pattern_bytes", "allow_diagonal_lookarounds", "usefulness_pass", "usefulness_workspace" };
     const strings = .{ "min_len", "max_len", "max_symbols", "max_edit_distance", "long_fraction", "long_min", "long_max" };
-    const limits = .{ "max_pairs", "max_combos", "max_prods", "max_count_terms", "max_table_bytes", "max_host_bytes", "max_table_attempts", "samples_per_table", "alias_cache", "alias_arena_bytes", "max_pending_findings", "max_pending_finding_bytes", "max_findings_per_group" };
+    const limits = .{ "max_pairs", "max_combos", "max_prods", "max_count_terms", "max_table_bytes", "max_host_bytes", "max_table_attempts", "samples_per_table", "alias_cache", "alias_arena_bytes", "max_pending_findings", "max_pending_finding_bytes", "max_findings_per_group", "max_findings_per_mode" };
     const harness = .{ "batch_size", "max_request_bytes", "startup_deadline_ms", "batch_deadline_base_ms", "batch_deadline_per512_ms", "recycle_cases", "novelty_cap", "novelty_bytes", "journal_bytes", "stderr_tail_bytes", "keep_journals" };
     const adaptive = .{ "adaptive", "adaptive_factor", "adaptive_cap" };
     const sanity = .{"sanity_fraction"};

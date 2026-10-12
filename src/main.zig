@@ -279,6 +279,7 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     // The pool must live in run.cfg: the local cfg above goes out of scope.
     alpha.active_pool = run.cfg.poolSlice();
     run.store.max_per_group = run.cfg.max_findings_per_group;
+    run.store.max_per_mode = run.cfg.max_findings_per_mode;
     // Validate every configured flag set's printed-length bound up front.
     for (run.cfg.flagSets()) |f| {
         _ = run.grammarFor(f) catch |e| {
