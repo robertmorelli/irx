@@ -171,8 +171,9 @@ verifies its digest and re-derives the case from `(seed, table, index)` (records
 used a per-lane index and still replay).
 
 Because any case can be regenerated, stored findings are a sample, not the record. At most
-`max_findings_per_group` (`[limits]`, default 20) are stored per signature group (kind, mode, construct
-counts); the rest are only counted in `groups/counts.txt`, and the run summary reports `over_group_cap`.
+`max_findings_per_group` (`[limits]`, default 20) are stored per signature group (kind, mode, and which constructs
+occur), and at most `max_findings_per_mode` (2000) per kind and mode; the rest are only counted in
+`groups/counts.txt`, and the run summary reports `over_group_cap`.
 Per-process request journals are deleted when the run ends unless `[harness] keep_journals = true`. A batch
 failure (crash, timeout) still keeps its exact request in `batch.req`; what is lost is the replay of a
 process's earlier batches for sequence-dependent failures.
