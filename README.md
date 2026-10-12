@@ -9,21 +9,21 @@ confirmed by hand, usually against other engines too.
 
 ### Confirmed findings
 
-The [bug ledger](#bug-ledger) has **89 confirmed bug IDs**, **85 unique reported bugs**
-(distinct upstream issue links), **80 distinct bug shapes**, and **53 candidates**
+The [bug ledger](#bug-ledger) has **90 confirmed bug IDs**, **86 unique reported bugs**
+(distinct upstream issue links), **81 distinct bug shapes**, and **51 candidates**
 still to audit or report. Bug IDs count
 separate ledger rows, including confirmed repros linked to an existing report.
 Unique bugs count each upstream issue once; shapes group the same failure pattern
 even across engines. Findings with no report or confirmed link to one are excluded.
 Fixed reported bugs remain in these all-time counts.
-Candidates are 52 open, unreported IDs and IRX-JAVA-2, whose recorded examples
+Candidates are 50 open, unreported IDs and IRX-JAVA-2, whose recorded examples
 were fixed but a different counted-loop form still fails in current OpenJDK.
 Resolved, documented, and older-version-only unreported findings are excluded
 from the candidate count.
 
 | Engine | Bug IDs | Unique issues | Shapes in engine |
 |---|---:|---:|---:|
-| XS | 9 | 9 | 9 |
+| XS | 10 | 10 | 10 |
 | Boa | 8 | 8 | 8 |
 | .NET | 9 | 8 | 8 |
 | Perl | 8 | 7 | 7 |
@@ -49,7 +49,7 @@ from the candidate count.
 | PCRE2 | 1 | 1 | 1 |
 | RE2 | 2 | 2 | 2 |
 | Shared shapes across engines | — | — | −5 |
-| **Total** | **89** | **85** | **80** |
+| **Total** | **90** | **86** | **81** |
 
 IRX-V8-1 maps to V8-3's report, IRX-V8-4 to IRX-V8-3's report, and
 IRX-PERL-5 to PERL-3's report. DOTNET-8 and DOTNET-6 also share a report and shape;
@@ -68,8 +68,8 @@ All four Hermes findings also reproduce in a source build from the current
 `260318099.0.0-stable` branch at `09d3bf2` (2026-10-08; CLI prints 1.0.0),
 so no further rebuild is needed before filing them.
 The jsvu XS binary reports 17.9.3; a rebuild from current Moddable `public`
-source at `5f215f7` also reports 17.9.3 and reproduces IRX-XS-11, so it is
-ready to file. IRX-XS-3 still needs a standalone repro.
+source at `5f215f7` also reports 17.9.3 and reproduces IRX-XS-11 (filed as #1761).
+IRX-XS-3 was a harness artifact, not an XS bug: see its ledger row.
 
 For each case irx checks:
 
@@ -407,7 +407,7 @@ recorded in the tables below. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 =
 | IRX-DOTNET-9 | .NET | Open · not filed | wrong result (no match): `new Regex(@"b\Ba*", RegexOptions.NonBacktracking).Match("ba")` → no match; same for `b\Ba?`, `b\B[a-z]*`, `b\Bc*` on `"bc"` → expected `[0,2)` (interpreter, Compiled) | Tested: .NET 9.0.4 `RegexOptions.NonBacktracking`; still reproduces in .NET 11 RC 1. `\B` followed by a loop that can match empty: `b\Ba+` and `b\Ba*$` match correctly, and `\b` in the same position is fine. Found by the 30-minute campaign's sampled triage (`\x{17F}\Ba*` on `"ſa"`) |
 | IRX-DOTNET-10 | .NET | Open · not filed | wrong span (not leftmost): `new Regex(@"(?:b\B|ek)+", RegexOptions.NonBacktracking).Match("bek")` → `[1,3)`; also `(?:b\b|.[a-z])+` on `"b ek"` → `[1,3)` → expected `[0,3)` (interpreter, Compiled, PCRE2) | Tested: .NET 9.0.4 and .NET 11 RC 1 `RegexOptions.NonBacktracking`. A loop whose alternative ends with `\b`/`\B`: the match that starts with that alternative is missed and a later start is reported; without the loop (`b\B(?:ek)`) it is correct. Compare IRX-DOTNET-6 (alternatives starting with `\b`/`\B`) and IRX-DOTNET-9. Found by the long-input campaign (span mode), minimized to `(?:\x{17F}\B|.[a-z])+` on `"ſék"` |
 | IRX-XS-2 | XS | Open · [#1752](https://github.com/Moddable-OpenSource/moddable/issues/1752) | wrong result: `/^[S\u{1F600}]$/iv.test("s")` → `false`; `/^[^A]$/iv.test("a")` → `true` → expected `true`; `false` | Tested: XS (jsvu, Moddable). `v`-mode classes ignore `i`: neither members nor complements are case-folded (~250 findings) |
-| IRX-XS-3 | XS | Open · not filed | uncatchable abort (sequence-dependent): a 512-case batch aborts the script with uncaught `RangeError: buffer overflow` although every case runs inside `try` → expected per-case result bits | Tested: XS (jsvu, Moddable). 780 batches; no single case aborts alone, not yet minimized |
+| IRX-XS-3 | XS | Not a bug · not filed | parse-time `RangeError: buffer overflow` on large batches: XS rejects a script when one string literal's source reaches 64K characters (65,535 → `string overflow`, 65,536+ → `buffer overflow`); the bridge embedded each batch as one JSON string literal, and 512-case batches full of `\u` escapes crossed it | Harness artifact, found 2026-10-12: the abort happened while parsing, before any case ran, so the per-case `try` never applied and it looked sequence-dependent. Same in `xst` built from `5f215f7`. An XS implementation limit (Moddable treats such limits as fail-fast by design; see their reply on #1707), so not reported. `tools/bridge.py` now writes the batch as concatenated literals of at most 4,096 characters; the recorded batch (5m-xs finding 1467) now returns all 512 results |
 | IRX-XS-4 | XS | Open · [#1753](https://github.com/Moddable-OpenSource/moddable/issues/1753) | wrong result: `/^(?:(?:a+){1}){2}$/.test("aa")` → `false` → expected `true` | Tested: XS (jsvu, Moddable). the IRX-BOA-7 / IRX-HERMES-3 shape (counted repeat of a counted greedy loop); `(?:(?:a+)+){2}` is fine here. Found by cross-checking. |
 | IRX-XS-5 | XS | Open · [#1755](https://github.com/Moddable-OpenSource/moddable/issues/1755) | wrong result: `/^(?:a\|^){2}$/.test("a")` → `false`; `/^(?:a\|\B){3}$/.test("aa")` → `false` → expected `true` | Tested: XS (jsvu, Moddable). a counted group needing a zero-width iteration; `{2,}` is fine. Same family as IRX-JAVA-2, IRX-ONIG-1, IRX-SWIFT-3 |
 | IRX-XS-6 | XS | Open · [#1756](https://github.com/Moddable-OpenSource/moddable/issues/1756) | wrong result: `/^(?:(?:aa(?:)*?){2})*$/.test("aaaaaa")` → `true` → expected `false` | Tested: XS (jsvu, Moddable). a lazy loop over an empty group inside a counted group miscounts; without `(?:)*?` it is correct. Same shape as one IRX-DOTNET-3 case. Found by cross-checking |
@@ -415,7 +415,7 @@ recorded in the tables below. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 =
 | IRX-XS-8 | XS | Open · [#1758](https://github.com/Moddable-OpenSource/moddable/issues/1758) | wrong result / wrong span: `/(?:a\|a){3}/.exec("aa")` → `"aa"`; `/^(?:a\|a){3}$/.test("aa")` → `true`; `/(?:a{2,}){3}/.exec("aaaa")` → `"aaaa"` → expected `null`; `false`; `null` | Tested: XS (jsvu, Moddable). a counted group over alternatives that can match the same text is satisfied too early; `(?:a\|b){3}` is correct. Found by span mode |
 | IRX-XS-9 | XS | Open · [#1759](https://github.com/Moddable-OpenSource/moddable/issues/1759) | wrong capture: `/(a\|)*c/.exec("ac")` → `["ac", undefined]`; `/(a*)+/.exec("b")` → `["", undefined]` → expected `["ac", "a"]`; `["", ""]` (V8, QuickJS, Boa, Hermes) | Tested: XS (jsvu, Moddable). when a loop's next iteration is rejected, the captures of the last successful iteration are dropped instead of restored. Found while researching phase 2 ([docs/phase2-captures.md](docs/phase2-captures.md)) |
 | IRX-XS-10 | XS | Open · [#1760](https://github.com/Moddable-OpenSource/moddable/issues/1760) | wrong span: `/(?:\|a)*/.exec("a")` → `[""]`; `/(?:a*?)*/.exec("a")` → `[""]` → expected `["a"]` (V8, QuickJS; ES RepeatMatcher rejects an empty iteration once min is met) | Tested: XS (jsvu, Moddable). XS accepts the empty iteration and leaves the loop, as Perl/PCRE do, instead of rejecting it and trying the other branch. Found by span mode |
-| IRX-XS-11 | XS | Open · not filed | wrong match indices: `/A/d.exec("éA").indices[0]` → `[1,1]`; `/A/d.exec("\u212AA").indices[0]` → `[1,0]` (end before start); `/A/d.exec("😀A").indices[0]` → `[2,2]` → expected `[1,2]`; `[1,2]`; `[2,3]` (V8) | Reproduces in jsvu XS 17.9.3 and in `xst` built from current Moddable `public` source at `5f215f7` (2026-10-09). With `d`, end offsets are wrong after non-ASCII text; `m.index` and `m[0]` are correct |
+| IRX-XS-11 | XS | Open · [#1761](https://github.com/Moddable-OpenSource/moddable/issues/1761) | wrong match indices: `/A/d.exec("éA").indices[0]` → `[1,1]`; `/A/d.exec("\u212AA").indices[0]` → `[1,0]` (end before start); `/A/d.exec("😀A").indices[0]` → `[2,2]` → expected `[1,2]`; `[1,2]`; `[2,3]` (V8) | Reproduces in jsvu XS 17.9.3 and in `xst` built from current Moddable `public` source at `5f215f7` (2026-10-09). With `d`, end offsets are wrong after non-ASCII text; `m.index` and `m[0]` are correct |
 | IRX-E262-1 | engine262 | Open · [#370](https://github.com/engine262/engine262/issues/370) | rejects valid pattern: `new RegExp("[\\u{17F}--\\u{212A}]", "v")` → SyntaxError "Expect a CharacterClassEscape" → expected accepted | Tested: npm `@engine262/engine262` commit `678c2c0` (2026-10-03), which matches current upstream `main`. The doubled backslashes in the JS string pass literal Unicode escapes to the RegExp parser; the previous single-backslash example was accepted because JS decoded it before RegExp construction. A `\u{…}` escape is rejected as a `ClassSetOperand` in set operations. |
 | IRX-E262-2 | engine262 | Open · [#371](https://github.com/engine262/engine262/issues/371) | wrong result: `/^[^[^a]&&\d]$/v.test("ſ")` → `false`; `/^a[^A&&[a-z]]$/v.test("aa")` → `false` → expected `true`; `true` | Tested: engine262 (npm `@engine262/engine262`). negated classes whose contents are a set operation are computed wrongly (~46k findings) |
 | IRX-E262-3 | engine262 | Open · [#372](https://github.com/engine262/engine262/issues/372) | wrong result: `/\u{1F600}\B/u.exec("😀k")` → match `[0,2)`; `/\W\b/u.exec("😀k")` → `null` → expected `null`; `[0,2)` (V8) | Tested: engine262 (npm `@engine262/engine262`). In `u` mode a word boundary right after an astral character is evaluated wrongly (it behaves as if there were no boundary between `😀` and `k`); BMP characters (`é`) and the `v` flag are fine. Found by the long-input campaign (span mode), minimized to `(?:\W\B|[A-Z])*` on `"😀k"` |

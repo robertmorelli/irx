@@ -49,7 +49,11 @@ class Bridge:
     def run(self, line, ncases):
         """Run one request line. Returns the result hex, or None on timeout."""
         with open(self.path, "w", encoding="utf-8") as f:
-            f.write("var __IRX_BATCH = " + json.dumps(line) + ";\n")
+            # Concatenated short literals: XS rejects the whole script when one string literal's
+            # source reaches 64K characters ("buffer overflow"; this was IRX-XS-3). 4096 characters
+            # stay under that even when json.dumps escapes every one as a 12-character pair.
+            parts = [json.dumps(line[i:i + 4096]) for i in range(0, len(line), 4096)] or ['""']
+            f.write("var __IRX_BATCH = " + " +\n  ".join(parts) + ";\n")
             # Also as an object literal: JSON is valid JS, and string literals accept lone
             # surrogate escapes even where JSON.parse wrongly rejects them (Boa).
             f.write("var __IRX_BATCH_OBJ = " + line + ";\n")
