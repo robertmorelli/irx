@@ -259,11 +259,12 @@ for (const id of ["view-strict", "view-own"]) {
 
 // Scaling chart
 (function () {
-  const pick = M.scale_engines.filter(n => S[n]);
-  const colors = ["#1f5fd6", "#d0582a", "#1e8a4c", "#8a4fd0", "#b8860b", "#2f7d8c", "#c2306a", "#6b7a1f"];
+  const pick = M.scale_engines.filter(n => S[n]).concat(Object.keys(EX).filter(n => EX[n].scale));
+  const scaleOf = n => EX[n] && EX[n].scale ? EX[n].scale : (D.scale[n] || {});
+  const colors = ["#1f5fd6", "#d0582a", "#1e8a4c", "#8a4fd0", "#b8860b", "#2f7d8c", "#c2306a", "#6b7a1f", "#e0457b"];
   const W = 900, H = 340, L = 64, R = 20, T = 14, B = 40;
   const sizes = M.bins.map(b => b[1]);
-  const vals = pick.flatMap(n => M.bins.map(b => (D.scale[n] || {})[b[0]]).filter(Boolean));
+  const vals = pick.flatMap(n => M.bins.map(b => scaleOf(n)[b[0]]).filter(Boolean));
   const ylo = Math.log10(Math.min(...vals) / 1.5), yhi = Math.log10(Math.max(...vals) * 1.5);
   const x = v => L + (Math.log10(v) - Math.log10(sizes[0])) / (Math.log10(sizes[sizes.length - 1]) - Math.log10(sizes[0])) * (W - L - R);
   const y = v => T + (yhi - Math.log10(v)) / (yhi - ylo) * (H - T - B);
@@ -274,13 +275,13 @@ for (const id of ["view-strict", "view-own"]) {
   }
   for (const z of sizes) s += `<text class="axis" x="${x(z)}" y="${H - B + 18}" text-anchor="middle">${z.toLocaleString()} chars</text>`;
   pick.forEach((n, i) => {
-    const pts = M.bins.map(b => [x(b[1]), (D.scale[n] || {})[b[0]]]).filter(p => p[1]).map(p => [p[0], y(p[1])]);
+    const pts = M.bins.map(b => [x(b[1]), scaleOf(n)[b[0]]]).filter(p => p[1]).map(p => [p[0], y(p[1])]);
     if (!pts.length) return;
-    s += `<polyline fill="none" stroke="${colors[i % colors.length]}" stroke-width="2" points="${pts.map(p => p.join(",")).join(" ")}"/>`;
+    s += `<polyline fill="none" stroke="${colors[i % colors.length]}" stroke-width="${EX[n] ? 2.5 : 2}"${EX[n] ? ' stroke-dasharray="6 4"' : ""} points="${pts.map(p => p.join(",")).join(" ")}"/>`;
     for (const p of pts) s += `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${colors[i % colors.length]}"/>`;
   });
   document.getElementById("c-scale").innerHTML = s + "</svg>";
-  document.getElementById("scale-legend").innerHTML = pick.map((n, i) => `<span class="key"><i style="background:${colors[i % colors.length]};box-shadow:none"></i>${esc(label(n))}</span>`).join("");
+  document.getElementById("scale-legend").innerHTML = pick.map((n, i) => `<span class="key"><i style="background:${colors[i % colors.length]};box-shadow:none"></i>${esc(label(n))}${EX[n] ? " * (dashed: not irx; its ratios to a load-matched Rust run applied to the quiet Rust times)" : ""}</span>`).join("");
 })();
 
 // Feature matrix
