@@ -92,3 +92,18 @@ int host_capture(const char *flags, const char *const subj[2], const size_t lens
     (void)flags; (void)subj; (void)lens; (void)pat; (void)plen; (void)out;
     return 0x40;
 }
+
+/* bench (Shootout 2): compile once, unanchored searches. */
+void *host_bench_compile(const char *flags, const char *pat, size_t plen) {
+    std::string ere;
+    if (!translate(std::string(pat, plen), ere)) return nullptr;
+    llvm::Regex::RegexFlags f = llvm::Regex::NoFlags;
+    if (strchr(flags, 'i')) f = (llvm::Regex::RegexFlags)(f | llvm::Regex::IgnoreCase);
+    if (strchr(flags, 'm')) f = (llvm::Regex::RegexFlags)(f | llvm::Regex::Newline);
+    llvm::Regex *re = new llvm::Regex(llvm::StringRef("(" + ere + ")"), f);
+    std::string err;
+    if (!re->isValid(err)) { delete re; return nullptr; }
+    return re;
+}
+int host_bench_search(void *h, int k, const char *s, size_t len) { (void)k; return ((llvm::Regex *)h)->match(llvm::StringRef(s, len)) ? 1 : 0; }
+void host_bench_free(void *h) { delete (llvm::Regex *)h; }

@@ -85,3 +85,21 @@ int host_capture(const char *flags, const char *const subj[2], const size_t lens
     uregex_close(re);
     return rc;
 }
+
+/* bench (Shootout 2): compile once, unanchored searches; the UTF-16 text is converted once per
+ * subject slot (outside the timed loop). */
+typedef struct { URegularExpression *re; UChar *t[2]; int32_t n[2]; int cur; } IB;
+void *host_bench_compile(const char *flags, const char *pat, size_t plen) {
+    URegularExpression *re = compile(flags, pat, plen, 0);
+    if (!re) return NULL;
+    IB *b = (IB *)calloc(1, sizeof *b); b->re = re; b->cur = -1;
+    return b;
+}
+int host_bench_search(void *h, int k, const char *s, size_t len) {
+    IB *b = (IB *)h; UErrorCode e = U_ZERO_ERROR;
+    if (!b->t[k]) b->t[k] = u16(s, len, &b->n[k]);
+    if (b->cur != k) { uregex_setText(b->re, b->t[k], b->n[k], &e); b->cur = k; }
+    UBool hit = uregex_find(b->re, 0, &e);
+    return U_FAILURE(e) ? -1 : hit ? 1 : 0;
+}
+void host_bench_free(void *h) { IB *b = (IB *)h; uregex_close(b->re); free(b->t[0]); free(b->t[1]); free(b); }

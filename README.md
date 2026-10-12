@@ -217,6 +217,10 @@ Three constructs need engine-specific care:
   listed in a non-negated class, also matches the subject strings its full fold spells (`ss`, `sS`, `ſs`, …). These
   characters stay out of subjects (`pattern_only`), since a subject `ß` would also match the pattern `ss`, which the
   atom model cannot see. Such atoms are kept out of lookbehind.
+* **Shootout 2** (`tools/irx_bench.py`): every host has a `bench` mode (compile once, then timed unanchored
+  searches). The tool times 49 engines on one shared workload (ASCII and Unicode pattern sets, four subject sizes),
+  splits each engine's speed relative to Rust by set, accept/reject and size, joins feature counts from the dialect
+  model (`irx features`) and open ledger bugs, and assigns S–F tiers. Results: [`docs/shootout2/summary.json`](docs/shootout2/summary.json).
 * **Cross-engine check** (`tools/irx_diff.py`): irx skips span and capture checks on Rust, Go, RE2 and
   regex-automata for patterns with a loop over an empty-matchable body (their rule is not modelled). These engines
   all document RE2's leftmost-first semantics, so the tool runs the same patterns (ASCII syntax common to all,

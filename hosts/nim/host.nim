@@ -1,5 +1,5 @@
 ## irx host: nim-regex (re2 API). Perl-dialect patterns; inline flags (?ims).
-import std/[json, strutils, strformat, os, sequtils]
+import std/[json, strutils, strformat, os, sequtils, monotimes, times]
 import regex
 
 let mode = if paramCount() > 0: paramStr(1) else: "default"
@@ -42,9 +42,35 @@ while readLine(stdin, line):
       f = f[0 ..< at]
     if "\uFFFF" in a or "\uFFFF" in r or "\uFFFF" in p:
       outp.add(if isSpan: failed(0x40, 2) elif isCap: failed(0x40, 26) else: "40"); continue
+    var reps = 1
+    let hash = f.find('#')
+    if hash >= 0:
+      reps = max(1, parseInt(f[hash + 1 .. ^1]))
+      f = f[0 ..< hash]
     var fl = ""
     for ch in "ims":
       if ch in f: fl.add ch
+    if mode == "bench":
+      # Shootout 2: compile once, timed contains() loops.
+      proc h12(n: int64): string = toHex(max(n, 0'i64), 12).toLowerAscii
+      var res = ""
+      try:
+        let t0 = getMonoTime()
+        let rx = re2((if fl.len > 0: "(?" & fl & ")" else: "") & p)
+        let tc = (getMonoTime() - t0).inNanoseconds
+        let bits = (if a.contains(rx): 1 else: 0) or (if r.contains(rx): 2 else: 0)
+        let t1 = getMonoTime()
+        for _ in 1 .. reps: discard a.contains(rx)
+        let t2 = getMonoTime()
+        for _ in 1 .. reps: discard r.contains(rx)
+        let t3 = getMonoTime()
+        res = hx(bits) & h12(tc) & h12((t2 - t1).inNanoseconds) & h12((t3 - t2).inNanoseconds)
+      except RegexError:
+        res = "fe04" & "0".repeat(36)
+      except CatchableError, Defect:
+        res = "fe08" & "0".repeat(36)
+      outp.add res
+      continue
     if isCap:
       # Whole match + groups 1..6 per subject, byte offsets (src/capture.zig).
       var sp = ""

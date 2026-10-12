@@ -40,6 +40,7 @@ split_flags(F) ->
 hex2(N) -> io_lib:format("~2.16.0b", [N]).
 fail(B, Rest) -> ["fe", hex2(B), lists:duplicate(Rest, "00")].
 
+run_case("bench", [F0, A, R, P]) -> bench(F0, A, R, P);
 run_case(Mode, [F0, A, R, P]) ->
     {F, OA, OR} = split_flags(F0),
     case Mode of
@@ -94,5 +95,26 @@ capture(F, A, R, P) ->
                      {error, _} -> throw(limit)
                  end || S <- [A, R]]
             catch throw:limit -> fail(16#40, 26); _:_ -> fail(8, 26)
+            end
+    end.
+
+%% bench (Shootout 2): "<flags>#<reps>"; compile once, timed re:run loops (capture none).
+hex12(N) -> io_lib:format("~12.16.0b", [N]).
+bench(F0, A, R, P) ->
+    {F, N} = case binary:split(F0, <<"#">>) of [Fl, Ns] -> {Fl, max(1, binary_to_integer(Ns))}; [Fl] -> {Fl, 1} end,
+    T0 = erlang:monotonic_time(nanosecond),
+    case re:compile(P, opts(F)) of
+        {error, _} -> ["fe04", lists:duplicate(36, $0)];
+        {ok, MP} ->
+            Tc = erlang:monotonic_time(nanosecond) - T0,
+            try
+                M = fun(S) -> case re:run(S, MP, [{capture, none}]) of match -> 1; nomatch -> 0; {error, _} -> throw(limit) end end,
+                Bits = M(A) bor (M(R) bsl 1),
+                Loop = fun Lp(_, 0) -> ok; Lp(S, K) -> _ = re:run(S, MP, [{capture, none}]), Lp(S, K - 1) end,
+                T1 = erlang:monotonic_time(nanosecond), Loop(A, N),
+                T2 = erlang:monotonic_time(nanosecond), Loop(R, N),
+                T3 = erlang:monotonic_time(nanosecond),
+                [hex2(Bits), hex12(Tc), hex12(T2 - T1), hex12(T3 - T2)]
+            catch throw:limit -> ["fe40", lists:duplicate(36, $0)]; _:_ -> ["fe08", lists:duplicate(36, $0)]
             end
     end.

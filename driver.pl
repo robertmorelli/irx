@@ -134,6 +134,42 @@ sub capture_case {
 }
 
 print "ready perl $^V mode=$mode\n";
+# Bench mode (Shootout 2, tools/irx_bench.py): flags "<flags>#<reps>"; compile once (timed), then
+# <reps> timed unanchored searches of A and of R. 2 hex bits + compile/A/R ns (12 hex each).
+use Time::HiRes ();
+sub bench_ns { int(Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) * 1e9) }
+sub bench_case {
+    my ($c) = @_;
+    my ($flags, $a, $r, $src) = @$c;
+    my $n = 1;
+    ($flags, $n) = ($1, $2) if $flags =~ /^(.*)#(\d+)$/;
+    $n = 1 if $n < 1;
+    my $fail = sub { sprintf('fe%02x', $_[0]) . ('0' x 36) };
+    return $fail->(0x04) if $src =~ /\(\?\??\{/;
+    my $mods = '';
+    $mods .= 'i' if $flags =~ /i/;
+    $mods .= 'm' if $flags =~ /m/;
+    $mods .= 's' if $flags =~ /s/;
+    $mods .= $CS // ($flags =~ /[uv]/ ? 'u' : '');
+    my $t0 = bench_ns();
+    my $re = eval { qr/(?^$mods:$src)/ };
+    my $tc = bench_ns() - $t0;
+    return $fail->(0x04) unless defined $re;
+    my ($bits, $ta, $tr);
+    my $ok = eval {
+        $bits = (($a =~ $re) ? 1 : 0) | (($r =~ $re) ? 2 : 0);
+        my $t1 = bench_ns();
+        for (1 .. $n) { my $x = ($a =~ $re) }
+        my $t2 = bench_ns();
+        for (1 .. $n) { my $x = ($r =~ $re) }
+        my $t3 = bench_ns();
+        ($ta, $tr) = ($t2 - $t1, $t3 - $t2);
+        1;
+    };
+    return $fail->(0x08) unless $ok;
+    return sprintf('%02x%012x%012x%012x', $bits, $tc, $ta, $tr);
+}
+
 while (defined(my $line = <STDIN>)) {
     chomp $line;
     next if $line eq '';
@@ -148,6 +184,7 @@ while (defined(my $line = <STDIN>)) {
         next;
     }
     my ($seq, $cases) = @$msg;
+    if ($mode eq 'bench') { print $seq, ' ', join('', map { bench_case($_) } @$cases), "\n"; next; }
     if ($mode eq 'span' || $mode eq 'lspan') { print $seq, ' ', join('', map { span_case($_) } @$cases), "\n"; next; }
     if ($mode eq 'ospan' || $mode eq 'aspan') { print $seq, ' ', join('', map { offset_case($_, $mode eq 'aspan') } @$cases), "\n"; next; }
     if ($mode eq 'capture' || $mode eq 'lcapture') { print $seq, ' ', join('', map { capture_case($_) } @$cases), "\n"; next; }

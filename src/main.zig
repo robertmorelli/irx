@@ -786,6 +786,22 @@ fn quantDepth(t: *const ast.Ast, idx: u8) usize {
 
 /// Diagnostics: build tables and print sampled patterns plus construct and
 /// quantifier-nesting statistics (no engine involved).
+/// `irx features`: one JSON object per dialect with the constructs it supports (Shootout 2's
+/// feature score, tools/irx_bench.py).
+fn cmdFeatures() !u8 {
+    var buf: [4096]u8 = undefined;
+    for (dialect.all) |d| {
+        const line = try std.fmt.bufPrint(&buf, "{{\"dialect\":\"{s}\",\"lookahead\":{},\"lookbehind\":{},\"backrefs\":{},\"atomic\":{},\"possessive\":{},\"unicode_props\":{},\"named_groups\":{},\"inline_flags\":{},\"lazy\":{},\"word_boundary\":{},\"grapheme\":{},\"unicode_classes\":{},\"full_case_fold\":{},\"extended_mode\":{}}}\n", .{
+            d.name,                         d.allow_lookahead,         d.allow_lookbehind,        d.backrefs,
+            d.atomic_groups,                d.possessive,              d.unicode_props,           d.named_group != .plain_capture,
+            d.scoped_flags,                 d.allow_lazy,              d.assertions.wordb,        d.grapheme_escape != .none,
+            !d.ascii_only,                  d.full_fold != .none,      d.extended_mode,
+        });
+        sys.stdoutPrint("{s}", .{line});
+    }
+    return 0;
+}
+
 fn cmdSample(gpa: Allocator, o: *const Options) !u8 {
     ucd.init();
     var cfg: config.Config = undefined;
@@ -946,6 +962,7 @@ pub fn main(init: std.process.Init) !u8 {
     if (std.mem.eql(u8, o.command, "replay")) return cmdReplay(gpa, &o);
     if (std.mem.eql(u8, o.command, "gate")) return cmdGate(gpa, &o);
     if (std.mem.eql(u8, o.command, "sample")) return cmdSample(gpa, &o);
+    if (std.mem.eql(u8, o.command, "features")) return cmdFeatures();
     if (std.mem.eql(u8, o.command, "triage")) return cmdTriage(gpa, &o);
     usage();
 }

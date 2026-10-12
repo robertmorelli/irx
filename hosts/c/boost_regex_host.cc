@@ -74,3 +74,18 @@ int host_capture(const char *flags, const char *const subj[2], const size_t lens
     } catch (const std::runtime_error &) { return 0x40; }
     return 0;
 }
+
+/* bench (Shootout 2): compile once, unanchored searches; the wide text is converted once per
+ * subject slot (outside the timed loop). */
+struct WB { boost::wregex re; std::wstring t[2]; bool have[2] = {false, false}; };
+void *host_bench_compile(const char *flags, const char *pat, size_t plen) {
+    WB *b = new WB;
+    try { b->re.assign(widen(pat, plen), opts(flags)); } catch (...) { delete b; return nullptr; }
+    return b;
+}
+int host_bench_search(void *h, int k, const char *s, size_t len) {
+    WB *b = (WB *)h;
+    if (!b->have[k]) { b->t[k] = widen(s, len); b->have[k] = true; }
+    try { return boost::regex_search(b->t[k], b->re) ? 1 : 0; } catch (...) { return -1; }
+}
+void host_bench_free(void *h) { delete (WB *)h; }

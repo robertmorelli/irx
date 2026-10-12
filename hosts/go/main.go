@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 )
 
 // loneSurrogate reports a \uD800-\uDFFF escape that is not part of a valid pair.
@@ -95,6 +96,14 @@ func main() {
 					sb.WriteString(failHex(0x40, 26))
 				} else {
 					sb.WriteString(capture(c[0], c[1], c[2], c[3]))
+				}
+				continue
+			}
+			if mode == "bench" {
+				if loneSurrogate(string(raw)) {
+					sb.WriteString("fe40" + strings.Repeat("0", 36))
+				} else {
+					sb.WriteString(bench(c[0], c[1], c[2], c[3]))
 				}
 				continue
 			}
@@ -244,4 +253,54 @@ func capture(flags, a, r, pat string) (res string) {
 		}
 	}
 	return res
+}
+
+// bench (Shootout 2): "<flags>#<reps>"; compile once, timed MatchString loops.
+func bench(flags, a, r, pat string) (res string) {
+	defer func() {
+		if recover() != nil {
+			res = "fe08" + strings.Repeat("0", 36)
+		}
+	}()
+	reps := 1
+	if i := strings.IndexByte(flags, '#'); i >= 0 {
+		fmt.Sscanf(flags[i+1:], "%d", &reps)
+		flags = flags[:i]
+	}
+	if reps < 1 {
+		reps = 1
+	}
+	pre := ""
+	for _, f := range "ims" {
+		if strings.ContainsRune(flags, f) {
+			pre += string(f)
+		}
+	}
+	if pre != "" {
+		pre = "(?" + pre + ")"
+	}
+	t0 := time.Now()
+	re, err := compile(pre + pat)
+	if err != nil {
+		return "fe04" + strings.Repeat("0", 36)
+	}
+	tc := time.Since(t0).Nanoseconds()
+	bits := 0
+	if re.MatchString(a) {
+		bits |= 1
+	}
+	if re.MatchString(r) {
+		bits |= 2
+	}
+	t1 := time.Now()
+	for i := 0; i < reps; i++ {
+		re.MatchString(a)
+	}
+	ta := time.Since(t1).Nanoseconds()
+	t2 := time.Now()
+	for i := 0; i < reps; i++ {
+		re.MatchString(r)
+	}
+	tr := time.Since(t2).Nanoseconds()
+	return fmt.Sprintf("%02x%012x%012x%012x", bits, tc, ta, tr)
 }

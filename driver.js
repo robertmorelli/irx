@@ -117,6 +117,36 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
     return s;
   }
 
+  // Bench mode (Shootout 2, tools/irx_bench.py): flags carry "<flags>#<reps>". Compile once (timed),
+  // one untimed unanchored search of each subject, then <reps> timed searches of A and of R.
+  // Response: 2 hex bits + compile, A, R nanoseconds as 12 hex digits each; "fe" + bits on failure.
+  // "benchlinear": V8's linear-time engine (the l flag).
+  var nowMs = (typeof performance === "object" && performance && typeof performance.now === "function") ? function () { return performance.now(); }
+    : typeof preciseTime === "function" ? function () { return preciseTime() * 1000; }
+    : (typeof os === "object" && os && typeof os.now === "function") ? function () { return os.now() / 1000; }
+    : function () { return Date.now(); };
+  if (__irx_rt && typeof process === "object" && process.hrtime && process.hrtime.bigint) nowMs = function () { return Number(process.hrtime.bigint()) / 1e6; };
+  function hx12(ms) { var n = Math.max(0, Math.round(ms * 1e6)); var s = n.toString(16); while (s.length < 12) s = "0" + s; return s; }
+  var sink = 0;
+  function benchCase(c) {
+    function fail(b) { return "fe" + hx(b) + "000000000000000000000000000000000000"; }
+    var f = c[0], reps = 1, at = f.indexOf("#");
+    if (at >= 0) { reps = Math.max(1, parseInt(f.substring(at + 1), 10) || 1); f = f.substring(0, at); }
+    var re, t0 = nowMs();
+    try { re = new RegExp(c[3], mode === "benchlinear" ? f + "l" : f); } catch (e) { return fail((e instanceof SyntaxError) ? 4 : 8); }
+    var tc = nowMs() - t0, A = c[1], R = c[2], bits = 0, i;
+    try {
+      if (re.test(A)) bits |= 1;
+      if (re.test(R)) bits |= 2;
+      var t1 = nowMs();
+      for (i = 0; i < reps; i++) if (re.test(A)) sink++;
+      var t2 = nowMs();
+      for (i = 0; i < reps; i++) if (re.test(R)) sink++;
+      var t3 = nowMs();
+    } catch (e) { return fail(8); }
+    return hx(bits) + hx12(tc) + hx12(t2 - t1) + hx12(t3 - t2);
+  }
+
   // Offset mode (ospan): flags carry "<flags>@<a>,<r>"; search each subject from that
   // lastIndex (g flag), report the span like span mode.
   function offsetCase(c, sticky) {
@@ -193,6 +223,7 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
       if (mode === "span" || mode === "lspan") { parts[i] = spanCase(cases[i], mode === "lspan"); continue; }
       if (mode === "ospan" || mode === "aspan") { parts[i] = offsetCase(cases[i], mode === "aspan"); continue; }
       if (mode === "gspan") { parts[i] = globalCase(cases[i]); continue; }
+      if (mode === "bench" || mode === "benchlinear") { parts[i] = benchCase(cases[i]); continue; }
       if (mode === "capture" || mode === "lcapture") { parts[i] = captureCase(cases[i], mode === "lcapture"); continue; }
       var b = runCase(cases[i]);
       parts[i] = HEX[(b >> 4) & 15] + HEX[b & 15];

@@ -2,6 +2,10 @@
 //! UnicodeMode::Full (`.` and negated classes step by code point, Unicode \w\d\s) and
 //! multiline off, so ^/$ follow the irx m flag like the other engines.
 fn main() {
+    irx_hosts::bench(|flags, pat| {
+        let re = resharp::Regex::with_options(&format!("{}{}", irx_hosts::inline_flags(flags), pat), resharp::RegexOptions::default().unicode(resharp::UnicodeMode::Full).multiline(false)).map_err(|_| 0x04u8)?;
+        Ok(Box::new(move |s: &str| re.is_match(s.as_bytes()).map_err(|_| ())))
+    });
     irx_hosts::serve_span("resharp", |flags, a, r, pat, repeat| {
         let src = format!("{}\\A(?:{})\\z", irx_hosts::inline_flags(flags), pat);
         let re = match resharp::Regex::with_options(&src, resharp::RegexOptions::default().unicode(resharp::UnicodeMode::Full).multiline(false)) { Ok(re) => re, Err(e) => { if std::env::var_os("IRX_DEBUG").is_some() { eprintln!("{src}: {e}"); } return 0x04 } };

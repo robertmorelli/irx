@@ -17,6 +17,19 @@ while (($line = fgets(STDIN)) !== false) {
     [$seq, $cases] = $msg;
     $out = "";
     foreach ($cases as [$flags, $a, $r, $pat]) {
+        if ($mode === "bench") { // Shootout 2: "<flags>#<reps>"; the first preg_match compiles (PCRE cache), then timed searches
+            [$flags, $n] = array_pad(explode("#", $flags, 2), 2, "1"); $n = max(1, intval($n));
+            if (str_contains($a . $r . $pat, "\u{FFFF}")) { $out .= "fe40" . str_repeat("0", 36); continue; }
+            $re = "\x01" . $pat . "\x01u" . (str_contains($flags, "i") ? "i" : "") . (str_contains($flags, "m") ? "m" : "") . (str_contains($flags, "s") ? "s" : "");
+            $t0 = hrtime(true); $ok = @preg_match($re, ""); $tc = hrtime(true) - $t0;
+            if ($ok === false) { $out .= "fe04" . str_repeat("0", 36); continue; }
+            $ma = @preg_match($re, $a); $mr = @preg_match($re, $r);
+            if ($ma === false || $mr === false) { $out .= "fe08" . str_repeat("0", 36); continue; }
+            $t1 = hrtime(true); for ($i = 0; $i < $n; $i++) preg_match($re, $a);
+            $t2 = hrtime(true); for ($i = 0; $i < $n; $i++) preg_match($re, $r);
+            $t3 = hrtime(true);
+            $out .= sprintf("%02x%012x%012x%012x", $ma | ($mr << 1), $tc, $t2 - $t1, $t3 - $t2); continue;
+        }
         // ospan: "<flags>@<a>,<r>" = search start per subject (bytes)
         $starts = [0, 0];
         if (($at = strpos($flags, "@")) !== false) { $starts = array_map("intval", explode(",", substr($flags, $at + 1))); $flags = substr($flags, 0, $at); }

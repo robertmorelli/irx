@@ -33,6 +33,31 @@
       (define starts (if at (map string->number (string-split (substring f0 (add1 at)) ",")) '(0 0)))
       (cond
         [(for/or ([s (list a r p)]) (string-contains? s "￿")) (write-string (cond [is-span (failed #x40 2)] [is-cap (failed #x40 26)] [else "40"]) out)]
+        [(string=? mode "bench")
+         ;; Shootout 2: "<flags>#<reps>"; compile once, timed regexp-match? loops.
+         (define parts (string-split f "#" #:trim? #f))
+         (define fl (car parts))
+         (define n (max 1 (or (and (> (length parts) 1) (string->number (cadr parts))) 1)))
+         (define modes (string-append (if (string-contains? fl "i") "i" "") (if (string-contains? fl "s") "s" "") (if (string-contains? fl "m") "m" "")))
+         (define src (if (string=? modes "") (fix p) (string-append "(?" modes ":" (fix p) ")")))
+         (define (now) (current-inexact-monotonic-milliseconds))
+         (define (h12 ms) (let ([h (number->string (max 0 (inexact->exact (round (* ms 1e6)))) 16)]) (string-append (make-string (max 0 (- 12 (string-length h))) #\0) h)))
+         (define t0 (now))
+         (define rx (with-handlers ([exn:fail? (lambda (e) #f)]) (pregexp src)))
+         (define tc (- (now) t0))
+         (write-string
+          (cond
+            [(not rx) (string-append "fe04" (make-string 36 #\0))]
+            [else
+             (with-handlers ([exn:fail? (lambda (e) (string-append "fe08" (make-string 36 #\0)))])
+               (define bits (+ (if (regexp-match? rx a) 1 0) (if (regexp-match? rx r) 2 0)))
+               (define t1 (now))
+               (for ([_ n]) (regexp-match? rx a))
+               (define t2 (now))
+               (for ([_ n]) (regexp-match? rx r))
+               (define t3 (now))
+               (string-append (if (< bits 16) "0" "") (number->string bits 16) (h12 tc) (h12 (- t2 t1)) (h12 (- t3 t2))))])
+          out)]
         [is-cap
          ;; Whole match + groups 1..6 per subject, character offsets (src/capture.zig).
          (define modes (string-append (if (string-contains? f "i") "i" "") (if (string-contains? f "s") "s" "") (if (string-contains? f "m") "m" "")))

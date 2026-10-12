@@ -92,6 +92,10 @@ fn build(flags: &str, pat: &str, want_caps: bool) -> Result<(Find, Option<Caps>)
 }
 
 fn main() {
+    irx_hosts::bench(|flags, pat| {
+        let (mut find, _) = build(flags, pat, false)?;
+        Ok(Box::new(move |s: &str| find(&Input::new(s)).map(|m| m.is_some()).map_err(|_| ())))
+    });
     let name = format!("regex-automata-{}", engine());
     irx_hosts::serve_all(&name, |flags, a, r, pat, repeat| {
         let (mut find, _) = match build(flags, &format!("\\A(?:{})\\z", pat), false) { Ok(x) => x, Err(e) => return e };

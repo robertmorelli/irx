@@ -36,6 +36,24 @@ static int host_anchored;
 int host_capture(const char *flags, const char *const subj[2], const size_t lens[2],
                  const char *pat, size_t plen, long out[2][2 * CAP_PAIRS]);
 
+/* Mode "bench" (Shootout 2, tools/irx_bench.py): flags arrive as "<flags>#<reps>". The host
+ * compiles the pattern once (timed), runs one untimed unanchored search of each subject, then
+ * times <reps> unanchored searches of A and of R. Response per case: 2 hex bits (A matched, R
+ * matched) then compile, A-total and R-total nanoseconds as 12 hex digits each; "fe" + bits on
+ * failure. Hosts opt in by defining these (k is the subject slot, 0 = A, 1 = R, so a host may
+ * cache a converted copy of the text per slot); a host without them answers unsupported. */
+#ifdef __cplusplus
+extern "C" {
+#endif
+void *host_bench_compile(const char *flags, const char *pat, size_t plen) __attribute__((weak));
+int host_bench_search(void *h, int k, const char *s, size_t len) __attribute__((weak)); /* 1, 0, or -1 = error */
+void host_bench_free(void *h) __attribute__((weak));
+#ifdef __cplusplus
+}
+#endif
+#include <time.h>
+static unsigned long long bench_now(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC_RAW, &t); return (unsigned long long)t.tv_sec * 1000000000ull + (unsigned long long)t.tv_nsec; }
+
 typedef struct { char *buf; size_t len, cap; int bad; } Str;
 
 static void put(Str *s, const char *p, size_t n) {
@@ -102,6 +120,7 @@ int main(int argc, char **argv) {
     int ospan = strcmp(mode, "ospan") == 0 || host_anchored;
     int span = strcmp(mode, "span") == 0 || strcmp(mode, "lspan") == 0 || ospan;
     int capture = strcmp(mode, "capture") == 0 || strcmp(mode, "lcapture") == 0;
+    int bench = strcmp(mode, "bench") == 0;
     const int D = wide ? 4 : 2;            /* hex digits per position */
     const long NONE = wide ? 0xffff : 0xff;
     setvbuf(stdout, NULL, _IOFBF, 1 << 16);
@@ -131,6 +150,39 @@ int main(int argc, char **argv) {
             if (ospan) {
                 char *at = strchr(f.buf, '@');
                 if (at) { *at = 0; char *q = at + 1; host_start[0] = strtoul(q, &q, 10); if (*q == ',') host_start[1] = strtoul(q + 1, NULL, 10); }
+            }
+            if (bench) {
+                long reps = 1;
+                char *hash = strchr(f.buf, '#');
+                if (hash) { *hash = 0; reps = strtol(hash + 1, NULL, 10); if (reps < 1) reps = 1; }
+                char hx[64];
+                int e = 0, bits = 0; unsigned long long tc = 0, ta = 0, tr = 0;
+                void *h = NULL;
+                if (a.bad || r.bad || pat.bad || !host_bench_compile) e = 0x40;
+                else {
+                    unsigned long long t0 = bench_now();
+                    h = host_bench_compile(f.buf, pat.buf, pat.len);
+                    tc = bench_now() - t0;
+                    if (!h) e = 0x04;
+                }
+                if (!e) {
+                    int m0 = host_bench_search(h, 0, a.buf, a.len), m1 = host_bench_search(h, 1, r.buf, r.len);
+                    if (m0 < 0 || m1 < 0) e = 0x08;
+                    else {
+                        bits = m0 | (m1 << 1);
+                        unsigned long long t0 = bench_now();
+                        for (long i = 0; i < reps; i++) host_bench_search(h, 0, a.buf, a.len);
+                        unsigned long long t1 = bench_now();
+                        for (long i = 0; i < reps; i++) host_bench_search(h, 1, r.buf, r.len);
+                        unsigned long long t2 = bench_now();
+                        ta = t1 - t0; tr = t2 - t1;
+                    }
+                }
+                if (h) host_bench_free(h);
+                if (e) snprintf(hx, sizeof hx, "fe%02x%036d", e, 0);
+                else snprintf(hx, sizeof hx, "%02x%012llx%012llx%012llx", bits, tc, ta, tr);
+                put(&out, hx, 38);
+                continue;
             }
             if (capture || span) {
                 /* Positions: capture = 2 subjects x CAP_PAIRS pairs; span = 2 subjects x 1 pair. */

@@ -111,6 +111,27 @@
                            ;; ospan: no start-offset search with standard ^ semantics: unsupported.
                            (is-ospan (funcall failed #x40 2))
                            ((cl-some (lambda (x) (string-search "￿" x)) (list a r p)) (cond (is-span (funcall failed #x40 2)) (is-cap (funcall failed #x40 26)) (t "40")))
+;; Shootout 2: "<flags>#<reps>"; the first string-match compiles (Emacs caches
+                           ;; compiled regexps), then timed string-match-p loops.
+                           ((equal mode "bench")
+                            (let* ((hash (string-search "#" f))
+                                   (n (max 1 (if hash (string-to-number (substring f (1+ hash))) 1)))
+                                   (fl (if hash (substring f 0 hash) f))
+                                   (zeros (make-string 36 ?0))
+                                   (rx (condition-case nil (irx--translate p (string-search "s" fl)) (error nil)))
+                                   (ns (lambda (t0 t1) (max 0 (round (* (- t1 t0) 1e9)))))
+                                   (case-fold-search (and (string-search "i" fl) t))
+                                   (t0 (float-time)))
+                              (if (or (not rx) (condition-case nil (progn (string-match rx "") nil) (invalid-regexp t)))
+                                  (concat "fe04" zeros)
+                                (let ((tc (funcall ns t0 (float-time))))
+                                  (condition-case nil
+                                      (let* ((bits (logior (if (string-match-p rx a) 1 0) (if (string-match-p rx r) 2 0)))
+                                             (t1 (float-time)) (_ (dotimes (_ n) (string-match-p rx a)))
+                                             (t2 (float-time)) (_ (dotimes (_ n) (string-match-p rx r)))
+                                             (t3 (float-time)))
+                                        (format "%02x%012x%012x%012x" bits tc (funcall ns t1 t2) (funcall ns t2 t3)))
+                                    (error (concat "fe08" zeros)))))))
                            (is-cap
                             ;; Whole match + groups 1..6 per subject, character offsets (src/capture.zig).
                             ;; match-data drops unset trailing groups, so pad.

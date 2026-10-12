@@ -59,10 +59,28 @@ while {[gets stdin line] >= 0} {
             set p [string range $p [expr {[lindex $all 1] + 1}] end]
         }
         set p "$p2$p"
+        set nreps 1
+        set hash [string first # $f]
+        if {$hash >= 0} { set nreps [string range $f [expr {$hash + 1}] end]; set f [string range $f 0 [expr {$hash - 1}]] }
         set opts {}
         if {[string first i $f] >= 0} { lappend opts -nocase }
         if {[string first m $f] >= 0} { lappend opts -lineanchor }
         if {[string first s $f] < 0} { lappend opts -linestop }
+        if {$mode eq "bench"} {
+            # Shootout 2: compile on the first call (Tcl caches the compiled RE on the object),
+            # then timed unanchored searches. Microsecond clock.
+            set t0 [clock microseconds]
+            if {[catch {regexp {*}$opts -- $p ""} err]} { append out [format fe%02x 4][string repeat 0 36]; continue }
+            set tc [expr {([clock microseconds] - $t0) * 1000}]
+            set bits [expr {[regexp {*}$opts -- $p $a] | ([regexp {*}$opts -- $p $r] << 1)}]
+            set t1 [clock microseconds]
+            for {set k 0} {$k < $nreps} {incr k} { regexp {*}$opts -- $p $a }
+            set t2 [clock microseconds]
+            for {set k 0} {$k < $nreps} {incr k} { regexp {*}$opts -- $p $r }
+            set t3 [clock microseconds]
+            append out [format %02x%012llx%012llx%012llx $bits $tc [expr {($t2 - $t1) * 1000}] [expr {($t3 - $t2) * 1000}]]
+            continue
+        }
         if {$isSpan} {
             # Unanchored search, character offsets (src/span.zig). Tcl's overall match
             # preference follows the RE's first quantifier, so only patterns without lazy

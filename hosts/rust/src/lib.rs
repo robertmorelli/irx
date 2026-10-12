@@ -71,6 +71,31 @@ pub fn serve_span(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8,
 }
 
 /// Like `serve_span`, plus mode "capture" (see src/capture.zig).
+/// Mode "bench" (Shootout 2): a compiled pattern as a search closure (unanchored "is there a
+/// match?"; Err = runtime error). Hosts register a compile function with `bench`.
+pub type Searcher = Box<dyn FnMut(&str) -> Result<bool, ()>>;
+type BenchCompile = Box<dyn Fn(&str, &str) -> Result<Searcher, u8> + Send + Sync>;
+static BENCH: std::sync::OnceLock<BenchCompile> = std::sync::OnceLock::new();
+pub fn bench(f: impl Fn(&str, &str) -> Result<Searcher, u8> + Send + Sync + 'static) { let _ = BENCH.set(Box::new(f)); }
+
+/// One bench case: "<flags>#<reps>"; response 2 hex bits + compile, A, R nanoseconds (12 hex each).
+fn bench_case(flags: &str, a: &str, r: &str, pat: &str) -> String {
+    let fail = |e: u8| format!("fe{:02x}{}", e, "0".repeat(36));
+    let (fl, reps) = match flags.find('#') { Some(i) => (&flags[..i], flags[i + 1..].parse::<u64>().unwrap_or(1).max(1)), None => (flags, 1) };
+    let Some(compile) = BENCH.get() else { return fail(0x40) };
+    let t0 = std::time::Instant::now();
+    let mut s = match compile(fl, pat) { Ok(s) => s, Err(e) => return fail(e) };
+    let tc = t0.elapsed().as_nanos() as u64;
+    let (m0, m1) = match (s(a), s(r)) { (Ok(x), Ok(y)) => (x, y), _ => return fail(0x08) };
+    let t1 = std::time::Instant::now();
+    for _ in 0..reps { let _ = std::hint::black_box(s(std::hint::black_box(a))); }
+    let ta = t1.elapsed().as_nanos() as u64;
+    let t2 = std::time::Instant::now();
+    for _ in 0..reps { let _ = std::hint::black_box(s(std::hint::black_box(r))); }
+    let tr = t2.elapsed().as_nanos() as u64;
+    format!("{:02x}{:012x}{:012x}{:012x}", (m0 as u8) | ((m1 as u8) << 1), tc, ta, tr)
+}
+
 pub fn serve_all(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, span: impl Fn(&str, &str, &str, &str) -> SpanResult, capture: impl Fn(&str, &str, &str, &str) -> CaptureResult) {
     let mode = std::env::args().nth(1).unwrap_or_else(|| "default".into());
     let repeat = mode == "repeat" || mode == "tierup";
@@ -103,6 +128,11 @@ pub fn serve_all(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, 
                 if k < 3 { i += 1; }
             }
             i += 1; // ']'
+            if mode == "bench" {
+                if f.iter().any(|x| x.1) { resp.push_str(&format!("fe40{}", "0".repeat(36))); continue; }
+                resp.push_str(&bench_case(&f[0].0, &f[1].0, &f[2].0, &f[3].0));
+                continue;
+            }
             if mode == "capture" || mode == "lcapture" {
                 if f.iter().any(|x| x.1) { resp.push_str(&failed(0x40, 26)); continue; }
                 match capture(&f[0].0, &f[1].0, &f[2].0, &f[3].0) {

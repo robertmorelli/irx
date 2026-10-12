@@ -70,3 +70,29 @@ int host_capture(const char *flags, const char *const subj[2], const size_t lens
     pcre2_match_data_free(md); pcre2_code_free(re);
     return e;
 }
+
+/* bench (Shootout 2): compile once, unanchored searches. */
+typedef struct { pcre2_code *re; pcre2_match_data *md; } PB;
+void *host_bench_compile(const char *flags, const char *pat, size_t plen) {
+    uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP);
+    if (strchr(flags, 'i')) opt |= PCRE2_CASELESS;
+    if (strchr(flags, 'm')) opt |= PCRE2_MULTILINE;
+    if (strchr(flags, 's')) opt |= PCRE2_DOTALL;
+    int err; PCRE2_SIZE off;
+    pcre2_code *re = pcre2_compile((PCRE2_SPTR)pat, plen, opt, &err, &off, NULL);
+    if (!re) return NULL;
+    if (getenv("IRX_PCRE2_JIT")) pcre2_jit_compile(re, PCRE2_JIT_COMPLETE);
+    PB *b = (PB *)malloc(sizeof *b); b->re = re; b->md = pcre2_match_data_create_from_pattern(re, NULL);
+    return b;
+}
+int host_bench_search(void *h, int k, const char *s, size_t len) {
+    /* The warm-up search validates the UTF-8; timed searches skip the check, as callers that
+     * validate once do (PHP, for one). */
+    static const char *seen[2]; static size_t seenlen[2];
+    PB *b = (PB *)h;
+    uint32_t opt = (seen[k] == s && seenlen[k] == len) ? PCRE2_NO_UTF_CHECK : 0;
+    seen[k] = s; seenlen[k] = len;
+    int rc = pcre2_match(b->re, (PCRE2_SPTR)s, len, 0, opt, b->md, NULL);
+    return rc >= 0 ? 1 : rc == PCRE2_ERROR_NOMATCH ? 0 : -1;
+}
+void host_bench_free(void *h) { PB *b = (PB *)h; pcre2_match_data_free(b->md); pcre2_code_free(b->re); free(b); }

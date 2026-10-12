@@ -18,6 +18,26 @@ $stdin.each_line do |line|
   lone = /\\u[dD][89abAB]\h\h(?!\\u[dD][c-fC-F]\h\h)|(?<!\\u[dD][89abAB]\h\h)\\u[dD][c-fC-F]\h\h/
   seq, cases = JSON.parse(line.gsub(lone, "\\uFFFF"))
   out = cases.map do |flags, a, r, pat|
+    if mode == "bench" # Shootout 2: "<flags>#<reps>"; compile once, time match? searches
+      flags, n = flags.split("#", 2); n = [(n || "1").to_i, 1].max; flags ||= ""
+      next("fe40" + "0" * 36) if [a, r, pat].any? { |s| s.include?("\uFFFF") }
+      opt = (flags.include?("i") ? Regexp::IGNORECASE : 0) | (flags.include?("s") ? Regexp::MULTILINE : 0)
+      t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+      rx = (Regexp.new(pat.gsub(/\\x\{([0-9A-Fa-f]+)\}/) { "\\u{#{$1}}" }, opt) rescue nil)
+      next("fe04" + "0" * 36) unless rx
+      tc = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond) - t0
+      begin
+        bits = (rx.match?(a) ? 1 : 0) | (rx.match?(r) ? 2 : 0)
+        t1 = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+        n.times { rx.match?(a) }
+        t2 = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+        n.times { rx.match?(r) }
+        t3 = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+      rescue StandardError
+        next("fe08" + "0" * 36)
+      end
+      next(format("%02x%012x%012x%012x", bits, tc, t2 - t1, t3 - t2))
+    end
     # ospan: "<flags>@<a>,<r>" = search start per subject (characters)
     starts = [0, 0]
     flags, offs = flags.split("@", 2)

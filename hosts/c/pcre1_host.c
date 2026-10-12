@@ -63,3 +63,22 @@ int host_capture(const char *flags, const char *const subj[2], const size_t lens
     release(re, x);
     return e;
 }
+
+/* bench (Shootout 2): compile once, unanchored searches. */
+typedef struct { pcre *re; pcre_extra *x; } PB;
+void *host_bench_compile(const char *flags, const char *pat, size_t plen) {
+    Str w = {0}; put(&w, pat, plen); put(&w, "", 0);
+    PB *b = (PB *)malloc(sizeof *b); b->re = compile(flags, w.buf, &b->x); free(w.buf);
+    if (!b->re) { free(b); return NULL; }
+    return b;
+}
+int host_bench_search(void *h, int k, const char *s, size_t len) {
+    /* The warm-up search validates the UTF-8; timed searches skip the check. */
+    static const char *seen[2]; static size_t seenlen[2];
+    PB *b = (PB *)h; int ov[30];
+    int opt = (seen[k] == s && seenlen[k] == len) ? PCRE_NO_UTF8_CHECK : 0;
+    seen[k] = s; seenlen[k] = len;
+    int rc = pcre_exec(b->re, b->x, s, (int)len, 0, opt, ov, 30);
+    return rc >= 0 ? 1 : rc == PCRE_ERROR_NOMATCH ? 0 : -1;
+}
+void host_bench_free(void *h) { PB *b = (PB *)h; release(b->re, b->x); free(b); }

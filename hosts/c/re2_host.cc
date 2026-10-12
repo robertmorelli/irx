@@ -55,3 +55,22 @@ int host_capture(const char *flags, const char *const subj[2], const size_t lens
     }
     return 0;
 }
+
+/* bench (Shootout 2): compile once, unanchored searches. */
+void *host_bench_compile(const char *flags, const char *pat, size_t plen) {
+    std::string w = "(?";
+    if (strchr(flags, 'i')) w += 'i';
+    if (strchr(flags, 'm')) w += 'm';
+    if (strchr(flags, 's')) w += 's';
+    w = (w == "(?") ? std::string() : w + ")";
+    w += std::string(pat, plen);
+    RE2::Options o; o.set_log_errors(false); o.set_max_mem(64 << 20); o.set_longest_match(getenv("IRX_RE2_LONGEST") != nullptr);
+    RE2 *re = new RE2(w, o);
+    if (!re->ok()) { delete re; return nullptr; }
+    return re;
+}
+int host_bench_search(void *h, int k, const char *s, size_t len) {
+    (void)k;
+    return ((RE2 *)h)->Match(absl::string_view(s, len), 0, len, RE2::UNANCHORED, nullptr, 0) ? 1 : 0;
+}
+void host_bench_free(void *h) { delete (RE2 *)h; }

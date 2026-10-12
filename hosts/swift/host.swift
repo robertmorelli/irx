@@ -69,6 +69,42 @@ func icuFirst(_ re: NSRegularExpression, _ s: String, from: Int = 0) throws -> N
     return result
 }
 
+/// Bench mode (Shootout 2): "<flags>#<reps>"; compile once, timed first-match loops.
+func benchCase(_ f0: String, _ a: String, _ r: String, _ p: String) -> String {
+    let fail = { (b: Int) in String(format: "fe%02x", b) + String(repeating: "0", count: 36) }
+    var f = f0, reps = 1
+    if let h = f0.firstIndex(of: "#") { reps = max(1, Int(f0[f0.index(after: h)...]) ?? 1); f = String(f0[..<h]) }
+    func now() -> UInt64 { DispatchTime.now().uptimeNanoseconds }
+    let hex = { (n: UInt64) in String(format: "%012llx", n) }
+    if engine == "icu" {
+        var o: NSRegularExpression.Options = []
+        if f.contains("i") { o.insert(.caseInsensitive) }
+        if f.contains("m") { o.insert(.anchorsMatchLines) }
+        if f.contains("s") { o.insert(.dotMatchesLineSeparators) }
+        let t0 = now()
+        guard let re = try? NSRegularExpression(pattern: p, options: o) else { return fail(4) }
+        let tc = now() - t0
+        let ra = NSRange(location: 0, length: (a as NSString).length), rr = NSRange(location: 0, length: (r as NSString).length)
+        let bits = (re.firstMatch(in: a, range: ra) != nil ? 1 : 0) | (re.firstMatch(in: r, range: rr) != nil ? 2 : 0)
+        let t1 = now(); for _ in 0..<reps { _ = re.firstMatch(in: a, range: ra) }
+        let t2 = now(); for _ in 0..<reps { _ = re.firstMatch(in: r, range: rr) }
+        let t3 = now()
+        return String(format: "%02x", bits) + hex(tc) + hex(t2 - t1) + hex(t3 - t2)
+    }
+    let t0 = now()
+    guard var re = try? Regex(p) else { return fail(4) }
+    re = re.matchingSemantics(.unicodeScalar).wordBoundaryKind(.simple)
+    if f.contains("i") { re = re.ignoresCase() }
+    if f.contains("m") { re = re.anchorsMatchLineEndings() }
+    if f.contains("s") { re = re.dotMatchesNewlines() }
+    let tc = now() - t0
+    let bits = ((try? re.firstMatch(in: a)) != nil ? 1 : 0) | ((try? re.firstMatch(in: r)) != nil ? 2 : 0)
+    let t1 = now(); for _ in 0..<reps { _ = try? re.firstMatch(in: a) }
+    let t2 = now(); for _ in 0..<reps { _ = try? re.firstMatch(in: r) }
+    let t3 = now()
+    return String(format: "%02x", bits) + hex(tc) + hex(t2 - t1) + hex(t3 - t2)
+}
+
 /// Span mode: unanchored search; UTF-16 offsets of the first match in A and R (src/span.zig).
 func spanCase(_ f0: String, _ a: String, _ r: String, _ p: String) -> String {
     func hx(_ n: Int) -> String { hxw(n) }
@@ -149,6 +185,7 @@ while let line = readLine(strippingNewline: true) {
     for c in cases {
         let f = c[0], a = c[1], r = c[2], p = c[3]
         if hasLone(a) || hasLone(r) || hasLone(p) { out += isSpan ? failed(0x40, 2) : isCap ? failed(0x40, 26) : "40"; continue }
+        if mode == "bench" { out += benchCase(f, a, r, p); continue }
         if isSpan { out += spanCase(f, a, r, p); continue }
         if isCap { out += captureCase(f, a, r, p); continue }
         let src = "\\A(?:" + p + ")\\z"

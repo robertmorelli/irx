@@ -54,6 +54,20 @@ while ((line = stdin.ReadLine()) != null) {
         if (f.Contains('s')) o |= RegexOptions.Singleline;
         if (engine == "compiled") o |= RegexOptions.Compiled;
         if (engine == "nonbacktracking") o |= RegexOptions.NonBacktracking;
+        if (mode == "bench") { // Shootout 2: "<flags>#<reps>"; compile once, timed IsMatch loops
+            int hash = f.IndexOf('#'), nreps = hash >= 0 ? Math.Max(1, int.Parse(f.Substring(hash + 1))) : 1;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            Regex br;
+            try { br = new Regex(p, o, Limit); } catch (Exception) { sb.Append("fe04" + new string('0', 36)); continue; }
+            long tc = sw.Elapsed.Ticks * 100;
+            try {
+                int bbits = (br.IsMatch(a) ? 1 : 0) | (br.IsMatch(r) ? 2 : 0);
+                sw.Restart(); for (int k = 0; k < nreps; k++) br.IsMatch(a); long ta = sw.Elapsed.Ticks * 100;
+                sw.Restart(); for (int k = 0; k < nreps; k++) br.IsMatch(r); long tr = sw.Elapsed.Ticks * 100;
+                sb.Append(bbits.ToString("x2") + tc.ToString("x12") + ta.ToString("x12") + tr.ToString("x12"));
+            } catch (RegexMatchTimeoutException) { sb.Append("fe40" + new string('0', 36)); } catch (Exception) { sb.Append("fe08" + new string('0', 36)); }
+            continue;
+        }
         Regex re;
         if (isCap) { // whole match + groups 1..6, UTF-16 offsets (src/capture.zig)
             try { re = new Regex(p, o, Limit); } catch (Exception) { sb.Append(Failed(4, 26)); continue; }

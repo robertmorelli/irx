@@ -1,5 +1,9 @@
 //! Rust `regex-lite` crate host (linear time, basic Unicode: ASCII classes and case folding). Full match via \A(?:p)\z.
 fn main() {
+    irx_hosts::bench(|flags, pat| {
+        let re = regex_lite::Regex::new(&format!("{}{}", irx_hosts::inline_flags(flags), pat)).map_err(|_| 0x04u8)?;
+        Ok(Box::new(move |s: &str| Ok(re.is_match(s))))
+    });
     irx_hosts::serve_all("regex-lite", |flags, a, r, pat, repeat| {
         let src = format!("{}\\A(?:{})\\z", irx_hosts::inline_flags(flags), pat);
         let re = match regex_lite::RegexBuilder::new(&src).size_limit(64 << 20).build() { Ok(re) => re, Err(_) => return 0x04 };

@@ -115,3 +115,22 @@ int host_capture(const char *flags, const char *const subj[2], const size_t lens
 }
 int onig_init_once(void) __attribute__((constructor));
 int onig_init_once(void) { OnigEncoding e[1] = {ONIG_ENCODING_UTF8}; onig_initialize(e, 1); return 0; }
+
+/* bench (Shootout 2): compile once, unanchored searches. */
+typedef struct { regex_t *re; OnigRegion *rg; } OB;
+void *host_bench_compile(const char *flags, const char *pat, size_t plen) {
+    regex_t *re; OnigErrorInfo ei;
+    Str np = native(pat, plen);
+    int rc = onig_new(&re, (const UChar *)np.buf, (const UChar *)np.buf + np.len, options(flags), ONIG_ENCODING_UTF8, syntax(), &ei);
+    free(np.buf);
+    if (rc != ONIG_NORMAL) return NULL;
+    OB *b = (OB *)malloc(sizeof *b); b->re = re; b->rg = onig_region_new();
+    return b;
+}
+int host_bench_search(void *h, int k, const char *s, size_t len) {
+    OB *b = (OB *)h; (void)k;
+    const UChar *u = (const UChar *)s, *end = u + len;
+    int m = onig_search(b->re, u, end, u, end, b->rg, ONIG_OPTION_NONE);
+    return m >= 0 ? 1 : m == ONIG_MISMATCH ? 0 : -1;
+}
+void host_bench_free(void *h) { OB *b = (OB *)h; onig_region_free(b->rg, 1); onig_free(b->re); free(b); }

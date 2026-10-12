@@ -9,6 +9,10 @@ fn err_bits(e: fancy_regex::Error) -> u8 {
 }
 
 fn main() {
+    irx_hosts::bench(|flags, pat| {
+        let re = fancy_regex::RegexBuilder::new(&format!("{}{}", irx_hosts::inline_flags(flags), pat)).delegate_size_limit(64 << 20).build().map_err(|_| 0x04u8)?;
+        Ok(Box::new(move |s: &str| re.is_match(s).map_err(|_| ())))
+    });
     irx_hosts::serve_all("fancy-regex", |flags, a, r, pat, repeat| {
         let src = format!("{}\\A(?:{})\\z", irx_hosts::inline_flags(flags), pat);
         let re = match fancy_regex::RegexBuilder::new(&src).delegate_size_limit(64 << 20).build() { Ok(re) => re, Err(_) => return 0x04 };

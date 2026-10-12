@@ -9,7 +9,7 @@ step oniguruma cc -O2 -o "$H/bin/onig_host" "$H/c/onig_host.c" -I$B/oniguruma/in
 step re2 sh -c "c++ -O2 -std=c++17 -Wno-everything -o '$H/bin/re2_host' '$H/c/re2_host.cc' \$(pkg-config --cflags --libs re2)"
 step icu-c sh -c "cc -O2 -o '$H/bin/icu_host' '$H/c/icu_host.c' -I$B/icu4c@78/include -L$B/icu4c@78/lib -licui18n -licuuc -Wl,-rpath,$B/icu4c@78/lib"
 step pcre1 sh -c "cc -O2 -o '$H/bin/pcre1_host' '$H/c/pcre1_host.c' -I$B/pcre/include -L$B/pcre/lib -lpcre"
-G=$(ls -d "$H/../vendor/src/gawk-"*/support 2>/dev/null | head -1)
+G=$(ls -d "$H/../vendor/src/gawk-"*/support 2>/dev/null | grep -v -- -asan/ | head -1)
 if [ -n "$G" ] && [ -f "$G/libsupport.a" ]; then
 step gnu-regex sh -c "c++ -O2 -std=c++17 -Wno-everything -I'$G' -I'$G/..' -o '$H/bin/gnu_regex_host' '$H/c/gnu_regex_host.cc' '$G/libsupport.a'"
 step minrx sh -c "c++ -O2 -std=c++17 -Wno-everything -I'$G' -o '$H/bin/minrx_host' '$H/c/minrx_host.cc' '$G/libsupport.a'"

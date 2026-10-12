@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """irx host: Python `re`, or the third-party `regex` module (IRX_PY_ENGINE=regex; its default
 VERSION0, which is compatible with `re`). Patterns arrive in Perl dialect; \\x{H} escapes become raw chars."""
-import json, os, sys
+import json, os, sys, time
 if os.environ.get("IRX_PY_ENGINE") == "regex":
     import regex as re
     NAME = f"python-regex-{re.__version__}"
@@ -25,6 +25,22 @@ def main():
         seq, cases = json.loads(line)
         out = []
         for flags, a, r, pat in cases:
+            if mode == "bench":  # Shootout 2: "<flags>#<reps>"; compile once (cache purged), time searches
+                flags, _, n = flags.partition("#"); n = max(1, int(n or 1))
+                f = (re.I if "i" in flags else 0) | (re.M if "m" in flags else 0) | (re.S if "s" in flags else 0)
+                re.purge(); t0 = time.perf_counter_ns()
+                try: rx = re.compile(XESC.sub(lambda m: "\\U%08X" % int(m.group(1), 16), pat), f)
+                except Exception: out.append("fe04" + "0" * 36); continue
+                tc = time.perf_counter_ns() - t0
+                try:
+                    bits = (1 if rx.search(a) else 0) | (2 if rx.search(r) else 0)
+                    s = rx.search; t1 = time.perf_counter_ns()
+                    for _ in range(n): s(a)
+                    t2 = time.perf_counter_ns()
+                    for _ in range(n): s(r)
+                    t3 = time.perf_counter_ns()
+                except Exception: out.append("fe08" + "0" * 36); continue
+                out.append(f"{bits:02x}{tc:012x}{t2 - t1:012x}{t3 - t2:012x}"); continue
             # ospan: "<flags>@<a>,<r>" = search start per subject (code points)
             starts = (0, 0)
             if "@" in flags: flags, o = flags.split("@", 1); starts = tuple(int(x) for x in o.split(","))

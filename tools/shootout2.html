@@ -1,0 +1,238 @@
+<title>Regex Shootout 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; the tier board leads, then speed, the four splits, features and
+   bugs. Data cells use mono numerals; the diverging ramp is blue for faster than Rust, red for slower. */
+:root {
+  --bg: #f4f6f8; --surface: #ffffff; --ink: #11161d; --ink-2: #4a5462; --muted: #7b8594;
+  --line: #dde2e8; --accent: #1f5fd6; --code: #eef1f5;
+  --tier-s: #b8860b; --tier-a: #1e8a4c; --tier-b: #2f7d8c; --tier-c: #c27a12; --tier-d: #d0582a; --tier-f: #b9312f;
+  --d-n3: #1d4f9e; --d-n2: #4a86d8; --d-n1: #b4cff2; --d-mid: #eceef1; --d-p1: #f4c9bd; --d-p2: #e9927c; --d-p3: #d4573f; --d-p4: #a8341f; --d-p5: #6c1d10;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1116; --surface: #161b22; --ink: #eef2f6; --ink-2: #b4bdc9; --muted: #8590a0; --line: #2a313b; --accent: #6c9cf0; --code: #1f2630;
+    --tier-s: #e0b13a; --tier-a: #43b874; --tier-b: #4fb2c2; --tier-c: #e3a03c; --tier-d: #ec7d4e; --tier-f: #e05a57;
+    --d-n3: #9cc2f5; --d-n2: #4f8fe6; --d-n1: #1f3d66; --d-mid: #2a3038; --d-p1: #5a2f27; --d-p2: #8f3d2e; --d-p3: #c4523b; --d-p4: #e5745b; --d-p5: #f6ad9b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1116; --surface: #161b22; --ink: #eef2f6; --ink-2: #b4bdc9; --muted: #8590a0; --line: #2a313b; --accent: #6c9cf0; --code: #1f2630;
+  --tier-s: #e0b13a; --tier-a: #43b874; --tier-b: #4fb2c2; --tier-c: #e3a03c; --tier-d: #ec7d4e; --tier-f: #e05a57;
+  --d-n3: #9cc2f5; --d-n2: #4f8fe6; --d-n1: #1f3d66; --d-mid: #2a3038; --d-p1: #5a2f27; --d-p2: #8f3d2e; --d-p3: #c4523b; --d-p4: #e5745b; --d-p5: #f6ad9b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1020px; margin: 0 auto; padding-inline: 18px; padding-block: 36px 64px; display: grid; gap: 44px; }
+header { display: grid; gap: 12px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-stretch: 78%; font-weight: 800; font-size: clamp(36px, 7vw, 64px); line-height: 0.98; margin: 0; letter-spacing: -0.01em; }
+h2 { font-family: var(--font-display); font-stretch: 85%; font-weight: 700; font-size: 26px; line-height: 1.15; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 72ch; color: var(--ink-2); }
+p strong { color: var(--ink); font-weight: 600; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--code); padding: 1px 5px; border-radius: 4px; color: var(--ink); overflow-wrap: anywhere; }
+section { display: grid; gap: 14px; min-width: 0; }
+.facts { display: flex; flex-wrap: wrap; gap: 10px 32px; margin: 6px 0 0; padding: 0; }
+.facts div { display: grid; }
+.facts dt { font-size: 12px; color: var(--muted); }
+.facts dd { margin: 0; font-family: var(--font-display); font-stretch: 85%; font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.card { background: var(--surface); border-radius: 10px; box-shadow: 0 0 0 1px var(--line); padding: 18px; min-width: 0; }
+.note { font-size: 13px; color: var(--muted); max-width: 80ch; }
+/* Tier board */
+.tiers { display: grid; gap: 8px; }
+.tier { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: stretch; }
+.tier .badge { display: grid; place-items: center; border-radius: 8px; color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 30px; font-stretch: 80%; }
+.tier .rule { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.tier .row { background: var(--surface); box-shadow: 0 0 0 1px var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 9px; border-radius: 999px; background: var(--code); font-size: 13px; color: var(--ink); white-space: nowrap; }
+.chip small { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.empty { font-size: 13px; color: var(--muted); font-style: italic; }
+/* Tables */
+.scrollx { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; text-align: right; font-size: 13px; }
+th { font-weight: 600; color: var(--ink-2); font-size: 12px; position: sticky; top: 0; background: var(--surface); }
+th:first-child, td:first-child { text-align: left; }
+td.num { font-family: var(--font-mono); font-size: 12.5px; }
+td.cell { font-family: var(--font-mono); font-size: 12px; text-align: center; min-width: 58px; }
+td .tag { display: inline-block; width: 22px; text-align: center; border-radius: 4px; color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 13px; }
+.fam { color: var(--muted); font-size: 11px; margin-left: 6px; }
+.feat td.cell { min-width: 34px; }
+.yes { color: var(--tier-a); font-weight: 700; }
+.no { color: var(--line); }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.axis { fill: var(--muted); font-size: 11px; font-family: var(--font-mono); }
+.lbl { fill: var(--ink); font-size: 12.5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--ink-2); align-items: center; margin-top: 10px; }
+.ramp { height: 10px; width: 240px; max-width: 60vw; border-radius: 3px; }
+.key { display: inline-flex; align-items: center; gap: 6px; }
+.key i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; box-shadow: inset 0 0 0 1px var(--line); }
+.bugs { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2); white-space: normal; text-align: left; max-width: 420px; }
+footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+a { color: var(--accent); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Regex engines · speed, features, correctness · irx bench mode · Rust <code>regex</code> = 1.0</div>
+    <h1>Regex Shootout 2</h1>
+    <p id="lede"></p>
+    <dl class="facts" id="facts"></dl>
+  </header>
+
+  <section aria-labelledby="h-tiers">
+    <h2 id="h-tiers">Tier list</h2>
+    <p>Correctness gates the top three tiers: an engine with any open bug in the irx ledger can place no higher than C. Within each half, an engine earns one step for being <strong>fast</strong> (geometric-mean search time at most <span id="fast-x"></span>× Rust's) and one for being <strong>featureful</strong> (at least <span id="feat-n"></span> of the 14 construct families below, read from irx's dialect model).</p>
+    <div class="tiers" id="tiers"></div>
+  </section>
+
+  <section aria-labelledby="h-speed">
+    <h2 id="h-speed">Overall speed</h2>
+    <p>Each engine's search time divided by Rust's on the same input, combined as a geometric mean over every input both ran. Bars right of the line are slower than Rust. Coverage is the share of the 1,200 cases the engine compiled and ran: POSIX engines reject lazy quantifiers and <code>\b</code>, DFA engines reject Unicode word boundaries, and timeouts count as not run.</p>
+    <div class="card"><div class="chart" id="c-speed" role="img" aria-label="Geometric-mean slowdown versus Rust per engine"></div></div>
+  </section>
+
+  <section aria-labelledby="h-split">
+    <h2 id="h-split">Where the time goes</h2>
+    <p>The same ratio, split four ways: ASCII against Unicode patterns and subjects, inputs Rust accepted against inputs it rejected, and four subject sizes (16, 128, 1,024 and 8,192 characters). A cell compares the engine with Rust on that slice only, so a row shows how an engine's speed changes, not which slice is slow overall.</p>
+    <div class="card"><div class="scrollx"><table id="t-split"></table></div>
+      <div class="legend" id="ramp-legend"></div></div>
+  </section>
+
+  <section aria-labelledby="h-scale">
+    <h2 id="h-scale">Scaling with input size</h2>
+    <p>Absolute median time per search at each size, ASCII set, for a selection of engines (log scales). A slope of one decade per decade is linear in the input; Rust's lazy DFA and Hyperscan-style engines stay flat on short inputs because per-call overhead dominates.</p>
+    <div class="card"><div class="chart" id="c-scale" role="img" aria-label="Median search time against input size per engine"></div><div class="legend" id="scale-legend"></div></div>
+  </section>
+
+  <section aria-labelledby="h-feat">
+    <h2 id="h-feat">Features</h2>
+    <p>Construct families each engine supports, from the irx dialect that models it (<code>irx features</code>). These are what the fuzzer generates for that engine, so they reflect tested support.</p>
+    <div class="card"><div class="scrollx"><table class="feat" id="t-feat"></table></div></div>
+  </section>
+
+  <section aria-labelledby="h-bugs">
+    <h2 id="h-bugs">Correctness</h2>
+    <p>Open bugs in the irx ledger that affect each engine. Engines that embed a library inherit its bugs (PHP and Erlang run PCRE2; SpiderMonkey runs V8's Irregexp). Zero means irx has not found one, across self-checks, campaigns and the cross-engine check, not that none exist.</p>
+    <div class="card"><div class="scrollx"><table id="t-bugs"></table></div></div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const D = /*DATA*/null;
+const S = D.summary, M = D.meta;
+const TIER_ORDER = ["S", "A", "B", "C", "D", "F"];
+const TIER_RULE = { S: "correct · fast · featureful", A: "correct · fast or featureful", B: "correct only", C: "bugs · fast · featureful", D: "bugs · fast or featureful", F: "bugs · neither" };
+const tierColor = t => `var(--tier-${t.toLowerCase()})`;
+const names = Object.keys(S).filter(n => S[n].overall.geo);
+const bySpeed = names.slice().sort((a, b) => S[a].overall.geo - S[b].overall.geo);
+const fmt = x => x == null ? "–" : x < 10 ? x.toFixed(2) : x < 100 ? x.toFixed(1) : Math.round(x).toString();
+const label = n => M.labels[n] || n;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+document.getElementById("fast-x").textContent = M.fast;
+document.getElementById("feat-n").textContent = M.featureful;
+const counts = TIER_ORDER.map(t => names.filter(n => S[n].tier === t).length);
+document.getElementById("lede").innerHTML = `Every engine irx fuzzes, timed on one shared workload: ${M.patterns} random patterns in an ASCII and a Unicode set, each against subjects of four sizes, about ${M.inputs.toLocaleString()} timed inputs per engine. <strong>${counts[0] === 1 ? names.filter(n => S[n].tier === "S").map(label)[0] + " is the only engine in S tier" : counts[0] + " engines reach S tier"}</strong>; ${names.filter(n => !S[n].open_bugs.length).length} of ${names.length} have no open bug.`;
+document.getElementById("facts").innerHTML = [["Engines", names.length], ["Patterns", (M.patterns * 2).toLocaleString()], ["Timed inputs / engine", M.inputs.toLocaleString()], ["Size bins", "16 → 8,192"], ["Bugs in ledger", M.ledger_open]].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+
+// Tier board
+document.getElementById("tiers").innerHTML = TIER_ORDER.map(t => {
+  const es = names.filter(n => S[n].tier === t).sort((a, b) => S[a].overall.geo - S[b].overall.geo);
+  return `<div class="tier"><div class="badge" style="background:${tierColor(t)}">${t}</div><div class="row"><div class="rule">${TIER_RULE[t]}</div>${es.length ? `<div class="chips">${es.map(n => `<span class="chip">${esc(label(n))}<small>${fmt(S[n].overall.geo)}× · ${S[n].feature_count}/14${S[n].open_bugs.length ? " · " + S[n].open_bugs.length + " bug" + (S[n].open_bugs.length > 1 ? "s" : "") : ""}</small></span>`).join("")}</div>` : `<div class="empty">none</div>`}</div></div>`;
+}).join("");
+
+// Diverging ramp on log2(ratio)
+const RAMP = ["--d-n3", "--d-n2", "--d-n1", "--d-mid", "--d-p1", "--d-p2", "--d-p3", "--d-p4", "--d-p5"];
+const STOPS = [0.25, 0.5, 0.8, 1.25, 2, 4, 10, 30];
+function rampVar(x) { let i = 0; while (i < STOPS.length && x > STOPS[i]) i++; return `var(${RAMP[i]})`; }
+function textOn(x) { return x <= 0.5 || x > 10 ? "#fff" : "var(--ink)"; }
+
+// Speed chart (log x)
+(function () {
+  const W = 900, rowH = 19, top = 26, left = 180, right = 120, H = top + bySpeed.length * rowH + 10;
+  const lo = Math.log10(0.2), hi = Math.log10(Math.max(...bySpeed.map(n => S[n].overall.geo)) * 1.2);
+  const x = v => left + (Math.log10(v) - lo) / (hi - lo) * (W - left - right);
+  let s = `<svg viewBox="0 0 ${W} ${H}">`;
+  for (const t of [0.25, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500].filter(t => Math.log10(t) <= hi)) {
+    s += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 6}" y2="${H - 8}" stroke="var(--line)" stroke-width="${t === 1 ? 2 : 1}"/><text class="axis" x="${x(t)}" y="${top - 10}" text-anchor="middle">${t}×</text>`;
+  }
+  bySpeed.forEach((n, i) => {
+    const y = top + i * rowH, v = S[n].overall.geo;
+    s += `<text class="lbl" x="${left - 10}" y="${y + 13}" text-anchor="end">${esc(label(n))}</text>`;
+    s += `<rect x="${Math.min(x(1), x(v))}" y="${y + 3}" width="${Math.max(1.5, Math.abs(x(v) - x(1)))}" height="${rowH - 7}" rx="2" fill="${tierColor(S[n].tier)}"/>`;
+    s += `<text class="axis" x="${Math.max(x(1), x(v)) + 6}" y="${y + 13}">${fmt(v)}× · ${Math.round(S[n].coverage * 100)}%</text>`;
+  });
+  document.getElementById("c-speed").innerHTML = s + "</svg>";
+})();
+
+// Split table
+(function () {
+  const cols = [["ASCII", s => s.by_set.ascii], ["Unicode", s => s.by_set.unicode], ["Accept", s => s.by_outcome.accept], ["Reject", s => s.by_outcome.reject],
+    ["16", s => s.by_bin.tiny], ["128", s => s.by_bin.small], ["1,024", s => s.by_bin.medium], ["8,192", s => s.by_bin.large]];
+  let h = `<thead><tr><th>Engine</th><th>Tier</th><th>Overall</th>${cols.map(c => `<th>${c[0]}</th>`).join("")}<th>Compile</th></tr></thead><tbody>`;
+  for (const n of bySpeed) {
+    const s = S[n];
+    h += `<tr><td>${esc(label(n))}<span class="fam">${s.family}</span></td><td><span class="tag" style="background:${tierColor(s.tier)}">${s.tier}</span></td><td class="num">${fmt(s.overall.geo)}</td>`;
+    for (const [, f] of cols) { const v = f(s).geo; h += v ? `<td class="cell" style="background:${rampVar(v)};color:${textOn(v)}">${fmt(v)}</td>` : `<td class="cell">–</td>`; }
+    h += `<td class="num">${s.compile_median_ns ? (s.compile_median_ns / 1000).toFixed(s.compile_median_ns < 10000 ? 1 : 0) + " µs" : "–"}</td></tr>`;
+  }
+  document.getElementById("t-split").innerHTML = h + "</tbody>";
+  document.getElementById("ramp-legend").innerHTML = `<span>faster than Rust</span><span style="display:inline-flex;gap:0">${RAMP.map(v => `<i style="display:inline-block;width:26px;height:10px;background:var(${v})"></i>`).join("")}</span><span>slower</span><span class="key">stops at ${STOPS.join(", ")}×</span><span class="key">Compile: median per pattern, smallest bin</span>`;
+})();
+
+// Scaling chart
+(function () {
+  const pick = M.scale_engines.filter(n => S[n]);
+  const colors = ["#1f5fd6", "#d0582a", "#1e8a4c", "#8a4fd0", "#b8860b", "#2f7d8c", "#c2306a", "#6b7a1f"];
+  const W = 900, H = 340, L = 64, R = 20, T = 14, B = 40;
+  const sizes = M.bins.map(b => b[1]);
+  const vals = pick.flatMap(n => M.bins.map(b => (D.scale[n] || {})[b[0]]).filter(Boolean));
+  const ylo = Math.log10(Math.min(...vals) / 1.5), yhi = Math.log10(Math.max(...vals) * 1.5);
+  const x = v => L + (Math.log10(v) - Math.log10(sizes[0])) / (Math.log10(sizes[sizes.length - 1]) - Math.log10(sizes[0])) * (W - L - R);
+  const y = v => T + (yhi - Math.log10(v)) / (yhi - ylo) * (H - T - B);
+  let s = `<svg viewBox="0 0 ${W} ${H}">`;
+  for (let e = Math.ceil(ylo); e <= Math.floor(yhi); e++) {
+    const v = Math.pow(10, e), lab = v >= 1e6 ? (v / 1e6) + " ms" : v >= 1e3 ? (v / 1e3) + " µs" : v + " ns";
+    s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text class="axis" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${lab}</text>`;
+  }
+  for (const z of sizes) s += `<text class="axis" x="${x(z)}" y="${H - B + 18}" text-anchor="middle">${z.toLocaleString()} chars</text>`;
+  pick.forEach((n, i) => {
+    const pts = M.bins.map(b => [x(b[1]), (D.scale[n] || {})[b[0]]]).filter(p => p[1]).map(p => [p[0], y(p[1])]);
+    if (!pts.length) return;
+    s += `<polyline fill="none" stroke="${colors[i % colors.length]}" stroke-width="2" points="${pts.map(p => p.join(",")).join(" ")}"/>`;
+    for (const p of pts) s += `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${colors[i % colors.length]}"/>`;
+  });
+  document.getElementById("c-scale").innerHTML = s + "</svg>";
+  document.getElementById("scale-legend").innerHTML = pick.map((n, i) => `<span class="key"><i style="background:${colors[i % colors.length]};box-shadow:none"></i>${esc(label(n))}</span>`).join("");
+})();
+
+// Feature matrix
+(function () {
+  const F = M.features, short = M.feature_labels;
+  const rows = names.slice().sort((a, b) => S[b].feature_count - S[a].feature_count || S[a].overall.geo - S[b].overall.geo);
+  let h = `<thead><tr><th>Engine</th><th>Count</th>${F.map(f => `<th title="${f}">${short[f]}</th>`).join("")}</tr></thead><tbody>`;
+  for (const n of rows) h += `<tr><td>${esc(label(n))}</td><td class="num">${S[n].feature_count}</td>${F.map(f => S[n].features.includes(f) ? `<td class="cell yes">●</td>` : `<td class="cell no">·</td>`).join("")}</tr>`;
+  document.getElementById("t-feat").innerHTML = h + "</tbody>";
+})();
+
+// Bugs
+(function () {
+  const rows = names.slice().sort((a, b) => S[a].open_bugs.length - S[b].open_bugs.length || a.localeCompare(b));
+  let h = `<thead><tr><th>Engine</th><th>Open</th><th style="text-align:left">Ledger IDs</th></tr></thead><tbody>`;
+  for (const n of rows) h += `<tr><td>${esc(label(n))}</td><td class="num">${S[n].open_bugs.length}</td><td class="bugs">${S[n].open_bugs.map(esc).join(", ") || "–"}</td></tr>`;
+  document.getElementById("t-bugs").innerHTML = h + "</tbody>";
+})();
+
+document.getElementById("foot").innerHTML = `<div>Measured ${M.date} on an Apple Silicon Mac with the fuzzing campaign paused, engines run one at a time. Each case compiles once (timed), runs one untimed warm-up search per subject, then times repeated unanchored “is there a match?” searches; loops shorter than 2 ms are rerun with more repetitions, which matters for shells with millisecond clocks (Boa, XS, Hermes). Times are in-process and exclude startup and I/O. JavaScript engines and the JVM time warm code; Java's JIT is shared across cases.</div><div>Speed thresholds: fast means at most ${M.fast}× Rust overall. Features: ${M.features.length} families from the dialect model; featureful means at least ${M.featureful}. Bugs: open ledger entries on ${M.date}.</div><div>Harness: <code>tools/irx_bench.py</code> (bench mode in every irx host). Previous shootout: regex_comparison.</div>`;
+</script>

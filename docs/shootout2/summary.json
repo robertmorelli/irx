@@ -1,0 +1,5186 @@
+{
+ "rust-regex": {
+  "overall": {
+   "geo": 1.0,
+   "n": 2400
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 1.0,
+    "n": 1200
+   },
+   "unicode": {
+    "geo": 1.0,
+    "n": 1200
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 1.0,
+    "n": 1278
+   },
+   "reject": {
+    "geo": 1.0,
+    "n": 1122
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 1.0,
+    "n": 600
+   },
+   "small": {
+    "geo": 1.0,
+    "n": 600
+   },
+   "medium": {
+    "geo": 1.0,
+    "n": 600
+   },
+   "large": {
+    "geo": 1.0,
+    "n": 600
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 1.0,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 1.0,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 1.0,
+    "n": 300
+   },
+   "ascii/large": {
+    "geo": 1.0,
+    "n": 300
+   },
+   "unicode/tiny": {
+    "geo": 1.0,
+    "n": 300
+   },
+   "unicode/small": {
+    "geo": 1.0,
+    "n": 300
+   },
+   "unicode/medium": {
+    "geo": 1.0,
+    "n": 300
+   },
+   "unicode/large": {
+    "geo": 1.0,
+    "n": 300
+   }
+  },
+  "compile_median_ns": 116416,
+  "statuses": {
+   "ok": 1200
+  },
+  "coverage": 1.0,
+  "dialect": "rust",
+  "features": [
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 7,
+  "open_bugs": [],
+  "fast": true,
+  "featureful": false,
+  "family": "Rust",
+  "tier": "A"
+ },
+ "regex-lite": {
+  "overall": {
+   "geo": 18.07600355357303,
+   "n": 2400
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 29.78839616151736,
+    "n": 1200
+   },
+   "unicode": {
+    "geo": 10.968764571853384,
+    "n": 1200
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 16.217957063390504,
+    "n": 1278
+   },
+   "reject": {
+    "geo": 20.45305682129498,
+    "n": 1122
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 10.319296987347114,
+    "n": 600
+   },
+   "small": {
+    "geo": 16.01024693457827,
+    "n": 600
+   },
+   "medium": {
+    "geo": 22.161509270705874,
+    "n": 600
+   },
+   "large": {
+    "geo": 29.15829975801313,
+    "n": 600
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 14.901378915388696,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 26.99332267356953,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 38.002037903755465,
+    "n": 300
+   },
+   "ascii/large": {
+    "geo": 51.510859051462155,
+    "n": 300
+   },
+   "unicode/tiny": {
+    "geo": 7.146176935551975,
+    "n": 300
+   },
+   "unicode/small": {
+    "geo": 9.495978320488728,
+    "n": 300
+   },
+   "unicode/medium": {
+    "geo": 12.92384620002306,
+    "n": 300
+   },
+   "unicode/large": {
+    "geo": 16.50538275684251,
+    "n": 300
+   }
+  },
+  "compile_median_ns": 5583,
+  "statuses": {
+   "ok": 1200
+  },
+  "coverage": 1.0,
+  "dialect": "rust-lite",
+  "features": [
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 6,
+  "open_bugs": [],
+  "fast": false,
+  "featureful": false,
+  "family": "Rust",
+  "tier": "B"
+ },
+ "ra-pikevm": {
+  "overall": {
+   "geo": 23.252699896556393,
+   "n": 2400
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 30.349713642349737,
+    "n": 1200
+   },
+   "unicode": {
+    "geo": 17.81526042884444,
+    "n": 1200
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 23.043272070678615,
+    "n": 1278
+   },
+   "reject": {
+    "geo": 23.49356573895976,
+    "n": 1122
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 12.857264122887168,
+    "n": 600
+   },
+   "small": {
+    "geo": 20.32612227634006,
+    "n": 600
+   },
+   "medium": {
+    "geo": 28.632985805563045,
+    "n": 600
+   },
+   "large": {
+    "geo": 39.06823657194616,
+    "n": 600
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 14.634891229635206,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 27.083873343623917,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 38.848875182281795,
+    "n": 300
+   },
+   "ascii/large": {
+    "geo": 55.098486441599505,
+    "n": 300
+   },
+   "unicode/tiny": {
+    "geo": 11.295556497948914,
+    "n": 300
+   },
+   "unicode/small": {
+    "geo": 15.254511108913878,
+    "n": 300
+   },
+   "unicode/medium": {
+    "geo": 21.10351644146165,
+    "n": 300
+   },
+   "unicode/large": {
+    "geo": 27.701797407073062,
+    "n": 300
+   }
+  },
+  "compile_median_ns": 62167,
+  "statuses": {
+   "ok": 1200
+  },
+  "coverage": 1.0,
+  "dialect": "rust",
+  "features": [
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 7,
+  "open_bugs": [],
+  "fast": false,
+  "featureful": false,
+  "family": "Rust",
+  "tier": "B"
+ },
+ "ra-backtrack": {
+  "overall": {
+   "geo": 13.842275133580367,
+   "n": 2166
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 17.848182167621992,
+    "n": 1110
+   },
+   "unicode": {
+    "geo": 10.596835669258885,
+    "n": 1056
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 12.301902239222711,
+    "n": 1167
+   },
+   "reject": {
+    "geo": 15.887618893689133,
+    "n": 999
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 5.504580873751983,
+    "n": 600
+   },
+   "small": {
+    "geo": 10.803767208942364,
+    "n": 600
+   },
+   "medium": {
+    "geo": 20.783412736537183,
+    "n": 584
+   },
+   "large": {
+    "geo": 46.714080998857376,
+    "n": 382
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 6.683013667773946,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 14.499169298412328,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 27.530718207905164,
+    "n": 298
+   },
+   "ascii/large": {
+    "geo": 52.2924469529515,
+    "n": 212
+   },
+   "unicode/tiny": {
+    "geo": 4.533944130892216,
+    "n": 300
+   },
+   "unicode/small": {
+    "geo": 8.050211946818177,
+    "n": 300
+   },
+   "unicode/medium": {
+    "geo": 15.505760728820833,
+    "n": 286
+   },
+   "unicode/large": {
+    "geo": 40.5838231885493,
+    "n": 170
+   }
+  },
+  "compile_median_ns": 57875,
+  "statuses": {
+   "ok": 1083,
+   "runtime_error": 117
+  },
+  "coverage": 0.9025,
+  "dialect": "rust",
+  "features": [
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 7,
+  "open_bugs": [],
+  "fast": false,
+  "featureful": false,
+  "family": "Rust",
+  "tier": "B"
+ },
+ "ra-hybrid": {
+  "overall": {
+   "geo": 3.044070197366288,
+   "n": 1512
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 3.0669210853553674,
+    "n": 736
+   },
+   "unicode": {
+    "geo": 3.0225545288562605,
+    "n": 776
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 2.662083615591166,
+    "n": 976
+   },
+   "reject": {
+    "geo": 3.885892829593662,
+    "n": 536
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 1.3034074332865722,
+    "n": 378
+   },
+   "small": {
+    "geo": 2.663246739453666,
+    "n": 378
+   },
+   "medium": {
+    "geo": 4.126251231834907,
+    "n": 378
+   },
+   "large": {
+    "geo": 5.994754307056346,
+    "n": 378
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 1.157183822320478,
+    "n": 184
+   },
+   "ascii/small": {
+    "geo": 2.6258171814576325,
+    "n": 184
+   },
+   "ascii/medium": {
+    "geo": 4.326179480620888,
+    "n": 184
+   },
+   "ascii/large": {
+    "geo": 6.730371440843718,
+    "n": 184
+   },
+   "unicode/tiny": {
+    "geo": 1.4591308079050278,
+    "n": 194
+   },
+   "unicode/small": {
+    "geo": 2.699239811865239,
+    "n": 194
+   },
+   "unicode/medium": {
+    "geo": 3.9451727143620388,
+    "n": 194
+   },
+   "unicode/large": {
+    "geo": 5.371491086860259,
+    "n": 194
+   }
+  },
+  "compile_median_ns": 61542,
+  "statuses": {
+   "unsupported": 444,
+   "ok": 756
+  },
+  "coverage": 0.63,
+  "dialect": "rust",
+  "features": [
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 7,
+  "open_bugs": [],
+  "fast": false,
+  "featureful": false,
+  "family": "Rust",
+  "tier": "B"
+ },
+ "ra-dfa": {
+  "overall": {
+   "geo": 2.7192005547148224,
+   "n": 1480
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 2.53233589736435,
+    "n": 728
+   },
+   "unicode": {
+    "geo": 2.913227243604841,
+    "n": 752
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 2.4304014329466765,
+    "n": 964
+   },
+   "reject": {
+    "geo": 3.35383377176586,
+    "n": 516
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 1.5062233266801186,
+    "n": 370
+   },
+   "small": {
+    "geo": 2.3610882370291812,
+    "n": 370
+   },
+   "medium": {
+    "geo": 3.2560294027211856,
+    "n": 370
+   },
+   "large": {
+    "geo": 4.721446315165071,
+    "n": 370
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 1.3654318309845483,
+    "n": 182
+   },
+   "ascii/small": {
+    "geo": 2.1526385904211205,
+    "n": 182
+   },
+   "ascii/medium": {
+    "geo": 3.0774968288933144,
+    "n": 182
+   },
+   "ascii/large": {
+    "geo": 4.546178534229165,
+    "n": 182
+   },
+   "unicode/tiny": {
+    "geo": 1.6563363138969152,
+    "n": 188
+   },
+   "unicode/small": {
+    "geo": 2.5820949878532233,
+    "n": 188
+   },
+   "unicode/medium": {
+    "geo": 3.4387246650453758,
+    "n": 188
+   },
+   "unicode/large": {
+    "geo": 4.89755485300131,
+    "n": 188
+   }
+  },
+  "compile_median_ns": 486417,
+  "statuses": {
+   "unsupported": 460,
+   "ok": 740
+  },
+  "coverage": 0.6166666666666667,
+  "dialect": "rust",
+  "features": [
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 7,
+  "open_bugs": [],
+  "fast": false,
+  "featureful": false,
+  "family": "Rust",
+  "tier": "B"
+ },
+ "fancy-regex": {
+  "overall": {
+   "geo": 3.5426076409602834,
+   "n": 2382
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 4.822550706526787,
+    "n": 1192
+   },
+   "unicode": {
+    "geo": 2.6010228947631147,
+    "n": 1190
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 1.91172818842371,
+    "n": 1273
+   },
+   "reject": {
+    "geo": 7.191787097750347,
+    "n": 1109
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 2.7522135455709833,
+    "n": 596
+   },
+   "small": {
+    "geo": 3.2566145418486343,
+    "n": 596
+   },
+   "medium": {
+    "geo": 3.9559787686009265,
+    "n": 596
+   },
+   "large": {
+    "geo": 4.445500327209075,
+    "n": 594
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 3.5358956504654606,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 4.51751928228874,
+    "n": 298
+   },
+   "ascii/medium": {
+    "geo": 5.389251314048088,
+    "n": 298
+   },
+   "ascii/large": {
+    "geo": 6.283177370253958,
+    "n": 298
+   },
+   "unicode/tiny": {
+    "geo": 2.142223682259198,
+    "n": 298
+   },
+   "unicode/small": {
+    "geo": 2.3476464872567924,
+    "n": 298
+   },
+   "unicode/medium": {
+    "geo": 2.903885364712397,
+    "n": 298
+   },
+   "unicode/large": {
+    "geo": 3.1379550054861496,
+    "n": 296
+   }
+  },
+  "compile_median_ns": 186041,
+  "statuses": {
+   "ok": 1191,
+   "runtime_error": 9
+  },
+  "coverage": 0.9925,
+  "dialect": "fancy",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 11,
+  "open_bugs": [],
+  "fast": false,
+  "featureful": true,
+  "family": "Rust",
+  "tier": "A"
+ },
+ "resharp": {
+  "overall": {
+   "geo": 2.5665317326632064,
+   "n": 1312
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 2.135520603928818,
+    "n": 632
+   },
+   "unicode": {
+    "geo": 3.044763348386907,
+    "n": 680
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 4.834086287503513,
+    "n": 771
+   },
+   "reject": {
+    "geo": 1.0410688712738605,
+    "n": 541
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 1.4868122604224865,
+    "n": 328
+   },
+   "small": {
+    "geo": 1.929571843472831,
+    "n": 328
+   },
+   "medium": {
+    "geo": 2.869813386179847,
+    "n": 328
+   },
+   "large": {
+    "geo": 5.270063026265918,
+    "n": 328
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 1.391390226033976,
+    "n": 158
+   },
+   "ascii/small": {
+    "geo": 1.7066824785444745,
+    "n": 158
+   },
+   "ascii/medium": {
+    "geo": 2.3968553692138483,
+    "n": 158
+   },
+   "ascii/large": {
+    "geo": 3.6540253581329427,
+    "n": 158
+   },
+   "unicode/tiny": {
+    "geo": 1.5813568009571406,
+    "n": 170
+   },
+   "unicode/small": {
+    "geo": 2.1627496139865734,
+    "n": 170
+   },
+   "unicode/medium": {
+    "geo": 3.3926936850317557,
+    "n": 170
+   },
+   "unicode/large": {
+    "geo": 7.406847587729359,
+    "n": 170
+   }
+  },
+  "compile_median_ns": 1156125,
+  "statuses": {
+   "ok": 656,
+   "compile_error": 544
+  },
+  "coverage": 0.5466666666666666,
+  "dialect": "resharp",
+  "features": [
+   "lookahead",
+   "unicode_props",
+   "unicode_classes"
+  ],
+  "feature_count": 3,
+  "open_bugs": [
+   "IRX-RESHARP-1",
+   "RESHARP-1"
+  ],
+  "fast": false,
+  "featureful": false,
+  "family": "Rust",
+  "tier": "F"
+ },
+ "pcre2": {
+  "overall": {
+   "geo": 7.836681411995371,
+   "n": 2356
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 10.555781470206297,
+    "n": 1186
+   },
+   "unicode": {
+    "geo": 5.794353559162293,
+    "n": 1170
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 7.352467369791296,
+    "n": 1259
+   },
+   "reject": {
+    "geo": 8.431828276891082,
+    "n": 1097
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 4.804789519034839,
+    "n": 592
+   },
+   "small": {
+    "geo": 6.761161490363053,
+    "n": 588
+   },
+   "medium": {
+    "geo": 9.118130767602777,
+    "n": 588
+   },
+   "large": {
+    "geo": 12.775342864387413,
+    "n": 588
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 6.594417470683462,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 9.2652296918325,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 12.225851147524445,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 16.673636566465177,
+    "n": 296
+   },
+   "unicode/tiny": {
+    "geo": 3.485792419615329,
+    "n": 294
+   },
+   "unicode/small": {
+    "geo": 4.912606490463682,
+    "n": 292
+   },
+   "unicode/medium": {
+    "geo": 6.773103143649663,
+    "n": 292
+   },
+   "unicode/large": {
+    "geo": 9.752825306025267,
+    "n": 292
+   }
+  },
+  "compile_median_ns": 5125,
+  "statuses": {
+   "ok": 1178,
+   "runtime_error": 14,
+   "timeout": 8
+  },
+  "coverage": 0.9816666666666667,
+  "dialect": "pcre2",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "grapheme",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 13,
+  "open_bugs": [
+   "IRX-PCRE2-1",
+   "IRX-PCRE2-2",
+   "IRX-PCRE2-3",
+   "IRX-PCRE2-4",
+   "IRX-PCRE2-5",
+   "IRX-PCRE2-6"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "C",
+  "tier": "D"
+ },
+ "pcre2-jit": {
+  "overall": {
+   "geo": 1.6946966790929614,
+   "n": 2362
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 2.3059920000919343,
+    "n": 1192
+   },
+   "unicode": {
+    "geo": 1.2382573251860334,
+    "n": 1170
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 1.5336015440858493,
+    "n": 1263
+   },
+   "reject": {
+    "geo": 1.9008365970905312,
+    "n": 1099
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 1.1680656850398539,
+    "n": 594
+   },
+   "small": {
+    "geo": 1.4328482470062647,
+    "n": 590
+   },
+   "medium": {
+    "geo": 1.9095288598549613,
+    "n": 592
+   },
+   "large": {
+    "geo": 2.5938659868970997,
+    "n": 586
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 1.5364527271647692,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 2.0320403801187017,
+    "n": 298
+   },
+   "ascii/medium": {
+    "geo": 2.580417313495259,
+    "n": 298
+   },
+   "ascii/large": {
+    "geo": 3.509859254498415,
+    "n": 298
+   },
+   "unicode/tiny": {
+    "geo": 0.8863615812086674,
+    "n": 296
+   },
+   "unicode/small": {
+    "geo": 1.0031139634419883,
+    "n": 292
+   },
+   "unicode/medium": {
+    "geo": 1.407289371290784,
+    "n": 294
+   },
+   "unicode/large": {
+    "geo": 1.8969019158216083,
+    "n": 288
+   }
+  },
+  "compile_median_ns": 12583,
+  "statuses": {
+   "ok": 1181,
+   "runtime_error": 16,
+   "timeout": 3
+  },
+  "coverage": 0.9841666666666666,
+  "dialect": "pcre2",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "grapheme",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 13,
+  "open_bugs": [
+   "IRX-PCRE2-1",
+   "IRX-PCRE2-2",
+   "IRX-PCRE2-3",
+   "IRX-PCRE2-4",
+   "IRX-PCRE2-5",
+   "IRX-PCRE2-6"
+  ],
+  "fast": true,
+  "featureful": true,
+  "family": "C",
+  "tier": "C"
+ },
+ "pcre1": {
+  "overall": {
+   "geo": 8.407678420913726,
+   "n": 2356
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 11.165791474898718,
+    "n": 1186
+   },
+   "unicode": {
+    "geo": 6.306344649884452,
+    "n": 1170
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 7.232381013726676,
+    "n": 1259
+   },
+   "reject": {
+    "geo": 9.993741112625214,
+    "n": 1097
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 4.554819563118228,
+    "n": 592
+   },
+   "small": {
+    "geo": 7.310944936079437,
+    "n": 588
+   },
+   "medium": {
+    "geo": 10.592952873804679,
+    "n": 588
+   },
+   "large": {
+    "geo": 14.225041978636654,
+    "n": 588
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 6.189653895882551,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 9.645459758912839,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 14.157732434962629,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 18.463170919065117,
+    "n": 296
+   },
+   "unicode/tiny": {
+    "geo": 3.3378268948498993,
+    "n": 294
+   },
+   "unicode/small": {
+    "geo": 5.520462577376618,
+    "n": 292
+   },
+   "unicode/medium": {
+    "geo": 7.894319010279987,
+    "n": 292
+   },
+   "unicode/large": {
+    "geo": 10.92067332284257,
+    "n": 292
+   }
+  },
+  "compile_median_ns": 3542,
+  "statuses": {
+   "ok": 1178,
+   "runtime_error": 14,
+   "timeout": 8
+  },
+  "coverage": 0.9816666666666667,
+  "dialect": "pcre1",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 12,
+  "open_bugs": [
+   "IRX-PCRE2-4"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "C",
+  "tier": "D"
+ },
+ "oniguruma": {
+  "overall": {
+   "geo": 15.634355837221321,
+   "n": 2354
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 17.769237342920338,
+    "n": 1180
+   },
+   "unicode": {
+    "geo": 13.746973541506355,
+    "n": 1174
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 13.884340788466911,
+    "n": 1260
+   },
+   "reject": {
+    "geo": 17.92492991494674,
+    "n": 1094
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 10.557667111475036,
+    "n": 592
+   },
+   "small": {
+    "geo": 11.988469697150594,
+    "n": 588
+   },
+   "medium": {
+    "geo": 17.34684409162297,
+    "n": 588
+   },
+   "large": {
+    "geo": 27.33714423998093,
+    "n": 586
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 11.120960308294471,
+    "n": 296
+   },
+   "ascii/small": {
+    "geo": 14.784356819296153,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 19.858847838786488,
+    "n": 294
+   },
+   "ascii/large": {
+    "geo": 30.669325227837547,
+    "n": 294
+   },
+   "unicode/tiny": {
+    "geo": 10.022905553721559,
+    "n": 296
+   },
+   "unicode/small": {
+    "geo": 9.693440720990445,
+    "n": 292
+   },
+   "unicode/medium": {
+    "geo": 15.152591045657683,
+    "n": 294
+   },
+   "unicode/large": {
+    "geo": 24.34781184311555,
+    "n": 292
+   }
+  },
+  "compile_median_ns": 20000,
+  "statuses": {
+   "ok": 1177,
+   "runtime_error": 7,
+   "timeout": 8,
+   "compile_error": 8
+  },
+  "coverage": 0.9808333333333333,
+  "dialect": "oniguruma",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "grapheme",
+   "unicode_classes",
+   "full_case_fold",
+   "extended_mode"
+  ],
+  "feature_count": 14,
+  "open_bugs": [
+   "IRX-ONIG-1"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "C",
+  "tier": "D"
+ },
+ "re2": {
+  "overall": {
+   "geo": 2.249909834904288,
+   "n": 2400
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 3.719566520027533,
+    "n": 1200
+   },
+   "unicode": {
+    "geo": 1.3609366139690848,
+    "n": 1200
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 2.5940868900712806,
+    "n": 1278
+   },
+   "reject": {
+    "geo": 1.9131565016323306,
+    "n": 1122
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 1.9575056021560444,
+    "n": 600
+   },
+   "small": {
+    "geo": 2.1339334783101753,
+    "n": 600
+   },
+   "medium": {
+    "geo": 2.301974492706784,
+    "n": 600
+   },
+   "large": {
+    "geo": 2.664870190801643,
+    "n": 600
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 2.967931479984178,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 3.557031260228401,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 3.995400076444604,
+    "n": 300
+   },
+   "ascii/large": {
+    "geo": 4.5380313738160725,
+    "n": 300
+   },
+   "unicode/tiny": {
+    "geo": 1.2910770374296934,
+    "n": 300
+   },
+   "unicode/small": {
+    "geo": 1.280188943169582,
+    "n": 300
+   },
+   "unicode/medium": {
+    "geo": 1.3262968573070075,
+    "n": 300
+   },
+   "unicode/large": {
+    "geo": 1.564892912551956,
+    "n": 300
+   }
+  },
+  "compile_median_ns": 48459,
+  "statuses": {
+   "ok": 1200
+  },
+  "coverage": 1.0,
+  "dialect": "re2",
+  "features": [
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 6,
+  "open_bugs": [
+   "IRX-RE2-1",
+   "IRX-RE2-2",
+   "IRX-RE2-3"
+  ],
+  "fast": true,
+  "featureful": false,
+  "family": "C",
+  "tier": "D"
+ },
+ "icu-c": {
+  "overall": {
+   "geo": 8.14085611182084,
+   "n": 2350
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 11.014757064999912,
+    "n": 1186
+   },
+   "unicode": {
+    "geo": 5.982511301917273,
+    "n": 1164
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 6.683493584649876,
+    "n": 1256
+   },
+   "reject": {
+    "geo": 10.209915817152847,
+    "n": 1094
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 4.953268547537261,
+    "n": 592
+   },
+   "small": {
+    "geo": 7.293516167205154,
+    "n": 588
+   },
+   "medium": {
+    "geo": 9.652843284400909,
+    "n": 588
+   },
+   "large": {
+    "geo": 12.695012263545502,
+    "n": 582
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 6.468475956398093,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 10.010415844180239,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 12.864623572394697,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 17.734155062546257,
+    "n": 296
+   },
+   "unicode/tiny": {
+    "geo": 3.779242610546346,
+    "n": 294
+   },
+   "unicode/small": {
+    "geo": 5.291003046104467,
+    "n": 292
+   },
+   "unicode/medium": {
+    "geo": 7.214473386162813,
+    "n": 292
+   },
+   "unicode/large": {
+    "geo": 8.982135781532271,
+    "n": 286
+   }
+  },
+  "compile_median_ns": 17875,
+  "statuses": {
+   "ok": 1175,
+   "runtime_error": 25
+  },
+  "coverage": 0.9791666666666666,
+  "dialect": "icu",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "grapheme",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 13,
+  "open_bugs": [
+   "ICU-1",
+   "ICU-2",
+   "ICU-3",
+   "IRX-ICU-1",
+   "IRX-ICU-2",
+   "IRX-ICU-3",
+   "IRX-ICU-4",
+   "IRX-ICU-5"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "C",
+  "tier": "D"
+ },
+ "vectorscan": {
+  "overall": {
+   "geo": 1.8242533873135842,
+   "n": 1504
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 1.874384623523497,
+    "n": 736
+   },
+   "unicode": {
+    "geo": 1.777469570098225,
+    "n": 768
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 1.759545822992422,
+    "n": 976
+   },
+   "reject": {
+    "geo": 1.9501942410402546,
+    "n": 528
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 1.7092800617389405,
+    "n": 376
+   },
+   "small": {
+    "geo": 1.9408525618810484,
+    "n": 376
+   },
+   "medium": {
+    "geo": 1.7156790556152977,
+    "n": 376
+   },
+   "large": {
+    "geo": 1.9458027991951259,
+    "n": 376
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 1.5508950936331563,
+    "n": 184
+   },
+   "ascii/small": {
+    "geo": 1.9965948342491249,
+    "n": 184
+   },
+   "ascii/medium": {
+    "geo": 1.8698041777395622,
+    "n": 184
+   },
+   "ascii/large": {
+    "geo": 2.131897697369059,
+    "n": 184
+   },
+   "unicode/tiny": {
+    "geo": 1.8762228229649687,
+    "n": 192
+   },
+   "unicode/small": {
+    "geo": 1.8888937900070915,
+    "n": 192
+   },
+   "unicode/medium": {
+    "geo": 1.5799110741452143,
+    "n": 192
+   },
+   "unicode/large": {
+    "geo": 1.7827239586638686,
+    "n": 192
+   }
+  },
+  "compile_median_ns": 1479750,
+  "statuses": {
+   "compile_error": 448,
+   "ok": 752
+  },
+  "coverage": 0.6266666666666667,
+  "dialect": "vectorscan",
+  "features": [
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "unicode_classes"
+  ],
+  "feature_count": 5,
+  "open_bugs": [
+   "HS-1",
+   "IRX-HS-1"
+  ],
+  "fast": true,
+  "featureful": false,
+  "family": "C",
+  "tier": "D"
+ },
+ "llvm-regex": {
+  "overall": {
+   "geo": 205.7014772326038,
+   "n": 1072
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 219.17683328047403,
+    "n": 504
+   },
+   "unicode": {
+    "geo": 194.43982167483088,
+    "n": 568
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 113.05128320958184,
+    "n": 696
+   },
+   "reject": {
+    "geo": 622.9361110646433,
+    "n": 376
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 64.11273562371295,
+    "n": 268
+   },
+   "small": {
+    "geo": 165.18945542931027,
+    "n": 268
+   },
+   "medium": {
+    "geo": 292.98962130683714,
+    "n": 268
+   },
+   "large": {
+    "geo": 576.9933079695028,
+    "n": 268
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 59.132295765780356,
+    "n": 126
+   },
+   "ascii/small": {
+    "geo": 165.54020744501946,
+    "n": 126
+   },
+   "ascii/medium": {
+    "geo": 336.59938181977964,
+    "n": 126
+   },
+   "ascii/large": {
+    "geo": 700.3853313686609,
+    "n": 126
+   },
+   "unicode/tiny": {
+    "geo": 68.88215750342414,
+    "n": 142
+   },
+   "unicode/small": {
+    "geo": 164.87884711088776,
+    "n": 142
+   },
+   "unicode/medium": {
+    "geo": 259.04853430926664,
+    "n": 142
+   },
+   "unicode/large": {
+    "geo": 485.834144107069,
+    "n": 142
+   }
+  },
+  "compile_median_ns": 10584,
+  "statuses": {
+   "compile_error": 664,
+   "ok": 536
+  },
+  "coverage": 0.44666666666666666,
+  "dialect": "llvm",
+  "features": [
+   "named_groups"
+  ],
+  "feature_count": 1,
+  "open_bugs": [
+   "IRX-LLVM-1",
+   "IRX-LLVM-2"
+  ],
+  "fast": false,
+  "featureful": false,
+  "family": "C",
+  "tier": "F"
+ },
+ "libc-regex": {
+  "overall": {
+   "geo": 60.25231691845003,
+   "n": 1072
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 66.58220691714791,
+    "n": 504
+   },
+   "unicode": {
+    "geo": 55.141389343342404,
+    "n": 568
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 36.412799137296126,
+    "n": 696
+   },
+   "reject": {
+    "geo": 153.051592197808,
+    "n": 376
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 22.431235569507038,
+    "n": 268
+   },
+   "small": {
+    "geo": 46.78031926370852,
+    "n": 268
+   },
+   "medium": {
+    "geo": 80.7714232900128,
+    "n": 268
+   },
+   "large": {
+    "geo": 155.49659861235506,
+    "n": 268
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 21.79209825605377,
+    "n": 126
+   },
+   "ascii/small": {
+    "geo": 49.939652188203965,
+    "n": 126
+   },
+   "ascii/medium": {
+    "geo": 93.08271319400657,
+    "n": 126
+   },
+   "ascii/large": {
+    "geo": 194.00778123442973,
+    "n": 126
+   },
+   "unicode/tiny": {
+    "geo": 23.014036222902014,
+    "n": 142
+   },
+   "unicode/small": {
+    "geo": 44.144729375751744,
+    "n": 142
+   },
+   "unicode/medium": {
+    "geo": 71.21780035624782,
+    "n": 142
+   },
+   "unicode/large": {
+    "geo": 127.77638899219438,
+    "n": 142
+   }
+  },
+  "compile_median_ns": 12750,
+  "statuses": {
+   "compile_error": 664,
+   "ok": 536
+  },
+  "coverage": 0.44666666666666666,
+  "dialect": "libc",
+  "features": [
+   "named_groups"
+  ],
+  "feature_count": 1,
+  "open_bugs": [
+   "IRX-LIBC-1",
+   "IRX-LIBC-2"
+  ],
+  "fast": false,
+  "featureful": false,
+  "family": "C",
+  "tier": "F"
+ },
+ "gnu-regex": {
+  "overall": {
+   "geo": 11.988232241467907,
+   "n": 1072
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 10.79763818555476,
+    "n": 504
+   },
+   "unicode": {
+    "geo": 13.15415816978673,
+    "n": 568
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 6.603862541435065,
+    "n": 696
+   },
+   "reject": {
+    "geo": 36.14941813156933,
+    "n": 376
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 5.191847353123415,
+    "n": 268
+   },
+   "small": {
+    "geo": 9.12510236907568,
+    "n": 268
+   },
+   "medium": {
+    "geo": 15.141555972207794,
+    "n": 268
+   },
+   "large": {
+    "geo": 28.79323249957999,
+    "n": 268
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 4.4997672605031385,
+    "n": 126
+   },
+   "ascii/small": {
+    "geo": 7.863995061489377,
+    "n": 126
+   },
+   "ascii/medium": {
+    "geo": 13.77694348868229,
+    "n": 126
+   },
+   "ascii/large": {
+    "geo": 27.882320974893958,
+    "n": 126
+   },
+   "unicode/tiny": {
+    "geo": 5.894581889569001,
+    "n": 142
+   },
+   "unicode/small": {
+    "geo": 10.412475760219898,
+    "n": 142
+   },
+   "unicode/medium": {
+    "geo": 16.46517803053625,
+    "n": 142
+   },
+   "unicode/large": {
+    "geo": 29.626394317338978,
+    "n": 142
+   }
+  },
+  "compile_median_ns": 10500,
+  "statuses": {
+   "compile_error": 664,
+   "ok": 536
+  },
+  "coverage": 0.44666666666666666,
+  "dialect": "gnu",
+  "features": [
+   "named_groups"
+  ],
+  "feature_count": 1,
+  "open_bugs": [],
+  "fast": false,
+  "featureful": false,
+  "family": "C",
+  "tier": "B"
+ },
+ "minrx": {
+  "overall": {
+   "geo": 80.5339867985243,
+   "n": 1072
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 79.24269789730106,
+    "n": 504
+   },
+   "unicode": {
+    "geo": 81.69738682592296,
+    "n": 568
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 70.4713720812314,
+    "n": 696
+   },
+   "reject": {
+    "geo": 103.10478918116902,
+    "n": 376
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 65.94169022098815,
+    "n": 268
+   },
+   "small": {
+    "geo": 72.92370035985356,
+    "n": 268
+   },
+   "medium": {
+    "geo": 80.39979080866017,
+    "n": 268
+   },
+   "large": {
+    "geo": 108.80105466617387,
+    "n": 268
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 66.98216658088134,
+    "n": 126
+   },
+   "ascii/small": {
+    "geo": 71.95459190112751,
+    "n": 126
+   },
+   "ascii/medium": {
+    "geo": 77.26541895720463,
+    "n": 126
+   },
+   "ascii/large": {
+    "geo": 105.88492742478722,
+    "n": 126
+   },
+   "unicode/tiny": {
+    "geo": 65.03199186991738,
+    "n": 142
+   },
+   "unicode/small": {
+    "geo": 73.7945371041711,
+    "n": 142
+   },
+   "unicode/medium": {
+    "geo": 83.28730046593839,
+    "n": 142
+   },
+   "unicode/large": {
+    "geo": 111.45578285939568,
+    "n": 142
+   }
+  },
+  "compile_median_ns": 6625,
+  "statuses": {
+   "compile_error": 664,
+   "ok": 536
+  },
+  "coverage": 0.44666666666666666,
+  "dialect": "llvm",
+  "features": [
+   "named_groups"
+  ],
+  "feature_count": 1,
+  "open_bugs": [],
+  "fast": false,
+  "featureful": false,
+  "family": "C",
+  "tier": "B"
+ },
+ "cpp-regex": {
+  "overall": {
+   "geo": 103.50155294419567,
+   "n": 2364
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 159.68157674341725,
+    "n": 1186
+   },
+   "unicode": {
+    "geo": 66.88982938103094,
+    "n": 1178
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 54.443288238702245,
+    "n": 1261
+   },
+   "reject": {
+    "geo": 215.73235961408946,
+    "n": 1103
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 36.67368437434024,
+    "n": 592
+   },
+   "small": {
+    "geo": 81.39039899322641,
+    "n": 590
+   },
+   "medium": {
+    "geo": 148.52940159062965,
+    "n": 592
+   },
+   "large": {
+    "geo": 259.44362049548926,
+    "n": 590
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 49.81365105183994,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 130.33141121423645,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 239.6299008293986,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 421.2103712417844,
+    "n": 296
+   },
+   "unicode/tiny": {
+    "geo": 26.887552533252098,
+    "n": 294
+   },
+   "unicode/small": {
+    "geo": 50.66479206052157,
+    "n": 294
+   },
+   "unicode/medium": {
+    "geo": 92.06273115547708,
+    "n": 296
+   },
+   "unicode/large": {
+    "geo": 159.27780516270062,
+    "n": 294
+   }
+  },
+  "compile_median_ns": 4834,
+  "statuses": {
+   "ok": 1182,
+   "runtime_error": 13,
+   "timeout": 5
+  },
+  "coverage": 0.985,
+  "dialect": "cpp",
+  "features": [
+   "lookahead",
+   "backrefs",
+   "lazy",
+   "word_boundary"
+  ],
+  "feature_count": 4,
+  "open_bugs": [
+   "IRX-LIBCXX-1",
+   "IRX-LIBCXX-2",
+   "IRX-LIBCXX-3",
+   "IRX-LIBCXX-4",
+   "IRX-LIBCXX-5"
+  ],
+  "fast": false,
+  "featureful": false,
+  "family": "C",
+  "tier": "F"
+ },
+ "boost-regex": {
+  "overall": {
+   "geo": 17.760827675871983,
+   "n": 2364
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 28.00788321472603,
+    "n": 1186
+   },
+   "unicode": {
+    "geo": 11.228007769696294,
+    "n": 1178
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 14.707368071245886,
+    "n": 1263
+   },
+   "reject": {
+    "geo": 22.051913286340604,
+    "n": 1101
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 12.486731371608274,
+    "n": 592
+   },
+   "small": {
+    "geo": 15.63572133014429,
+    "n": 590
+   },
+   "medium": {
+    "geo": 20.725367338470406,
+    "n": 590
+   },
+   "large": {
+    "geo": 24.593672248876327,
+    "n": 592
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 21.248079752954837,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 24.681158626363395,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 33.0251901163744,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 35.59599479835532,
+    "n": 296
+   },
+   "unicode/tiny": {
+    "geo": 7.285120654803574,
+    "n": 294
+   },
+   "unicode/small": {
+    "geo": 9.87464921025974,
+    "n": 294
+   },
+   "unicode/medium": {
+    "geo": 12.965302785646285,
+    "n": 294
+   },
+   "unicode/large": {
+    "geo": 16.992044136187367,
+    "n": 296
+   }
+  },
+  "compile_median_ns": 24292,
+  "statuses": {
+   "ok": 1182,
+   "runtime_error": 17,
+   "timeout": 1
+  },
+  "coverage": 0.985,
+  "dialect": "boost",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "extended_mode"
+  ],
+  "feature_count": 10,
+  "open_bugs": [
+   "IRX-BOOST-1",
+   "IRX-BOOST-2",
+   "IRX-BOOST-3"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "C",
+  "tier": "D"
+ },
+ "v8": {
+  "overall": {
+   "geo": 1.2133255045133304,
+   "n": 2376
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 1.3680160489855258,
+    "n": 1192
+   },
+   "unicode": {
+    "geo": 1.07525467717181,
+    "n": 1184
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 1.297135705068324,
+    "n": 1269
+   },
+   "reject": {
+    "geo": 1.123890896796289,
+    "n": 1107
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 0.9444425609916278,
+    "n": 594
+   },
+   "small": {
+    "geo": 1.1170843533328294,
+    "n": 594
+   },
+   "medium": {
+    "geo": 1.2777804929611831,
+    "n": 594
+   },
+   "large": {
+    "geo": 1.6076501082056724,
+    "n": 594
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 1.1338648704827687,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 1.285547322675876,
+    "n": 298
+   },
+   "ascii/medium": {
+    "geo": 1.4168705949510747,
+    "n": 298
+   },
+   "ascii/large": {
+    "geo": 1.6958413239785592,
+    "n": 298
+   },
+   "unicode/tiny": {
+    "geo": 0.7856939518386655,
+    "n": 296
+   },
+   "unicode/small": {
+    "geo": 0.9697765829807818,
+    "n": 296
+   },
+   "unicode/medium": {
+    "geo": 1.15154023798287,
+    "n": 296
+   },
+   "unicode/large": {
+    "geo": 1.5234953753579494,
+    "n": 296
+   }
+  },
+  "compile_median_ns": 5000,
+  "statuses": {
+   "ok": 1188,
+   "timeout": 12
+  },
+  "coverage": 0.99,
+  "dialect": "irregexp",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 9,
+  "open_bugs": [
+   "IRX-V8-1",
+   "IRX-V8-2",
+   "IRX-V8-3",
+   "IRX-V8-4",
+   "IRX-V8-5",
+   "V8-3"
+  ],
+  "fast": true,
+  "featureful": true,
+  "family": "JS",
+  "tier": "C"
+ },
+ "v8-linear": {
+  "overall": {
+   "geo": 100.26529344553855,
+   "n": 864
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 100.26529344553855,
+    "n": 864
+   },
+   "unicode": {
+    "geo": null,
+    "n": 0
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 64.86708649342586,
+    "n": 416
+   },
+   "reject": {
+    "geo": 150.2338681617208,
+    "n": 448
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 41.6514516455544,
+    "n": 216
+   },
+   "small": {
+    "geo": 76.68289534636234,
+    "n": 216
+   },
+   "medium": {
+    "geo": 132.51967085119404,
+    "n": 216
+   },
+   "large": {
+    "geo": 238.77756760666367,
+    "n": 216
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 41.6514516455544,
+    "n": 216
+   },
+   "ascii/small": {
+    "geo": 76.68289534636234,
+    "n": 216
+   },
+   "ascii/medium": {
+    "geo": 132.51967085119404,
+    "n": 216
+   },
+   "ascii/large": {
+    "geo": 238.77756760666367,
+    "n": 216
+   },
+   "unicode/tiny": {
+    "geo": null,
+    "n": 0
+   },
+   "unicode/small": {
+    "geo": null,
+    "n": 0
+   },
+   "unicode/medium": {
+    "geo": null,
+    "n": 0
+   },
+   "unicode/large": {
+    "geo": null,
+    "n": 0
+   }
+  },
+  "compile_median_ns": 6000,
+  "statuses": {
+   "ok": 432,
+   "compile_error": 768
+  },
+  "coverage": 0.36,
+  "dialect": "irregexp",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 9,
+  "open_bugs": [
+   "IRX-V8-1",
+   "IRX-V8-2",
+   "IRX-V8-3",
+   "IRX-V8-4",
+   "IRX-V8-5",
+   "V8-3"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "JS",
+  "tier": "D"
+ },
+ "spidermonkey": {
+  "overall": {
+   "geo": 1.1574851761415303,
+   "n": 2376
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 1.3696697147753234,
+    "n": 1192
+   },
+   "unicode": {
+    "geo": 0.977059700122626,
+    "n": 1184
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 1.177976802771315,
+    "n": 1269
+   },
+   "reject": {
+    "geo": 1.1344329310096273,
+    "n": 1107
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 0.8696823079657195,
+    "n": 594
+   },
+   "small": {
+    "geo": 1.0715671880053526,
+    "n": 594
+   },
+   "medium": {
+    "geo": 1.2376164478939213,
+    "n": 594
+   },
+   "large": {
+    "geo": 1.5563083099590205,
+    "n": 594
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 1.0811775385015487,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 1.3024847301022053,
+    "n": 298
+   },
+   "ascii/medium": {
+    "geo": 1.4493340762786666,
+    "n": 298
+   },
+   "ascii/large": {
+    "geo": 1.7243493343069933,
+    "n": 298
+   },
+   "unicode/tiny": {
+    "geo": 0.6985306979571531,
+    "n": 296
+   },
+   "unicode/small": {
+    "geo": 0.8804273315867421,
+    "n": 296
+   },
+   "unicode/medium": {
+    "geo": 1.055699332272544,
+    "n": 296
+   },
+   "unicode/large": {
+    "geo": 1.4036704047781996,
+    "n": 296
+   }
+  },
+  "compile_median_ns": 2197,
+  "statuses": {
+   "ok": 1188,
+   "timeout": 12
+  },
+  "coverage": 0.99,
+  "dialect": "irregexp",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 9,
+  "open_bugs": [
+   "IRX-V8-5"
+  ],
+  "fast": true,
+  "featureful": true,
+  "family": "JS",
+  "tier": "C"
+ },
+ "jsc": {
+  "overall": {
+   "geo": 1.6311116835127308,
+   "n": 2363
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 1.7649435842394692,
+    "n": 1180
+   },
+   "unicode": {
+    "geo": 1.5077294483656045,
+    "n": 1183
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 1.3888984112837648,
+    "n": 1262
+   },
+   "reject": {
+    "geo": 1.9611271474260696,
+    "n": 1101
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 0.8855092789739548,
+    "n": 596
+   },
+   "small": {
+    "geo": 1.383998848151583,
+    "n": 592
+   },
+   "medium": {
+    "geo": 1.9754168090737616,
+    "n": 592
+   },
+   "large": {
+    "geo": 2.9626489588117138,
+    "n": 583
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 1.045970965179922,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 1.4906788230377244,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 2.097847319411369,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 3.0093903394204555,
+    "n": 290
+   },
+   "unicode/tiny": {
+    "geo": 0.7496639096612899,
+    "n": 298
+   },
+   "unicode/small": {
+    "geo": 1.284953393100181,
+    "n": 296
+   },
+   "unicode/medium": {
+    "geo": 1.8601313515351976,
+    "n": 296
+   },
+   "unicode/large": {
+    "geo": 2.917101064951147,
+    "n": 293
+   }
+  },
+  "compile_median_ns": 0,
+  "statuses": {
+   "ok": 1186,
+   "timeout": 14
+  },
+  "coverage": 0.9883333333333333,
+  "dialect": "es",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 9,
+  "open_bugs": [
+   "IRX-JSC-3"
+  ],
+  "fast": true,
+  "featureful": true,
+  "family": "JS",
+  "tier": "C"
+ },
+ "bun": {
+  "overall": {
+   "geo": 1.4265397266691244,
+   "n": 2372
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 1.7261012938639766,
+    "n": 1186
+   },
+   "unicode": {
+    "geo": 1.178966494608043,
+    "n": 1186
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 1.3302929852826697,
+    "n": 1264
+   },
+   "reject": {
+    "geo": 1.5448689830309574,
+    "n": 1108
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 0.9262295052947619,
+    "n": 596
+   },
+   "small": {
+    "geo": 1.2004806859894825,
+    "n": 592
+   },
+   "medium": {
+    "geo": 1.6332253128229972,
+    "n": 592
+   },
+   "large": {
+    "geo": 2.287088256191499,
+    "n": 592
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 1.109769536883467,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 1.441516367222779,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 1.9866076460576465,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 2.80153985266632,
+    "n": 296
+   },
+   "unicode/tiny": {
+    "geo": 0.7730443735983217,
+    "n": 298
+   },
+   "unicode/small": {
+    "geo": 0.9997485357799308,
+    "n": 296
+   },
+   "unicode/medium": {
+    "geo": 1.3427034410841965,
+    "n": 296
+   },
+   "unicode/large": {
+    "geo": 1.8671062939300216,
+    "n": 296
+   }
+  },
+  "compile_median_ns": 3917,
+  "statuses": {
+   "ok": 1186,
+   "timeout": 14
+  },
+  "coverage": 0.9883333333333333,
+  "dialect": "es",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 9,
+  "open_bugs": [],
+  "fast": true,
+  "featureful": true,
+  "family": "JS",
+  "tier": "S"
+ },
+ "quickjs": {
+  "overall": {
+   "geo": 25.8290293434915,
+   "n": 2370
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 42.17075423406736,
+    "n": 1186
+   },
+   "unicode": {
+    "geo": 15.806844060592761,
+    "n": 1184
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 15.489649322418364,
+    "n": 1263
+   },
+   "reject": {
+    "geo": 46.288009963110014,
+    "n": 1107
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 10.805194858030017,
+    "n": 594
+   },
+   "small": {
+    "geo": 19.964990127033726,
+    "n": 592
+   },
+   "medium": {
+    "geo": 34.98926421280698,
+    "n": 592
+   },
+   "large": {
+    "geo": 59.139066260286086,
+    "n": 592
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 15.752583005829333,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 33.70906873901455,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 59.38458241181739,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 100.9631350795333,
+    "n": 296
+   },
+   "unicode/tiny": {
+    "geo": 7.3927704127236185,
+    "n": 296
+   },
+   "unicode/small": {
+    "geo": 11.824735766468017,
+    "n": 296
+   },
+   "unicode/medium": {
+    "geo": 20.61559685077441,
+    "n": 296
+   },
+   "unicode/large": {
+    "geo": 34.640655278616485,
+    "n": 296
+   }
+  },
+  "compile_median_ns": 2000,
+  "statuses": {
+   "ok": 1185,
+   "timeout": 15
+  },
+  "coverage": 0.9875,
+  "dialect": "es",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 9,
+  "open_bugs": [
+   "IRX-QJS-2"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "JS",
+  "tier": "D"
+ },
+ "graaljs": {
+  "overall": {
+   "geo": 3.637814324654049,
+   "n": 2026
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 4.2651582592949575,
+    "n": 952
+   },
+   "unicode": {
+    "geo": 3.159327475576856,
+    "n": 1074
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 5.748811988517977,
+    "n": 1106
+   },
+   "reject": {
+    "geo": 2.0985697016399993,
+    "n": 920
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 4.337929550247939,
+    "n": 596
+   },
+   "small": {
+    "geo": 2.361895012681981,
+    "n": 599
+   },
+   "medium": {
+    "geo": 3.90940237731537,
+    "n": 490
+   },
+   "large": {
+    "geo": 5.1499688357746916,
+    "n": 341
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 5.056004721032652,
+    "n": 299
+   },
+   "ascii/small": {
+    "geo": 2.5928531458364037,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 4.577559953551721,
+    "n": 204
+   },
+   "ascii/large": {
+    "geo": 7.496869074666396,
+    "n": 149
+   },
+   "unicode/tiny": {
+    "geo": 3.718001312925806,
+    "n": 297
+   },
+   "unicode/small": {
+    "geo": 2.150838238275286,
+    "n": 299
+   },
+   "unicode/medium": {
+    "geo": 3.4932796228188026,
+    "n": 286
+   },
+   "unicode/large": {
+    "geo": 3.8481443403950455,
+    "n": 192
+   }
+  },
+  "compile_median_ns": 0,
+  "statuses": {
+   "ok": 1200
+  },
+  "coverage": 1.0,
+  "dialect": "es",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 9,
+  "open_bugs": [
+   "IRX-GRAAL-1"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "JS",
+  "tier": "D"
+ },
+ "boa": {
+  "overall": {
+   "geo": 37.69353196605841,
+   "n": 2351
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 59.74694228461804,
+    "n": 1183
+   },
+   "unicode": {
+    "geo": 23.64007570067823,
+    "n": 1168
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 43.11429173303983,
+    "n": 1255
+   },
+   "reject": {
+    "geo": 32.31816996691049,
+    "n": 1096
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 34.668860353429025,
+    "n": 592
+   },
+   "small": {
+    "geo": 27.944800032882963,
+    "n": 590
+   },
+   "medium": {
+    "geo": 36.430842973357116,
+    "n": 586
+   },
+   "large": {
+    "geo": 57.48505720639674,
+    "n": 583
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 50.367407199608735,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 46.80313456301708,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 59.94909603926491,
+    "n": 294
+   },
+   "ascii/large": {
+    "geo": 90.40120640265624,
+    "n": 295
+   },
+   "unicode/tiny": {
+    "geo": 23.742289549180494,
+    "n": 294
+   },
+   "unicode/small": {
+    "geo": 16.626599668789762,
+    "n": 294
+   },
+   "unicode/medium": {
+    "geo": 22.063489655409516,
+    "n": 292
+   },
+   "unicode/large": {
+    "geo": 36.15403459888367,
+    "n": 288
+   }
+  },
+  "compile_median_ns": 0,
+  "statuses": {
+   "ok": 1180,
+   "error": 20
+  },
+  "coverage": 0.9833333333333333,
+  "dialect": "es",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 9,
+  "open_bugs": [
+   "IRX-BOA-1",
+   "IRX-BOA-2",
+   "IRX-BOA-3",
+   "IRX-BOA-4",
+   "IRX-BOA-5",
+   "IRX-BOA-6",
+   "IRX-BOA-7",
+   "IRX-BOA-8"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "JS",
+  "tier": "D"
+ },
+ "xs": {
+  "overall": {
+   "geo": 36.65562899600668,
+   "n": 2288
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 54.73753875550364,
+    "n": 1153
+   },
+   "unicode": {
+    "geo": 24.391264871339818,
+    "n": 1135
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 24.04288476437167,
+    "n": 1199
+   },
+   "reject": {
+    "geo": 58.31700232924098,
+    "n": 1089
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 14.317613792391032,
+    "n": 591
+   },
+   "small": {
+    "geo": 27.356091672321266,
+    "n": 585
+   },
+   "medium": {
+    "geo": 48.728952039408696,
+    "n": 579
+   },
+   "large": {
+    "geo": 105.19754301694098,
+    "n": 533
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 19.552433206106976,
+    "n": 296
+   },
+   "ascii/small": {
+    "geo": 41.884240780339766,
+    "n": 294
+   },
+   "ascii/medium": {
+    "geo": 74.31024157816702,
+    "n": 293
+   },
+   "ascii/large": {
+    "geo": 162.52343726934788,
+    "n": 270
+   },
+   "unicode/tiny": {
+    "geo": 10.473256250899627,
+    "n": 295
+   },
+   "unicode/small": {
+    "geo": 17.7889482562453,
+    "n": 291
+   },
+   "unicode/medium": {
+    "geo": 31.62569266379108,
+    "n": 286
+   },
+   "unicode/large": {
+    "geo": 67.30807358758817,
+    "n": 263
+   }
+  },
+  "compile_median_ns": 0,
+  "statuses": {
+   "ok": 1179,
+   "error": 21
+  },
+  "coverage": 0.9825,
+  "dialect": "es",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 9,
+  "open_bugs": [
+   "IRX-XS-1",
+   "IRX-XS-10",
+   "IRX-XS-11",
+   "IRX-XS-2",
+   "IRX-XS-4",
+   "IRX-XS-5",
+   "IRX-XS-6",
+   "IRX-XS-7",
+   "IRX-XS-8",
+   "IRX-XS-9"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "JS",
+  "tier": "D"
+ },
+ "hermes": {
+  "overall": {
+   "geo": 16.359444309264365,
+   "n": 2248
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 23.91893489456804,
+    "n": 1131
+   },
+   "unicode": {
+    "geo": 11.135957223059737,
+    "n": 1117
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 16.344966589205296,
+    "n": 1203
+   },
+   "reject": {
+    "geo": 16.37612688461455,
+    "n": 1045
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 10.049133816157662,
+    "n": 590
+   },
+   "small": {
+    "geo": 13.355881711000366,
+    "n": 587
+   },
+   "medium": {
+    "geo": 18.349438333542935,
+    "n": 585
+   },
+   "large": {
+    "geo": 32.89212596746966,
+    "n": 486
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 13.874507787726229,
+    "n": 297
+   },
+   "ascii/small": {
+    "geo": 19.732330630329706,
+    "n": 295
+   },
+   "ascii/medium": {
+    "geo": 27.13534632448227,
+    "n": 293
+   },
+   "ascii/large": {
+    "geo": 50.03196898045557,
+    "n": 246
+   },
+   "unicode/tiny": {
+    "geo": 7.246481646437645,
+    "n": 293
+   },
+   "unicode/small": {
+    "geo": 9.003787695811376,
+    "n": 292
+   },
+   "unicode/medium": {
+    "geo": 12.391625774430494,
+    "n": 292
+   },
+   "unicode/large": {
+    "geo": 21.3984543084822,
+    "n": 240
+   }
+  },
+  "compile_median_ns": 0,
+  "statuses": {
+   "ok": 1180,
+   "error": 20
+  },
+  "coverage": 0.9833333333333333,
+  "dialect": "es",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 9,
+  "open_bugs": [
+   "IRX-HERMES-1",
+   "IRX-HERMES-2",
+   "IRX-HERMES-3",
+   "IRX-HERMES-4"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "JS",
+  "tier": "D"
+ },
+ "python-re": {
+  "overall": {
+   "geo": 11.63130715943418,
+   "n": 2368
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 18.63124274385754,
+    "n": 1186
+   },
+   "unicode": {
+    "geo": 7.249746056641694,
+    "n": 1182
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 10.344098312486304,
+    "n": 1263
+   },
+   "reject": {
+    "geo": 13.299874719500343,
+    "n": 1105
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 7.499251751721476,
+    "n": 594
+   },
+   "small": {
+    "geo": 10.178999164928248,
+    "n": 590
+   },
+   "medium": {
+    "geo": 13.532960237619482,
+    "n": 592
+   },
+   "large": {
+    "geo": 17.735627083057334,
+    "n": 592
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 11.132797235975804,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 16.807980060868395,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 22.043584469500416,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 29.31408359920403,
+    "n": 296
+   },
+   "unicode/tiny": {
+    "geo": 5.038162834207828,
+    "n": 296
+   },
+   "unicode/small": {
+    "geo": 6.1434585094438345,
+    "n": 294
+   },
+   "unicode/medium": {
+    "geo": 8.308132148216844,
+    "n": 296
+   },
+   "unicode/large": {
+    "geo": 10.730421333649257,
+    "n": 296
+   }
+  },
+  "compile_median_ns": 45042,
+  "statuses": {
+   "ok": 1184,
+   "timeout": 16
+  },
+  "coverage": 0.9866666666666667,
+  "dialect": "python",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 11,
+  "open_bugs": [],
+  "fast": false,
+  "featureful": true,
+  "family": "Script",
+  "tier": "A"
+ },
+ "python-regex": {
+  "overall": {
+   "geo": 13.251802826542693,
+   "n": 2386
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 21.758839491153417,
+    "n": 1192
+   },
+   "unicode": {
+    "geo": 8.077462315842546,
+    "n": 1194
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 14.086637813134223,
+    "n": 1272
+   },
+   "reject": {
+    "geo": 12.3588898511889,
+    "n": 1114
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 13.897185053017443,
+    "n": 598
+   },
+   "small": {
+    "geo": 11.70074855517044,
+    "n": 596
+   },
+   "medium": {
+    "geo": 12.23292721892933,
+    "n": 596
+   },
+   "large": {
+    "geo": 15.50099873930988,
+    "n": 596
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 20.59926154594621,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 19.957661746449972,
+    "n": 298
+   },
+   "ascii/medium": {
+    "geo": 21.10349603423159,
+    "n": 298
+   },
+   "ascii/large": {
+    "geo": 25.836114318301643,
+    "n": 298
+   },
+   "unicode/tiny": {
+    "geo": 9.400295978551446,
+    "n": 300
+   },
+   "unicode/small": {
+    "geo": 6.859897641850554,
+    "n": 298
+   },
+   "unicode/medium": {
+    "geo": 7.090981897069871,
+    "n": 298
+   },
+   "unicode/large": {
+    "geo": 9.300197349950475,
+    "n": 298
+   }
+  },
+  "compile_median_ns": 123250,
+  "statuses": {
+   "ok": 1193,
+   "timeout": 7
+  },
+  "coverage": 0.9941666666666666,
+  "dialect": "python-regex",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "grapheme",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 13,
+  "open_bugs": [],
+  "fast": false,
+  "featureful": true,
+  "family": "Script",
+  "tier": "A"
+ },
+ "ruby-onigmo": {
+  "overall": {
+   "geo": 10.589762693045893,
+   "n": 2386
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 14.028034398670982,
+    "n": 1200
+   },
+   "unicode": {
+    "geo": 7.967722381097366,
+    "n": 1186
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 8.477722221952506,
+    "n": 1278
+   },
+   "reject": {
+    "geo": 13.687232806740417,
+    "n": 1108
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 6.878129525804986,
+    "n": 598
+   },
+   "small": {
+    "geo": 8.1534523807209,
+    "n": 596
+   },
+   "medium": {
+    "geo": 11.614779003323742,
+    "n": 596
+   },
+   "large": {
+    "geo": 19.335303111873962,
+    "n": 596
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 8.960768826944447,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 11.209610895590064,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 15.681178430089732,
+    "n": 300
+   },
+   "ascii/large": {
+    "geo": 24.585145392177083,
+    "n": 300
+   },
+   "unicode/tiny": {
+    "geo": 5.270167930796654,
+    "n": 298
+   },
+   "unicode/small": {
+    "geo": 5.905059945301853,
+    "n": 296
+   },
+   "unicode/medium": {
+    "geo": 8.56803987119461,
+    "n": 296
+   },
+   "unicode/large": {
+    "geo": 15.157215820007442,
+    "n": 296
+   }
+  },
+  "compile_median_ns": 9000,
+  "statuses": {
+   "ok": 1193,
+   "timeout": 7
+  },
+  "coverage": 0.9941666666666666,
+  "dialect": "ruby",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "grapheme",
+   "unicode_classes",
+   "full_case_fold",
+   "extended_mode"
+  ],
+  "feature_count": 14,
+  "open_bugs": [
+   "IRX-ONIG-1",
+   "IRX-RUBY-1",
+   "RUBY-1",
+   "RUBY-2"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "Script",
+  "tier": "D"
+ },
+ "perl": {
+  "overall": {
+   "geo": 10.069037343955547,
+   "n": 2392
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 14.398114763834663,
+    "n": 1200
+   },
+   "unicode": {
+    "geo": 7.024701454261953,
+    "n": 1192
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 13.145248764976273,
+    "n": 1275
+   },
+   "reject": {
+    "geo": 7.427281003100262,
+    "n": 1117
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 12.683124175051201,
+    "n": 600
+   },
+   "small": {
+    "geo": 9.96217432916768,
+    "n": 596
+   },
+   "medium": {
+    "geo": 8.577793092567441,
+    "n": 598
+   },
+   "large": {
+    "geo": 9.476437779465892,
+    "n": 598
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 17.586476226384857,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 15.500520105906197,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 12.608084762240708,
+    "n": 300
+   },
+   "ascii/large": {
+    "geo": 12.503980958882613,
+    "n": 300
+   },
+   "unicode/tiny": {
+    "geo": 9.146894282234246,
+    "n": 300
+   },
+   "unicode/small": {
+    "geo": 6.364547255643437,
+    "n": 296
+   },
+   "unicode/medium": {
+    "geo": 5.820755690746572,
+    "n": 298
+   },
+   "unicode/large": {
+    "geo": 7.16859181695057,
+    "n": 298
+   }
+  },
+  "compile_median_ns": 24000,
+  "statuses": {
+   "ok": 1196,
+   "timeout": 4
+  },
+  "coverage": 0.9966666666666667,
+  "dialect": "perl",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "grapheme",
+   "unicode_classes",
+   "full_case_fold",
+   "extended_mode"
+  ],
+  "feature_count": 14,
+  "open_bugs": [
+   "IRX-PERL-1",
+   "IRX-PERL-2",
+   "IRX-PERL-3",
+   "IRX-PERL-4",
+   "IRX-PERL-6",
+   "IRX-PERL-7",
+   "IRX-PERL-8",
+   "PERL-1",
+   "PERL-2"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "Script",
+  "tier": "D"
+ },
+ "php-pcre2": {
+  "overall": {
+   "geo": 2.3189300966165005,
+   "n": 2364
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 3.268534341243464,
+    "n": 1192
+   },
+   "unicode": {
+    "geo": 1.635605205124433,
+    "n": 1172
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 2.3234422884229344,
+    "n": 1265
+   },
+   "reject": {
+    "geo": 2.3137472015479355,
+    "n": 1099
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 1.7852638100810625,
+    "n": 594
+   },
+   "small": {
+    "geo": 1.9653454459021964,
+    "n": 590
+   },
+   "medium": {
+    "geo": 2.467327557228408,
+    "n": 592
+   },
+   "large": {
+    "geo": 3.34967505095217,
+    "n": 588
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 2.459354865857036,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 2.9178327499982513,
+    "n": 298
+   },
+   "ascii/medium": {
+    "geo": 3.4645214414336474,
+    "n": 298
+   },
+   "ascii/large": {
+    "geo": 4.590789319464149,
+    "n": 298
+   },
+   "unicode/tiny": {
+    "geo": 1.2931342425856887,
+    "n": 296
+   },
+   "unicode/small": {
+    "geo": 1.313079223878211,
+    "n": 292
+   },
+   "unicode/medium": {
+    "geo": 1.7490599656783803,
+    "n": 294
+   },
+   "unicode/large": {
+    "geo": 2.4229355680697537,
+    "n": 290
+   }
+  },
+  "compile_median_ns": 17917,
+  "statuses": {
+   "ok": 1182,
+   "runtime_error": 16,
+   "timeout": 2
+  },
+  "coverage": 0.985,
+  "dialect": "pcre2",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "grapheme",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 13,
+  "open_bugs": [
+   "IRX-PCRE2-1",
+   "IRX-PCRE2-2",
+   "IRX-PCRE2-3",
+   "IRX-PCRE2-4",
+   "IRX-PCRE2-5",
+   "IRX-PCRE2-6"
+  ],
+  "fast": true,
+  "featureful": true,
+  "family": "Script",
+  "tier": "C"
+ },
+ "tcl": {
+  "overall": {
+   "geo": 16.608248034615695,
+   "n": 2400
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 27.844400104206947,
+    "n": 1200
+   },
+   "unicode": {
+    "geo": 9.906261285824614,
+    "n": 1200
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 19.675200848497603,
+    "n": 1278
+   },
+   "reject": {
+    "geo": 13.692916537796364,
+    "n": 1122
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 29.005029229308004,
+    "n": 600
+   },
+   "small": {
+    "geo": 17.410036560103755,
+    "n": 600
+   },
+   "medium": {
+    "geo": 12.417566341631309,
+    "n": 600
+   },
+   "large": {
+    "geo": 12.13349202801866,
+    "n": 600
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 42.32273394345789,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 30.357634442263706,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 21.83144924009791,
+    "n": 300
+   },
+   "ascii/large": {
+    "geo": 21.43025085420022,
+    "n": 300
+   },
+   "unicode/tiny": {
+    "geo": 19.878009811865084,
+    "n": 300
+   },
+   "unicode/small": {
+    "geo": 9.984617661847935,
+    "n": 300
+   },
+   "unicode/medium": {
+    "geo": 7.063019598607427,
+    "n": 300
+   },
+   "unicode/large": {
+    "geo": 6.869804268536484,
+    "n": 300
+   }
+  },
+  "compile_median_ns": 75000,
+  "statuses": {
+   "ok": 1200
+  },
+  "coverage": 1.0,
+  "dialect": "tcl",
+  "features": [
+   "lookahead",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 4,
+  "open_bugs": [
+   "IRX-TCL-1"
+  ],
+  "fast": false,
+  "featureful": false,
+  "family": "Script",
+  "tier": "F"
+ },
+ "java": {
+  "overall": {
+   "geo": 11.567542408433773,
+   "n": 2382
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 16.10796148861281,
+    "n": 1192
+   },
+   "unicode": {
+    "geo": 8.302328980105413,
+    "n": 1190
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 9.79625124313856,
+    "n": 1263
+   },
+   "reject": {
+    "geo": 13.954395170879263,
+    "n": 1119
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 6.464158027774828,
+    "n": 600
+   },
+   "small": {
+    "geo": 10.480196197887974,
+    "n": 596
+   },
+   "medium": {
+    "geo": 14.461506951201713,
+    "n": 596
+   },
+   "large": {
+    "geo": 18.433289342547603,
+    "n": 590
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 8.27949106578486,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 14.503229612557364,
+    "n": 298
+   },
+   "ascii/medium": {
+    "geo": 20.196282618807757,
+    "n": 298
+   },
+   "ascii/large": {
+    "geo": 27.98805083761319,
+    "n": 296
+   },
+   "unicode/tiny": {
+    "geo": 5.046848734546546,
+    "n": 300
+   },
+   "unicode/small": {
+    "geo": 7.573107182356633,
+    "n": 298
+   },
+   "unicode/medium": {
+    "geo": 10.35513253834637,
+    "n": 298
+   },
+   "unicode/large": {
+    "geo": 12.105959535670411,
+    "n": 294
+   }
+  },
+  "compile_median_ns": 21833,
+  "statuses": {
+   "ok": 1191,
+   "unsupported": 3,
+   "timeout": 6
+  },
+  "coverage": 0.9925,
+  "dialect": "java",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "grapheme",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 13,
+  "open_bugs": [
+   "IRX-JAVA-3",
+   "IRX-JAVA-4",
+   "IRX-JAVA-5",
+   "IRX-JAVA-6",
+   "JAVA-1",
+   "JAVA-2",
+   "JAVA-3",
+   "JAVA-4"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "VM",
+  "tier": "D"
+ },
+ "re2j": {
+  "overall": {
+   "geo": 19.481921548192556,
+   "n": 2400
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 30.174675383549978,
+    "n": 1200
+   },
+   "unicode": {
+    "geo": 12.578271758868441,
+    "n": 1200
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 20.392955363240354,
+    "n": 1278
+   },
+   "reject": {
+    "geo": 18.49369726311483,
+    "n": 1122
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 12.994048215249578,
+    "n": 600
+   },
+   "small": {
+    "geo": 16.93625629688895,
+    "n": 600
+   },
+   "medium": {
+    "geo": 22.276272633426196,
+    "n": 600
+   },
+   "large": {
+    "geo": 29.384800394401466,
+    "n": 600
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 18.084927447450003,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 26.904906308575583,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 35.64321416076757,
+    "n": 300
+   },
+   "ascii/large": {
+    "geo": 47.80191682481513,
+    "n": 300
+   },
+   "unicode/tiny": {
+    "geo": 9.336243648798167,
+    "n": 300
+   },
+   "unicode/small": {
+    "geo": 10.661132734087431,
+    "n": 300
+   },
+   "unicode/medium": {
+    "geo": 13.922210275439609,
+    "n": 300
+   },
+   "unicode/large": {
+    "geo": 18.06342823831219,
+    "n": 300
+   }
+  },
+  "compile_median_ns": 23125,
+  "statuses": {
+   "ok": 1200
+  },
+  "coverage": 1.0,
+  "dialect": "re2j",
+  "features": [
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 6,
+  "open_bugs": [
+   "IRX-RE2J-1"
+  ],
+  "fast": false,
+  "featureful": false,
+  "family": "VM",
+  "tier": "F"
+ },
+ "dotnet-interp": {
+  "overall": {
+   "geo": 6.355255362383744,
+   "n": 2378
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 8.929017191670692,
+    "n": 1192
+   },
+   "unicode": {
+    "geo": 4.515598117273599,
+    "n": 1186
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 6.551280656921282,
+    "n": 1266
+   },
+   "reject": {
+    "geo": 6.139212848553802,
+    "n": 1112
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 6.333183470495105,
+    "n": 596
+   },
+   "small": {
+    "geo": 6.161823929054504,
+    "n": 594
+   },
+   "medium": {
+    "geo": 5.964714820258972,
+    "n": 594
+   },
+   "large": {
+    "geo": 7.0083546699238495,
+    "n": 594
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 8.595469058478796,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 9.046382856389053,
+    "n": 298
+   },
+   "ascii/medium": {
+    "geo": 8.38963479193247,
+    "n": 298
+   },
+   "ascii/large": {
+    "geo": 9.743770257757271,
+    "n": 298
+   },
+   "unicode/tiny": {
+    "geo": 4.666320429760333,
+    "n": 298
+   },
+   "unicode/small": {
+    "geo": 4.186169507383307,
+    "n": 296
+   },
+   "unicode/medium": {
+    "geo": 4.230924509402928,
+    "n": 296
+   },
+   "unicode/large": {
+    "geo": 5.029654374823761,
+    "n": 296
+   }
+  },
+  "compile_median_ns": 13200,
+  "statuses": {
+   "ok": 1189,
+   "unsupported": 8,
+   "timeout": 3
+  },
+  "coverage": 0.9908333333333333,
+  "dialect": "dotnet",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 11,
+  "open_bugs": [
+   "DOTNET-4",
+   "DOTNET-6",
+   "IRX-DOTNET-10",
+   "IRX-DOTNET-6",
+   "IRX-DOTNET-7",
+   "IRX-DOTNET-8",
+   "IRX-DOTNET-9"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "VM",
+  "tier": "D"
+ },
+ "dotnet-compiled": {
+  "overall": {
+   "geo": 2.552793800142388,
+   "n": 2378
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 3.6215593970314024,
+    "n": 1192
+   },
+   "unicode": {
+    "geo": 1.7962529600101853,
+    "n": 1186
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 2.6959033667543175,
+    "n": 1266
+   },
+   "reject": {
+    "geo": 2.3990899886776202,
+    "n": 1112
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 2.8888683384148557,
+    "n": 596
+   },
+   "small": {
+    "geo": 2.4833095076654326,
+    "n": 594
+   },
+   "medium": {
+    "geo": 2.2784953329217927,
+    "n": 594
+   },
+   "large": {
+    "geo": 2.5970203543809203,
+    "n": 594
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 4.07003549393252,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 3.7108793336363965,
+    "n": 298
+   },
+   "ascii/medium": {
+    "geo": 3.1842783878851417,
+    "n": 298
+   },
+   "ascii/large": {
+    "geo": 3.576814284045569,
+    "n": 298
+   },
+   "unicode/tiny": {
+    "geo": 2.0504883284524444,
+    "n": 298
+   },
+   "unicode/small": {
+    "geo": 1.6573192731778859,
+    "n": 296
+   },
+   "unicode/medium": {
+    "geo": 1.6266835535481838,
+    "n": 296
+   },
+   "unicode/large": {
+    "geo": 1.8815466237020035,
+    "n": 296
+   }
+  },
+  "compile_median_ns": 42400,
+  "statuses": {
+   "ok": 1189,
+   "unsupported": 8,
+   "timeout": 3
+  },
+  "coverage": 0.9908333333333333,
+  "dialect": "dotnet-compiled",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 11,
+  "open_bugs": [
+   "DOTNET-4",
+   "DOTNET-6",
+   "IRX-DOTNET-10",
+   "IRX-DOTNET-6",
+   "IRX-DOTNET-7",
+   "IRX-DOTNET-8",
+   "IRX-DOTNET-9"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "VM",
+  "tier": "D"
+ },
+ "dotnet-nonbacktracking": {
+  "overall": {
+   "geo": 2.842841844758866,
+   "n": 2400
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 6.767512761290748,
+    "n": 1200
+   },
+   "unicode": {
+    "geo": 1.1941979334769048,
+    "n": 1200
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 2.9471840195106784,
+    "n": 1278
+   },
+   "reject": {
+    "geo": 2.7284850340816518,
+    "n": 1122
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 3.2760394663191352,
+    "n": 600
+   },
+   "small": {
+    "geo": 2.7056540072145263,
+    "n": 600
+   },
+   "medium": {
+    "geo": 2.608640160280925,
+    "n": 600
+   },
+   "large": {
+    "geo": 2.824718908544858,
+    "n": 600
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 7.1846595544854654,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 6.863986953785969,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 6.489474432136417,
+    "n": 300
+   },
+   "ascii/large": {
+    "geo": 6.554267533646098,
+    "n": 300
+   },
+   "unicode/tiny": {
+    "geo": 1.4937986279642412,
+    "n": 300
+   },
+   "unicode/small": {
+    "geo": 1.066517704075504,
+    "n": 300
+   },
+   "unicode/medium": {
+    "geo": 1.0486216652817903,
+    "n": 300
+   },
+   "unicode/large": {
+    "geo": 1.2173804122780696,
+    "n": 300
+   }
+  },
+  "compile_median_ns": 534000,
+  "statuses": {
+   "ok": 1200
+  },
+  "coverage": 1.0,
+  "dialect": "dotnet-nonbacktracking",
+  "features": [
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 7,
+  "open_bugs": [
+   "DOTNET-4",
+   "DOTNET-6",
+   "IRX-DOTNET-10",
+   "IRX-DOTNET-6",
+   "IRX-DOTNET-7",
+   "IRX-DOTNET-8",
+   "IRX-DOTNET-9"
+  ],
+  "fast": false,
+  "featureful": false,
+  "family": "VM",
+  "tier": "F"
+ },
+ "go-regexp": {
+  "overall": {
+   "geo": 10.537991160310638,
+   "n": 2400
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 15.519675011672986,
+    "n": 1200
+   },
+   "unicode": {
+    "geo": 7.155385509764894,
+    "n": 1200
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 9.458621794644408,
+    "n": 1278
+   },
+   "reject": {
+    "geo": 11.918259080120524,
+    "n": 1122
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 5.593911067631804,
+    "n": 600
+   },
+   "small": {
+    "geo": 8.705231891998796,
+    "n": 600
+   },
+   "medium": {
+    "geo": 12.983750377233779,
+    "n": 600
+   },
+   "large": {
+    "geo": 19.504519706373674,
+    "n": 600
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 7.643397350666478,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 13.048504571690934,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 19.01305278235528,
+    "n": 300
+   },
+   "ascii/large": {
+    "geo": 30.593661521541065,
+    "n": 300
+   },
+   "unicode/tiny": {
+    "geo": 4.093970206827601,
+    "n": 300
+   },
+   "unicode/small": {
+    "geo": 5.807643464208302,
+    "n": 300
+   },
+   "unicode/medium": {
+    "geo": 8.866423282365467,
+    "n": 300
+   },
+   "unicode/large": {
+    "geo": 12.434807409647906,
+    "n": 300
+   }
+  },
+  "compile_median_ns": 6458,
+  "statuses": {
+   "ok": 1200
+  },
+  "coverage": 1.0,
+  "dialect": "go",
+  "features": [
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 6,
+  "open_bugs": [],
+  "fast": false,
+  "featureful": false,
+  "family": "VM",
+  "tier": "B"
+ },
+ "swift-regex": {
+  "overall": {
+   "geo": 150.11136883348289,
+   "n": 2350
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 199.0299466123068,
+    "n": 1186
+   },
+   "unicode": {
+    "geo": 112.61425298174333,
+    "n": 1164
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 134.6937250168547,
+    "n": 1257
+   },
+   "reject": {
+    "geo": 170.0363966699129,
+    "n": 1093
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 89.7064889428833,
+    "n": 588
+   },
+   "small": {
+    "geo": 133.31342191569487,
+    "n": 588
+   },
+   "medium": {
+    "geo": 181.40381760322035,
+    "n": 588
+   },
+   "large": {
+    "geo": 234.40589717608532,
+    "n": 586
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 115.09615700578698,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 180.24186540859796,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 245.27128218759307,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 309.54062425456175,
+    "n": 296
+   },
+   "unicode/tiny": {
+    "geo": 69.43861463280805,
+    "n": 290
+   },
+   "unicode/small": {
+    "geo": 98.19690676735371,
+    "n": 292
+   },
+   "unicode/medium": {
+    "geo": 133.61389338478975,
+    "n": 292
+   },
+   "unicode/large": {
+    "geo": 176.49042752361296,
+    "n": 290
+   }
+  },
+  "compile_median_ns": 78625,
+  "statuses": {
+   "ok": 1175,
+   "timeout": 25
+  },
+  "coverage": 0.9791666666666666,
+  "dialect": "swift",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "grapheme",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 12,
+  "open_bugs": [
+   "IRX-SWIFT-1",
+   "IRX-SWIFT-2",
+   "IRX-SWIFT-3",
+   "IRX-SWIFT-4",
+   "IRX-SWIFT-5",
+   "SWIFT-1",
+   "SWIFT-2",
+   "SWIFT-PERF-1"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "VM",
+  "tier": "D"
+ },
+ "icu": {
+  "overall": {
+   "geo": 24.553677525040783,
+   "n": 2354
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 30.579009121636908,
+    "n": 1186
+   },
+   "unicode": {
+    "geo": 19.649021004708658,
+    "n": 1168
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 22.065409733221024,
+    "n": 1257
+   },
+   "reject": {
+    "geo": 27.75168203406759,
+    "n": 1097
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 16.476945557453664,
+    "n": 590
+   },
+   "small": {
+    "geo": 22.15041857201798,
+    "n": 588
+   },
+   "medium": {
+    "geo": 27.18725211566189,
+    "n": 588
+   },
+   "large": {
+    "geo": 36.68018213298798,
+    "n": 588
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 20.66778348689946,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 28.35745515735323,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 34.19213816807935,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 43.74775190551755,
+    "n": 296
+   },
+   "unicode/tiny": {
+    "geo": 13.074865770686536,
+    "n": 292
+   },
+   "unicode/small": {
+    "geo": 17.243561049578705,
+    "n": 292
+   },
+   "unicode/medium": {
+    "geo": 21.549664878666363,
+    "n": 292
+   },
+   "unicode/large": {
+    "geo": 30.68025386484585,
+    "n": 292
+   }
+  },
+  "compile_median_ns": 11750,
+  "statuses": {
+   "ok": 1177,
+   "timeout": 23
+  },
+  "coverage": 0.9808333333333333,
+  "dialect": "icu",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "grapheme",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 13,
+  "open_bugs": [
+   "ICU-1",
+   "ICU-2",
+   "ICU-3",
+   "IRX-ICU-1",
+   "IRX-ICU-2",
+   "IRX-ICU-3",
+   "IRX-ICU-4",
+   "IRX-ICU-5"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "VM",
+  "tier": "D"
+ },
+ "erlang-re": {
+  "overall": {
+   "geo": 39.692929711202474,
+   "n": 2362
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 49.83345958561129,
+    "n": 1188
+   },
+   "unicode": {
+    "geo": 31.53021874793154,
+    "n": 1174
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 45.95277785375327,
+    "n": 1262
+   },
+   "reject": {
+    "geo": 33.55430123372522,
+    "n": 1100
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 18.08136224724257,
+    "n": 592
+   },
+   "small": {
+    "geo": 20.198705091402964,
+    "n": 588
+   },
+   "medium": {
+    "geo": 41.573156133900746,
+    "n": 588
+   },
+   "large": {
+    "geo": 162.02225588177023,
+    "n": 594
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 25.663776762108878,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 29.20980850486742,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 55.723299144000066,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 147.219950271019,
+    "n": 298
+   },
+   "unicode/tiny": {
+    "geo": 12.678634477344799,
+    "n": 294
+   },
+   "unicode/small": {
+    "geo": 13.897086330144528,
+    "n": 292
+   },
+   "unicode/medium": {
+    "geo": 30.89202511883418,
+    "n": 292
+   },
+   "unicode/large": {
+    "geo": 178.42833293160655,
+    "n": 296
+   }
+  },
+  "compile_median_ns": 4709,
+  "statuses": {
+   "ok": 1181,
+   "timeout": 19
+  },
+  "coverage": 0.9841666666666666,
+  "dialect": "pcre2",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "backrefs",
+   "atomic",
+   "possessive",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "grapheme",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 13,
+  "open_bugs": [
+   "IRX-PCRE2-1",
+   "IRX-PCRE2-2",
+   "IRX-PCRE2-3",
+   "IRX-PCRE2-4",
+   "IRX-PCRE2-5",
+   "IRX-PCRE2-6"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "VM",
+  "tier": "D"
+ },
+ "racket": {
+  "overall": {
+   "geo": 32.33351080361387,
+   "n": 2160
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 39.57928239109998,
+    "n": 1048
+   },
+   "unicode": {
+    "geo": 26.723412442876686,
+    "n": 1112
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 31.638035471344754,
+    "n": 1149
+   },
+   "reject": {
+    "geo": 33.14249670953341,
+    "n": 1011
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 8.496945968843644,
+    "n": 542
+   },
+   "small": {
+    "geo": 38.22414123656973,
+    "n": 540
+   },
+   "medium": {
+    "geo": 48.62986519366454,
+    "n": 540
+   },
+   "large": {
+    "geo": 69.74190956563429,
+    "n": 538
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 9.145651198581561,
+    "n": 262
+   },
+   "ascii/small": {
+    "geo": 49.86435899441864,
+    "n": 262
+   },
+   "ascii/medium": {
+    "geo": 62.75382464868255,
+    "n": 262
+   },
+   "ascii/large": {
+    "geo": 85.74851126202469,
+    "n": 262
+   },
+   "unicode/tiny": {
+    "geo": 7.931678860330817,
+    "n": 280
+   },
+   "unicode/small": {
+    "geo": 29.752946549171632,
+    "n": 278
+   },
+   "unicode/medium": {
+    "geo": 38.24188505009045,
+    "n": 278
+   },
+   "unicode/large": {
+    "geo": 57.32086579601581,
+    "n": 276
+   }
+  },
+  "compile_median_ns": 17000,
+  "statuses": {
+   "ok": 1080,
+   "compile_error": 112,
+   "timeout": 8
+  },
+  "coverage": 0.9,
+  "dialect": "racket",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 8,
+  "open_bugs": [
+   "IRX-RACKET-1",
+   "IRX-RACKET-3",
+   "IRX-RACKET-4",
+   "IRX-RACKET-5",
+   "RACKET-1",
+   "RACKET-2",
+   "RACKET-3"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "VM",
+  "tier": "D"
+ },
+ "emacs": {
+  "overall": {
+   "geo": 35.267426467022936,
+   "n": 2362
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 49.9049215677924,
+    "n": 1186
+   },
+   "unicode": {
+    "geo": 24.849754764298673,
+    "n": 1176
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 25.753553369432375,
+    "n": 1259
+   },
+   "reject": {
+    "geo": 50.49182723275341,
+    "n": 1103
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 23.126183285580503,
+    "n": 594
+   },
+   "small": {
+    "geo": 26.200211043673008,
+    "n": 590
+   },
+   "medium": {
+    "geo": 39.551934843963025,
+    "n": 590
+   },
+   "large": {
+    "geo": 64.87215640322324,
+    "n": 588
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 31.405135231700225,
+    "n": 298
+   },
+   "ascii/small": {
+    "geo": 39.608921178572224,
+    "n": 296
+   },
+   "ascii/medium": {
+    "geo": 57.86709799584819,
+    "n": 296
+   },
+   "ascii/large": {
+    "geo": 86.43849506206664,
+    "n": 296
+   },
+   "unicode/tiny": {
+    "geo": 16.994535862335976,
+    "n": 296
+   },
+   "unicode/small": {
+    "geo": 17.282061930243604,
+    "n": 294
+   },
+   "unicode/medium": {
+    "geo": 26.96370203680193,
+    "n": 294
+   },
+   "unicode/large": {
+    "geo": 48.49555716361397,
+    "n": 292
+   }
+  },
+  "compile_median_ns": 5007,
+  "statuses": {
+   "ok": 1181,
+   "timeout": 19
+  },
+  "coverage": 0.9841666666666666,
+  "dialect": "emacs",
+  "features": [
+   "named_groups",
+   "lazy",
+   "word_boundary",
+   "unicode_classes"
+  ],
+  "feature_count": 4,
+  "open_bugs": [
+   "IRX-EMACS-1",
+   "IRX-EMACS-2"
+  ],
+  "fast": false,
+  "featureful": false,
+  "family": "VM",
+  "tier": "F"
+ },
+ "nim-regex": {
+  "overall": {
+   "geo": 43.94134617719079,
+   "n": 2380
+  },
+  "by_set": {
+   "ascii": {
+    "geo": 69.46572499907859,
+    "n": 1200
+   },
+   "unicode": {
+    "geo": 27.580682162203075,
+    "n": 1180
+   }
+  },
+  "by_outcome": {
+   "accept": {
+    "geo": 45.16006568767187,
+    "n": 1274
+   },
+   "reject": {
+    "geo": 42.57821103478223,
+    "n": 1106
+   }
+  },
+  "by_bin": {
+   "tiny": {
+    "geo": 23.764183990357726,
+    "n": 596
+   },
+   "small": {
+    "geo": 31.903004489513336,
+    "n": 594
+   },
+   "medium": {
+    "geo": 50.936749102346106,
+    "n": 594
+   },
+   "large": {
+    "geo": 96.48425051975867,
+    "n": 596
+   }
+  },
+  "by_set_bin": {
+   "ascii/tiny": {
+    "geo": 33.48742236767825,
+    "n": 300
+   },
+   "ascii/small": {
+    "geo": 53.35087786185874,
+    "n": 300
+   },
+   "ascii/medium": {
+    "geo": 84.0808694846348,
+    "n": 300
+   },
+   "ascii/large": {
+    "geo": 155.01074624061727,
+    "n": 300
+   },
+   "unicode/tiny": {
+    "geo": 16.786151390221296,
+    "n": 296
+   },
+   "unicode/small": {
+    "geo": 18.878359558733457,
+    "n": 294
+   },
+   "unicode/medium": {
+    "geo": 30.543801663557918,
+    "n": 294
+   },
+   "unicode/large": {
+    "geo": 59.67171819204835,
+    "n": 296
+   }
+  },
+  "compile_median_ns": 32667,
+  "statuses": {
+   "ok": 1190,
+   "timeout": 10
+  },
+  "coverage": 0.9916666666666667,
+  "dialect": "nim",
+  "features": [
+   "lookahead",
+   "lookbehind",
+   "unicode_props",
+   "named_groups",
+   "inline_flags",
+   "lazy",
+   "word_boundary",
+   "unicode_classes",
+   "extended_mode"
+  ],
+  "feature_count": 9,
+  "open_bugs": [
+   "IRX-NIM-1",
+   "NIM-1",
+   "NIM-2",
+   "NIM-3",
+   "NIM-4",
+   "NIM-6",
+   "NIM-7"
+  ],
+  "fast": false,
+  "featureful": true,
+  "family": "VM",
+  "tier": "D"
+ }
+}

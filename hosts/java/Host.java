@@ -63,6 +63,24 @@ public class Host {
                 if (f.indexOf('i') >= 0) fl |= Pattern.CASE_INSENSITIVE;
                 if (f.indexOf('m') >= 0) fl |= Pattern.MULTILINE;
                 if (f.indexOf('s') >= 0) fl |= Pattern.DOTALL;
+                if (mode.equals("bench")) { // Shootout 2: "<flags>#<reps>"; compile once, timed find() loops
+                    int hash = f.indexOf('#'), nreps = 1;
+                    if (hash >= 0) nreps = Math.max(1, Integer.parseInt(f.substring(hash + 1)));
+                    long t0 = System.nanoTime(); Pattern bp;
+                    try { bp = Pattern.compile(p, fl); } catch (Exception e) { res.append("fe04" + "0".repeat(36)); continue; }
+                    long tc = System.nanoTime() - t0;
+                    try {
+                        var ma = bp.matcher(a); var mr = bp.matcher(r);
+                        int bits = (ma.find() ? 1 : 0) | (mr.find() ? 2 : 0);
+                        long t1 = System.nanoTime();
+                        for (int k = 0; k < nreps; k++) { ma.reset(); ma.find(); }
+                        long t2 = System.nanoTime();
+                        for (int k = 0; k < nreps; k++) { mr.reset(); mr.find(); }
+                        long t3 = System.nanoTime();
+                        res.append(String.format("%02x%012x%012x%012x", bits, tc, t2 - t1, t3 - t2));
+                    } catch (StackOverflowError t) { res.append("fe40" + "0".repeat(36)); } catch (Throwable t) { res.append("fe08" + "0".repeat(36)); }
+                    continue;
+                }
                 Pattern pat;
                 if (capture) { // whole match + groups 1..6 per subject, UTF-16 offsets (src/capture.zig)
                     try { pat = Pattern.compile(p, fl); } catch (Exception e) { res.append(failed.apply(4, 26)); continue; }
