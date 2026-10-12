@@ -446,7 +446,7 @@ FEATURE_LABELS = {"lookahead": "look→", "lookbehind": "←look", "backrefs": "
 SCALE = ["rust-regex", "pcre2-jit", "bun", "v8", "re2", "go-regexp", "python-re", "java"]
 
 
-def page(out, dest, extras=None, strict_only=False):
+def page(out, dest, extras=None, strict_only=False, title=None, no_bug_ids=False):
     summary = json.load(open(os.path.join(out, "summary.json")))
     cases = json.load(open(os.path.join(out, "workload.json")))
     scale = {}
@@ -460,11 +460,15 @@ def page(out, dest, extras=None, strict_only=False):
                        for x in (d[str(c["id"])]["a_ns"], d[str(c["id"])]["r_ns"]) if x > 0)
             if v: scale[name][b] = v[len(v) // 2]
     strict_meta = json.load(open(os.path.join(out, "strict.json")))
-    meta = {"strict_only": strict_only, "strict": strict_meta, "labels": LABELS, "fast": FAST, "featureful": FEATUREFUL, "features": FEATURES, "feature_labels": FEATURE_LABELS,
+    if no_bug_ids:  # counts only: the ledger IDs stay out of the page source
+        for v in summary.values(): v["open_bugs"] = ["open"] * len(v["open_bugs"])
+    meta = {"no_bug_ids": no_bug_ids, "strict_only": strict_only, "strict": strict_meta, "labels": LABELS, "fast": FAST, "featureful": FEATUREFUL, "features": FEATURES, "feature_labels": FEATURE_LABELS,
             "patterns": len(cases) // len(BINS) // 2, "inputs": len(cases) * 2, "bins": [[b, n] for b, n, _ in BINS],
             "scale_engines": SCALE, "ledger_open": sum(1 for _, _, o in ledger_rows() if o), "date": time.strftime("%Y-%m-%d")}
     html = open(os.path.join(ROOT, "tools", "shootout2.html")).read().replace("/*DATA*/null", json.dumps({"summary": summary, "meta": meta, "scale": scale,
                                                                                                  "extras": json.load(open(extras)) if extras else {}}))
+    if title:
+        html = html.replace("<title>Regex Shootout 2</title>", f"<title>{title}</title>").replace("<h1>Regex Shootout 2</h1>", f"<h1>{title}</h1>")
     open(dest, "w").write(html)
     print("wrote", dest)
 
@@ -473,6 +477,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["run", "report", "smoke", "page"])
     ap.add_argument("--html", default=None)
+    ap.add_argument("--title", default=None, help="page: title and headline")
+    ap.add_argument("--no-bug-ids", action="store_true", help="page: bug counts only, no ledger IDs")
     ap.add_argument("--strict-only", action="store_true", help="page: show only the strict view, without the switch")
     ap.add_argument("--extras", default=None, help="page: JSON of untiered rows shown for comparison only (engines irx does not fuzz)")
     ap.add_argument("--engines", default=None)
@@ -496,7 +502,7 @@ def main():
     elif a.cmd == "run":
         for name, target, _, mode in sel: run_engine(name, target, mode, cases, a.out, a.timeout)
     elif a.cmd == "page":
-        page(a.out, a.html or os.path.join(a.out, "shootout2.html"), a.extras, a.strict_only)
+        page(a.out, a.html or os.path.join(a.out, "shootout2.html"), a.extras, a.strict_only, a.title, a.no_bug_ids)
     else:
         report(a.out)
 

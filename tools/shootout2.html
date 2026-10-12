@@ -81,6 +81,7 @@ td .tag { display: inline-block; min-width: 24px; text-align: center; color: #1c
 .cross th.sep, .cross td.sep { border-left: 1.5px solid var(--ink); }
 .cross td.cell { min-width: 46px; padding: 5px 4px; }
 .cross thead tr:not(:last-child) th { border-bottom: none; }
+#t-bugs.counts { width: auto; min-width: 320px; }
 .bugs { font-variation-settings: "MONO" 1; font-size: 12px; color: var(--ink-2); white-space: normal; text-align: left; max-width: 460px; }
 /* Charts */
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; font-family: var(--font); }
@@ -107,7 +108,7 @@ a { color: var(--accent); }
 
   <section aria-labelledby="h-tiers">
     <h2 id="h-tiers">Tier list</h2>
-    <p>Correctness gates the top three tiers: an engine with any open bug in the irx ledger can place no higher than C. Within each half, an engine earns one step for being <strong>fast</strong> (geometric-mean search time at most <span id="fast-x"></span>× Rust's) and one for being <strong>featureful</strong> (at least <span id="feat-n"></span> of the 14 construct families below, read from irx's dialect model).</p>
+    <p>Correctness gates the top three tiers: an engine with any open bug found by irx can place no higher than C. Within each half, an engine earns one step for being <strong>fast</strong> (geometric-mean search time at most <span id="fast-x"></span>× Rust's) and one for being <strong>featureful</strong> (at least <span id="feat-n"></span> of the 14 construct families below, read from irx's dialect model).</p>
     <div class="tiers" id="tiers"></div>
   </section>
 
@@ -153,7 +154,7 @@ a { color: var(--accent); }
 
   <section aria-labelledby="h-bugs">
     <h2 id="h-bugs">Correctness</h2>
-    <p>Open bugs in the irx ledger that affect each engine. Engines that embed a library inherit its bugs (PHP and Erlang run PCRE2; SpiderMonkey runs V8's Irregexp). Zero means irx has not found one, across self-checks, campaigns and the cross-engine check, not that none exist.</p>
+    <p>Open bugs found by irx that affect each engine in its latest tested version. Engines that embed another engine inherit its bugs (PHP and Erlang run PCRE2; SpiderMonkey shares V8's Irregexp). Zero means irx has not found one, not that none exist.</p>
     <div class="card"><div class="scrollx"><table id="t-bugs"></table></div></div>
   </section>
 
@@ -186,7 +187,7 @@ document.getElementById("fast-x").textContent = M.fast;
 document.getElementById("feat-n").textContent = M.featureful;
 const counts = TIER_ORDER.map(t => names.filter(n => S[n].tier === t).length);
 document.getElementById("lede").innerHTML = `Every engine irx fuzzes, timed on one shared workload: ${M.patterns} random patterns in an ASCII and a Unicode set, each against subjects of four sizes, about ${M.inputs.toLocaleString()} timed inputs per engine. <strong>${counts[0] === 1 ? names.filter(n => S[n].tier === "S").map(label)[0] + " is the only engine in S tier" : counts[0] + " engines reach S tier"}</strong>; ${names.filter(n => !S[n].open_bugs.length).length} of ${names.length} have no open bug.`;
-document.getElementById("facts").innerHTML = [["Engines", names.length], ["Patterns", (M.patterns * 2).toLocaleString()], ["Timed inputs / engine", M.inputs.toLocaleString()], ["Size bins", "16 → 8,192"], ["Bugs in ledger", M.ledger_open]].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+document.getElementById("facts").innerHTML = [["Engines", names.length], ["Patterns", (M.patterns * 2).toLocaleString()], ["Timed inputs / engine", M.inputs.toLocaleString()], ["Size bins", "16 → 8,192"], ["Open bugs found", M.ledger_open]].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
 
 // Diverging ramp on log2(ratio)
 const RAMP = ["--d-n3", "--d-n2", "--d-n1", "--d-mid", "--d-p1", "--d-p2", "--d-p3", "--d-p4", "--d-p5"];
@@ -305,10 +306,12 @@ for (const id of ["view-strict", "view-own"]) {
 // Bugs
 (function () {
   const rows = names.slice().sort((a, b) => S[a].open_bugs.length - S[b].open_bugs.length || a.localeCompare(b));
-  let h = `<thead><tr><th>Engine</th><th>Open</th><th style="text-align:left">Ledger IDs</th></tr></thead><tbody>`;
-  for (const n of rows) h += `<tr><td>${esc(label(n))}</td><td class="num">${S[n].open_bugs.length}</td><td class="bugs">${S[n].open_bugs.map(esc).join(", ") || "–"}</td></tr>`;
+  let h = M.no_bug_ids ? `<thead><tr><th>Engine</th><th>Open bugs</th></tr></thead><tbody>` : `<thead><tr><th>Engine</th><th>Open</th><th style="text-align:left">Ledger IDs</th></tr></thead><tbody>`;
+  for (const n of rows) h += M.no_bug_ids ? `<tr><td>${esc(label(n))}</td><td class="num">${S[n].open_bugs.length}</td></tr>`
+    : `<tr><td>${esc(label(n))}</td><td class="num">${S[n].open_bugs.length}</td><td class="bugs">${S[n].open_bugs.map(esc).join(", ") || "–"}</td></tr>`;
   document.getElementById("t-bugs").innerHTML = h + "</tbody>";
+  if (M.no_bug_ids) document.getElementById("t-bugs").className = "counts";
 })();
 
-document.getElementById("foot").innerHTML = Object.keys(EX).map(n => `<div>* ${esc(label(n))}: shown for comparison only. It is not an irx engine, so it has no tier, features or bug count. Timed on the same workload through its own runner, with the fuzzing campaign running, so its ratios are against a Rust run timed under the same load.</div>`).join("") + `<div>Measured ${M.date} on an Apple Silicon Mac with the fuzzing campaign paused, engines run one at a time. Each case compiles once (timed), runs one untimed warm-up search per subject, then times repeated unanchored “is there a match?” searches; loops shorter than 2 ms are rerun with more repetitions, which matters for shells with millisecond clocks (Boa, XS, Hermes). Times are in-process and exclude startup and I/O. JavaScript engines and the JVM time warm code; Java's JIT is shared across cases.</div><div>Speed thresholds: fast means at most ${M.fast}× Rust overall. Features: ${M.features.length} families from the dialect model; featureful means at least ${M.featureful}. Bugs: open ledger entries on ${M.date}.</div><div>fancy-regex was re-timed on 0.19.2 (the version its bug status refers to) after the main run, alongside Rust, and its per-input ratios applied to the main run's Rust times.</div><div>Harness: <code>tools/irx_bench.py</code> (bench mode in every irx host). Previous shootout: regex_comparison.</div>`;
+document.getElementById("foot").innerHTML = Object.keys(EX).map(n => `<div>* ${esc(label(n))}: shown for comparison only. It is not an irx engine, so it has no tier, features or bug count. Timed on the same workload through its own runner, with the fuzzing campaign running, so its ratios are against a Rust run timed under the same load.</div>`).join("") + `<div>Measured ${M.date} on an Apple Silicon Mac with the fuzzing campaign paused, engines run one at a time. Each case compiles once (timed), runs one untimed warm-up search per subject, then times repeated unanchored “is there a match?” searches; loops shorter than 2 ms are rerun with more repetitions, which matters for shells with millisecond clocks (Boa, XS, Hermes). Times are in-process and exclude startup and I/O. JavaScript engines and the JVM time warm code; Java's JIT is shared across cases.</div><div>Speed thresholds: fast means at most ${M.fast}× Rust overall. Features: ${M.features.length} families from the dialect model; featureful means at least ${M.featureful}. Bugs: open bugs irx had found as of ${M.date}.</div><div>fancy-regex was re-timed on 0.19.2 (the version its bug status refers to) after the main run, alongside Rust, and its per-input ratios applied to the main run's Rust times.</div><div>Harness: <code>tools/irx_bench.py</code> (bench mode in every irx host).</div>`;
 </script>
