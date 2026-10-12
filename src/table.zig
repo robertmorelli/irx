@@ -341,7 +341,7 @@ pub const Grammar = struct {
         if (self.lb_no_quant) m |= aux_q;
         if (self.small_rep_bound < 255) m |= aux_bq | aux_atom;
         if (self.has_alt) m |= aux_ctx;
-        if (dialect.active.grapheme_escape != .none or dialect.active.full_fold != .none) m |= aux_gx;
+        if (dialect.active.grapheme_escape != .none or dialect.active.full_fold != .none or dialect.active.lookbehind_no_dollar) m |= aux_gx;
         return m;
     }
 
@@ -1175,6 +1175,7 @@ fn Builder(comptime R: type) type {
                 if (a.kind == .dollar and af_flags.m) af |= aux_md;
                 const multi = atoms.foldsMulti(a, af_flags);
                 if (a.kind == .grapheme or multi) af |= aux_gx else if (a.isConsuming()) af |= aux_atom;
+                if (a.kind == .dollar and dialect.active.lookbehind_no_dollar) af |= aux_gx;
                 if (af_flags.i and a.mayFoldMulti()) af |= aux_pi;
                 if (a.kind == .caret or a.kind == .dollar or a.kind == .wordb or a.kind == .nwordb) af |= aux_za;
                 const len: u32 = if (self.g.len_cap > 0 and a.isConsuming()) (@as(u32, if (multi) 3 else a.maxLen()) | (@as(u32, a.minLen()) << aux_min_shift)) else 0;

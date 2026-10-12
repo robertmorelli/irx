@@ -1,6 +1,7 @@
 //! Ruby (Onigmo, reference: Ruby 4.0): ASCII \w \d \s but Unicode \b; ^ and $ are always line
 //! anchors (Ruby's /m is dotall, mapped from irx's s flag); full Unicode case
 //! folding, so multi-character folds (ß, İ) are kept out of the pool.
+const std = @import("std");
 const D = @import("../dialect.zig");
 const perl = @import("perl.zig");
 
@@ -127,6 +128,16 @@ fn onigSyntax(name: []const u8, p_angle: bool) D.Dialect {
     d.dotall_letter = 's';
     // Perl and Java syntax reject (?<name>…): plain captures; Python syntax spells (?P<name>…).
     d.named_group = if (p_angle) .p_angle else .plain_capture;
+    // Ruby's rules do not apply here: unnamed groups capture next to named ones, and
+    // backreferences may be numbered.
+    d.named_groups_only = false;
+    d.backref_by_name = false;
+    // $ (end or before a final newline) is rejected inside lookbehind.
+    d.lookbehind_no_dollar = true;
+    // Java and Python syntax have no \X grapheme escape.
+    if (!std.mem.eql(u8, name, "onig-perl")) d.grapheme_escape = .none;
+    // Python syntax has no possessive quantifiers (a*+ is a repeated a*).
+    if (std.mem.eql(u8, name, "onig-python")) d.possessive = false;
     return d;
 }
 pub const onig_perl: D.Dialect = onigSyntax("onig-perl", false);

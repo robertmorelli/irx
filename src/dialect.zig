@@ -173,6 +173,8 @@ pub const Dialect = struct {
     /// No lookarounds inside lookbehind (ICU rejects unbounded quantifiers even in a lookahead
     /// nested in a lookbehind; keeping lookarounds out is the simple sufficient rule).
     lookbehind_no_lookaround: bool = false,
+    /// No $ inside lookbehind (Oniguruma's Perl/Java/Python syntaxes, where $ is a semi-end anchor).
+    lookbehind_no_dollar: bool = false,
     /// No quantifier at all inside lookbehind (Boost).
     lookbehind_no_quant: bool = false,
     /// Which match an unanchored search reports: the first in backtracking priority order
@@ -327,6 +329,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (k == .dollar) f |= tb.aux_md;
             if (k == .caret or k == .dollar or k == .wordb or k == .nwordb) f |= tb.aux_za;
             if (k == .grapheme) return .{ .min = 1, .max = cap, .f = tb.aux_gx };
+            if (k == .dollar and d.lookbehind_no_dollar) f |= tb.aux_gx;
             if (n.atom.isConsuming()) return .{ .min = n.atom.minLen(), .max = n.atom.maxLen(), .f = tb.aux_atom };
             return .{ .min = 0, .max = 0, .f = f };
         },
