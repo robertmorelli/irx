@@ -21,8 +21,9 @@ static Str native(const char *pat, size_t plen) {
         if (lit && pat[i] == '\\' && i + 2 < plen && pat[i + 1] == 'x' && pat[i + 2] == '{') {
             size_t e = i + 3; uint32_t cp = 0;
             while (e < plen && pat[e] != '}') { char c = pat[e++]; cp = cp * 16 + (uint32_t)(c <= '9' ? c - '0' : (c | 32) - 'a' + 10); }
-            if (cp < 0x80 && strchr("^$\\.*+?()[]{}|-/", (int)cp)) put(&o, "\\", 1);
-            put_cp(&o, cp); i = e;
+            if (cp <= 0xFFFF) { char u[8]; snprintf(u, sizeof u, "\\u%04X", (unsigned)cp); put(&o, u, 6); }  /* survives (?x:) */
+            else put_cp(&o, cp);
+            i = e;
         } else if (pat[i] == '\\' && i + 1 < plen) { put(&o, pat + i, 2); i++; }
         else put(&o, pat + i, 1);
     }

@@ -26,6 +26,9 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
 pub const dialect: D.Dialect = blk: {
     var d = perl.dialect;
     d.name = "nim";
+    d.atomic_groups = false;
+    d.possessive = false;
+    d.backrefs = false;
     d.named_group = .p_angle;
     d.dollar_before_final_terminator = false;
     d.caret_after_trailing_newline = true;

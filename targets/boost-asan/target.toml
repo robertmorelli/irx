@@ -1,0 +1,23 @@
+# irx target: Boost.Regex 1.92 (ASan/UBSan)
+# Run: tools/irx_target.py boost-asan [--duration SECONDS]
+
+[target]
+title = "Boost.Regex 1.92 (ASan/UBSan)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/boost_regex_host_asan {mode}"
+env = "ASAN_OPTIONS=abort_on_error=1:halt_on_error=1:detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_stacktrace=1"
+dialect = "boost"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+lookbehind = false
+
+[harness]
+# Sanitized builds run 2-5x slower.
+batch_deadline_per512_ms = 8000

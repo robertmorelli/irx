@@ -56,6 +56,11 @@ pub const Config = struct {
     pool_rotation: f64 = 0,
     /// Duplicate named groups where the dialect allows them (off for engines that reject them).
     duplicate_names: bool = true,
+    /// Mutation mode: share of cases given an atomic group, possessive loop or backreference
+    /// (where the dialect has them), checked against the backtracking matcher.
+    mutate_rate: f64 = 0,
+    /// Extended-mode spellings where the dialect supports (?x:…).
+    extended_mode: bool = true,
     /// Large repeat bounds N added as {0,N}, {1,N}, {N,} and {N} (and lazy forms), each at
     /// `big_rep_weight` times a small bound's weight. Only applied to a single consuming atom
     /// (so a large count never means exponential backtracking or an oversized compiled program).
@@ -147,6 +152,8 @@ pub const Config = struct {
     /// Sticky mode (the match anchored at the offset): only for hosts with a native anchored
     /// search; emulating it from the offset search would repeat the offset check.
     sticky: bool = false,
+    /// [global] enabled: global-search mode (first few matches, JS empty-match advance).
+    global: bool = false,
 
     // [capture]
     /// Run the capture mode too: like span mode, plus the spans of the first groups.
@@ -476,6 +483,13 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
         }
         return error.UnknownKey;
     }
+    if (eq(u8, section, "global")) {
+        if (eq(u8, key, "enabled")) {
+            cfg.global = try asBool(v);
+            return;
+        }
+        return error.UnknownKey;
+    }
     if (eq(u8, section, "offset")) {
         if (eq(u8, key, "enabled")) {
             cfg.offset = try asBool(v);
@@ -537,7 +551,7 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
 
 fn sectionOf(comptime name: []const u8) ?[]const u8 {
     @setEvalBranchQuota(100_000);
-    const grammar = .{ "max_size", "max_rep_bound", "big_rep_weight", "class_max_members", "max_pattern_bytes", "allow_diagonal_lookarounds", "duplicate_names", "usefulness_pass", "usefulness_workspace" };
+    const grammar = .{ "max_size", "max_rep_bound", "big_rep_weight", "class_max_members", "max_pattern_bytes", "allow_diagonal_lookarounds", "duplicate_names", "extended_mode", "mutate_rate", "usefulness_pass", "usefulness_workspace" };
     const strings = .{ "pool_rotation", "min_len", "max_len", "max_symbols", "max_edit_distance", "long_fraction", "long_min", "long_max" };
     const limits = .{ "max_pairs", "max_combos", "max_prods", "max_count_terms", "max_table_bytes", "max_host_bytes", "max_table_attempts", "samples_per_table", "alias_cache", "alias_arena_bytes", "max_pending_findings", "max_pending_finding_bytes", "max_findings_per_group", "max_findings_per_mode" };
     const harness = .{ "batch_size", "max_request_bytes", "startup_deadline_ms", "batch_deadline_base_ms", "batch_deadline_per512_ms", "recycle_cases", "novelty_cap", "novelty_bytes", "journal_bytes", "stderr_tail_bytes", "keep_journals" };

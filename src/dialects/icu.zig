@@ -37,6 +37,10 @@ fn lineTerminator(c: u21) bool {
 }
 
 pub const dialect: D.Dialect = .{
+    .atomic_groups = true,
+    .possessive = true,
+    .backrefs = true,
+    .extended_mode = true,
     .scoped_flags = true,
     .unicode_props = true,
     .prop_case = .equivalence_invert,

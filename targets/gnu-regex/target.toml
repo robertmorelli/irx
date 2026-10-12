@@ -1,0 +1,17 @@
+# irx target: GNU regex (glibc implementation, via gawk 5.4)
+# Run: tools/irx_target.py gnu-regex [--duration SECONDS]
+
+[target]
+title = "GNU regex (glibc implementation, via gawk 5.4)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/gnu_regex_host {mode}"
+dialect = "gnu"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans
+
+[flags]
+# gawk's copy handles REG_ICASE its own way ([a-c] matches "A" but not "a"): no i sets.
+sets = ["", "m", "s", "ms", "u", "mu", "su", "msu"]

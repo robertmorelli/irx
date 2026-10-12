@@ -1,6 +1,7 @@
 //! One lane: a thread plus one engine process per active mode. It samples a
 //! batch from the current table, sends identical cases to every mode, compares
 //! each mode's decoded bits against the model oracle, and persists findings.
+const mutatemod = @import("mutate.zig");
 const std = @import("std");
 const alpha = @import("alphabet.zig");
 const ast = @import("ast.zig");
@@ -152,6 +153,24 @@ pub const Lane = struct {
                 run.setStop("sampling failed ({s}) on table {d}: model failure", .{ @errorName(e), tab.id.seq });
                 return error.ModelFailure;
             };
+            // Mutation mode: splice in an atomic group, possessive loop or backreference; the
+            // expected answers then come from the backtracking matcher.
+            var mut_a: bool = true;
+            var mut_r: bool = false;
+            if (run.cfg.mutate_rate > 0) {
+                var mrng = rngmod.Rng.fromParts(0x707A, &.{ run.global_seed, tab.id.seq, tab.id.attempt, idx });
+                if (mrng.float() < run.cfg.mutate_rate) {
+                    const saved = c.tree;
+                    if (mutatemod.apply(&c.tree, &mrng)) {
+                        const ea = ast.oracle(&c.tree, tab.id.flags, tab.a16);
+                        const er = ast.oracle(&c.tree, tab.id.flags, tab.r16);
+                        if (ea != null and er != null) {
+                            mut_a = ea.?;
+                            mut_r = er.?;
+                        } else c.tree = saved;
+                    }
+                }
+            }
             const t1 = sys.nowNs();
             c.pattern.clearRetainingCapacity();
             c.spell = rng.next() | 1;
@@ -164,8 +183,8 @@ pub const Lane = struct {
             c.flags = tab.id.flags;
             c.a.set(tab.a16);
             c.r.set(tab.r16);
-            c.exp_a = true;
-            c.exp_r = false;
+            c.exp_a = mut_a;
+            c.exp_r = mut_r;
             c.size = @intCast(k);
             c.table = .{ .seq = tab.id.seq, .attempt = tab.id.attempt, .seed = tab.id.seed, .digest = tab.digest };
             c.global_seed = run.global_seed;
@@ -181,7 +200,7 @@ pub const Lane = struct {
                 c.off_a = spanmod.randomBoundary(&orng, c.a.slice(), c.flags);
                 c.off_r = spanmod.randomBoundary(&orng, c.r.slice(), c.flags);
             }
-            if (self.has_long) {
+            if (self.has_long and !ast.needsMatcher(&c.tree)) {
                 // A separate stream so the long pair never perturbs the case's other draws.
                 const tl = sys.nowNs();
                 var lrng = rngmod.Rng.fromParts(0x10C6, &.{ run.global_seed, tab.id.seq, tab.id.attempt, idx });
@@ -349,7 +368,7 @@ pub const Lane = struct {
                 const raw = b.bits[ci * wd ..][0..wd];
                 // Long modes: a case without a long pair carried A/R only as a placeholder.
                 if (is_long and cs.la.len == 0) continue;
-                if (is_span) ck = spanmod.checkAt(cs, raw, run.cfg.span_units, is_long, c.spec.expect.usesOffsets(), c.spec.expect == .sticky);
+                if (is_span) ck = if (c.spec.expect == .global) spanmod.checkGlobal(cs, raw, run.cfg.span_units) else spanmod.checkAt(cs, raw, run.cfg.span_units, is_long, c.spec.expect.usesOffsets(), c.spec.expect == .sticky);
                 if (is_cap) cck = capmod.check(cs, raw, &run.cfg, is_long);
                 const bits = if (is_span) ck.bits else if (is_cap) cck.bits else b.bits[ci];
                 if (bits & harness.Bits.skipped != 0) {

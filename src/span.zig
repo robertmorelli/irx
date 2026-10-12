@@ -95,6 +95,12 @@ pub fn referenceAt(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16, 
     switch (dialect.active.span_semantics) {
         .first => {
             var mt: ast.Matcher = .{ .t = t, .flags = flags, .w = w, .budget = 200_000 + 200 * n };
+            // Backreferences read capture slots.
+            var caps: ast.Caps = undefined;
+            if (ast.needsMatcher(t)) {
+                caps = ast.Caps.init(t) orelse return null;
+                mt.caps = &caps;
+            }
             var i: usize = k;
             while (i <= n) : (i += 1) {
                 if (anchored and i > k) break;
@@ -218,7 +224,8 @@ pub fn minLen(t: *const ast.Ast, idx: u8) u32 {
         .alt => @min(minLen(t, n.a), minLen(t, n.b)),
         .quant => minLen(t, n.a) * n.quant.min,
         .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => 0,
-        .group_cap, .group_nc, .group_named, .flag_group => minLen(t, n.a),
+        .group_cap, .group_nc, .group_named, .flag_group, .atomic => minLen(t, n.a),
+        .backref => 0,
     };
 }
 
@@ -229,7 +236,8 @@ pub fn hasNullableLoop(t: *const ast.Ast, idx: u8) bool {
         .atom => false,
         .concat, .alt => hasNullableLoop(t, n.a) or hasNullableLoop(t, n.b),
         .quant => minLen(t, n.a) == 0 or hasNullableLoop(t, n.a),
-        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .group_cap, .group_nc, .group_named, .flag_group => hasNullableLoop(t, n.a),
+        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .group_cap, .group_nc, .group_named, .flag_group, .atomic => hasNullableLoop(t, n.a),
+        .backref => false,
     };
 }
 
@@ -256,6 +264,49 @@ pub fn checkAt(c: *const finding.Case, raw: []const u8, units: config.SpanUnits,
     if (ga != null and ga.?.eql(ra)) bits |= harness.Bits.test_a;
     if (gr == null or !gr.?.eql(rr)) bits |= harness.Bits.test_r;
     return .{ .bits = bits, .ref_a = ra, .ref_r = rr, .got_a = ga, .got_r = gr };
+}
+
+/// Global mode: matches reported per subject (driver mode gspan).
+pub const global_matches = 4;
+
+/// Where a global search continues after a match ending at `e`: at `e`, or after an empty match
+/// one position on (AdvanceStringIndex: a whole surrogate pair under u/v).
+fn advanceAfter(subject: []const u16, sp: Span, flags: alpha.Flags) u16 {
+    if (sp.e > sp.s) return sp.e;
+    const i = sp.e;
+    if (flags.unicode() and i + 1 < subject.len and subject[i] >= 0xD800 and subject[i] <= 0xDBFF and subject[i + 1] >= 0xDC00 and subject[i + 1] <= 0xDFFF) return i + 2;
+    return i + 1;
+}
+
+/// Global mode: the first `global_matches` matches of a global search (matchAll), checked in
+/// order against the reference with JavaScript's empty-match advance. The Check holds the
+/// spans of the first match that differs.
+pub fn checkGlobal(c: *const finding.Case, raw: []const u8, units: config.SpanUnits) Check {
+    if (failBits(raw, false)) |b| return .{ .bits = b };
+    if (dialect.active.empty_iteration == .unmodeled and hasNullableLoop(&c.tree, c.tree.root)) return .{ .bits = harness.Bits.skipped };
+    var ck: Check = .{ .bits = harness.Bits.test_a };
+    for (0..2) |k| {
+        const subj = if (k == 0) c.a.slice() else c.r.slice();
+        var pos: u16 = 0;
+        var done = false;
+        var agree = true;
+        for (0..global_matches) |m| {
+            var ref: Span = .{ .found = false };
+            if (!done and pos <= subj.len) {
+                ref = referenceAt(&c.tree, c.flags, subj, pos, false) orelse return .{ .bits = harness.Bits.skipped };
+            }
+            if (!ref.found) done = true else pos = advanceAfter(subj, ref, c.flags);
+            const got = hostSpan(subj, wirePos(raw, false, k * 2 * global_matches + 2 * m), wirePos(raw, false, k * 2 * global_matches + 2 * m + 1), units);
+            if (got == null or !got.?.eql(ref)) {
+                if (k == 0) { ck.ref_a = ref; ck.got_a = got; } else { ck.ref_r = ref; ck.got_r = got; }
+                agree = false;
+                break;
+            }
+        }
+        if (k == 0 and !agree) ck.bits &= ~harness.Bits.test_a;
+        if (k == 1 and !agree) ck.bits |= harness.Bits.test_r;
+    }
+    return ck;
 }
 
 fn writeSpan(out: *std.ArrayList(u8), gpa: std.mem.Allocator, sp: ?Span) !void {

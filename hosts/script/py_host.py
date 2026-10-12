@@ -31,7 +31,7 @@ def main():
             if any(0xD800 <= ord(ch) <= 0xDFFF for ch in a + r + pat): out.append(FAIL(0x40, 2) if is_span else FAIL(0x40, 26) if is_cap else "40"); continue
             f = (re.I if "i" in flags else 0) | (re.M if "m" in flags else 0) | (re.S if "s" in flags else 0)
             if is_cap:  # whole match + groups 1..6 per subject (src/capture.zig)
-                try: rx = re.compile(XESC.sub(lambda m: chr(int(m.group(1), 16)), pat), f)
+                try: rx = re.compile(XESC.sub(lambda m: "\\U%08X" % int(m.group(1), 16), pat), f)
                 except Exception: out.append(FAIL(4, 26)); continue
                 try:
                     s = ""
@@ -43,7 +43,7 @@ def main():
                 except Exception: out.append(FAIL(8, 26))
                 continue
             if is_span:  # unanchored search, code-point offsets (src/span.zig)
-                try: rx = re.compile(XESC.sub(lambda m: chr(int(m.group(1), 16)), pat), f)
+                try: rx = re.compile(XESC.sub(lambda m: "\\U%08X" % int(m.group(1), 16), pat), f)
                 except Exception: out.append(FAIL(4, 2)); continue
                 try:
                     s = ""
@@ -53,7 +53,7 @@ def main():
                     out.append(s)
                 except Exception: out.append(FAIL(8, 2))
                 continue
-            try: rx = re.compile(r"\A(?:" + XESC.sub(lambda m: chr(int(m.group(1), 16)), pat) + r")\Z", f)
+            try: rx = re.compile(r"\A(?:" + XESC.sub(lambda m: "\\U%08X" % int(m.group(1), 16), pat) + r")\Z", f)
             except Exception: out.append("04"); continue
             bits = 0
             try:

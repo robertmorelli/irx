@@ -24,6 +24,16 @@ pub const Op = enum(u8) {
     group_named = 10,
     /// Inline flag group (?i:…) / (?-i:…): the child sees the flags toggled by Node.fmod.
     flag_group = 11,
+    /// Atomic group (?>…): commits to the child's first match (possessive quantifiers are atomic
+    /// groups around a greedy loop). Mutation mode only; the relation model cannot express it.
+    atomic = 12,
+    /// Backreference to capture group Node.fmod (ordinal, opening order). Mutation mode only.
+    backref = 13,
+
+    /// No children: atoms and backreferences.
+    pub fn isLeaf(op: Op) bool {
+        return op == .atom or op == .backref;
+    }
 
     pub fn isBinary(op: Op) bool {
         return op == .concat or op == .alt;
@@ -56,7 +66,7 @@ pub const Node = struct {
     quant: QuantSpec = .{ .form = .star, .min = 0, .max = inf },
     a: u8 = 0,
     b: u8 = 0,
-    /// flag_group: flags toggled for the subtree (fmod_i).
+    /// flag_group: flags toggled for the subtree (fmod_i); backref: the target capture ordinal.
     fmod: u8 = 0,
 };
 
@@ -84,7 +94,7 @@ pub fn nodeFlags(t: *const Ast, base: Flags, out: *[max_nodes]Flags) void {
 fn nodeFlagsRec(t: *const Ast, idx: u8, f: Flags, out: *[max_nodes]Flags) void {
     out[idx] = f;
     const n = t.nodes[idx];
-    if (n.op == .atom) return;
+    if (n.op.isLeaf()) return;
     const g = if (n.op == .flag_group) applyMod(f, n.fmod) else f;
     nodeFlagsRec(t, n.a, g, out);
     if (Op.isBinary(n.op)) nodeFlagsRec(t, n.b, g, out);
@@ -106,7 +116,7 @@ pub const Ast = struct {
     pub fn size(self: *const Ast, idx: u8) usize {
         const n = self.nodes[idx];
         return switch (n.op) {
-            .atom => 1,
+            .atom, .backref => 1,
             .concat, .alt => 1 + self.size(n.a) + self.size(n.b),
             else => 1 + self.size(n.a),
         };
@@ -122,7 +132,7 @@ pub const Ast = struct {
     fn copyInto(src: *const Ast, idx: u8, dst: *Ast) !u8 {
         var n = src.nodes[idx];
         switch (n.op) {
-            .atom => {},
+            .atom, .backref => {},
             .concat, .alt => {
                 n.a = try copyInto(src, n.a, dst);
                 n.b = try copyInto(src, n.b, dst);
@@ -154,7 +164,38 @@ pub fn evalRel(comptime R: type, t: *const Ast, idx: u8, flags: Flags, w: []cons
         .neg_look_behind => evalRel(R, t, n.a, flags, w).lookbehind(dim, true),
         .group_cap, .group_nc, .group_named => evalRel(R, t, n.a, flags, w),
         .flag_group => evalRel(R, t, n.a, applyMod(flags, n.fmod), w),
+        // Mutation-mode constructs: the oracle uses the backtracking matcher for these trees.
+        .atomic, .backref => @panic("relation model cannot evaluate atomic groups or backreferences"),
     };
+}
+
+/// The tree holds constructs only the backtracking matcher evaluates (atomic groups,
+/// backreferences): oracles and long mode take the matcher path or skip.
+/// Every backreference refers to a capture group that closes before it in pattern order (so
+/// the printed \N names a group the engine has seen); false otherwise.
+pub fn backrefsValid(t: *const Ast) bool {
+    const caps = Caps.init(t) orelse return false;
+    var closed: [max_caps]bool = [_]bool{false} ** max_caps;
+    return backrefWalk(t, t.root, &caps, &closed);
+}
+
+fn backrefWalk(t: *const Ast, idx: u8, caps: *const Caps, closed: *[max_caps]bool) bool {
+    const n = t.nodes[idx];
+    switch (n.op) {
+        .atom => return true,
+        .backref => return n.fmod < caps.count and closed[n.fmod],
+        .concat, .alt => return backrefWalk(t, n.a, caps, closed) and backrefWalk(t, n.b, caps, closed),
+        else => {
+            if (!backrefWalk(t, n.a, caps, closed)) return false;
+            if (n.op == .group_cap or n.op == .group_named) closed[caps.ordinal[idx]] = true;
+            return true;
+        },
+    }
+}
+
+pub fn needsMatcher(t: *const Ast) bool {
+    for (t.nodes[0..t.len]) |n| if (n.op == .atomic or n.op == .backref) return true;
+    return false;
 }
 
 pub fn quantRel(comptime R: type, r: R, q: QuantSpec, dim: usize) R {
@@ -164,6 +205,11 @@ pub fn quantRel(comptime R: type, r: R, q: QuantSpec, dim: usize) R {
 
 /// Full-match oracle for one subject: (0, n) ∈ rel.
 pub fn fullMatch(t: *const Ast, flags: Flags, w: []const u21) bool {
+    if (needsMatcher(t)) {
+        var caps = Caps.init(t) orelse return false;
+        var mt: Matcher = .{ .t = t, .flags = flags, .w = w, .caps = &caps, .reset_loop_captures = dialect.active.reset_loop_captures_hint };
+        return mt.fullMatch() orelse false;
+    }
     if (w.len <= relmod.Rel16.max_len) return evalRel(relmod.Rel16, t, t.root, flags, w).get(0, w.len);
     return evalRel(relmod.Rel32, t, t.root, flags, w).get(0, w.len);
 }
@@ -205,7 +251,7 @@ pub const Matcher = struct {
     }
 
     const Dir = enum { fwd, back };
-    const ContKind = enum { done, accept, record, seq, rep, close };
+    const ContKind = enum { done, accept, record, seq, rep, close, commit };
     const Cont = struct {
         kind: ContKind,
         node: u8 = 0,
@@ -215,6 +261,8 @@ pub const Matcher = struct {
         greedy: bool = true,
         start: usize = 0,
         next: ?*const Cont = null,
+        /// commit: where the atomic child's first match ended.
+        out: ?*usize = null,
     };
 
     pub fn fullMatch(self: *Matcher) ?bool {
@@ -237,6 +285,10 @@ pub const Matcher = struct {
         switch (c.kind) {
             .done => return pos == self.w.len,
             .accept => return true,
+            .commit => {
+                c.out.?.* = pos;
+                return true;
+            },
             .record => {
                 self.end = pos;
                 return true;
@@ -356,7 +408,46 @@ pub const Matcher = struct {
                 return self.m(n.a, pos, dir, &k);
             },
             .group_nc, .flag_group => return self.m(n.a, pos, dir, c),
+            .atomic => {
+                // The child's first match only: no backtracking into it once it has matched.
+                var endpos: usize = pos;
+                const k: Cont = .{ .kind = .commit, .out = &endpos };
+                if (self.caps) |caps| {
+                    const saved = caps.slot;
+                    if (!self.m(n.a, pos, dir, &k)) return false;
+                    if (self.run(c, endpos)) return true;
+                    caps.slot = saved;
+                    return false;
+                }
+                if (!self.m(n.a, pos, dir, &k)) return false;
+                return self.run(c, endpos);
+            },
+            .backref => {
+                const caps = self.caps orelse return false;
+                const sp = caps.slot[n.fmod];
+                if (sp.s < 0) {
+                    // Unset group: matches empty in ECMAScript, fails in Perl/PCRE and most others.
+                    return if (dialect.active.backref_unset_matches_empty) self.run(c, pos) else false;
+                }
+                const s: usize = @intCast(sp.s);
+                const len: usize = @intCast(sp.e - sp.s);
+                const fl = self.flagsAt(idx);
+                if (dir == .fwd) {
+                    if (pos + len > self.w.len) return false;
+                    for (0..len) |j| if (!sameChar(self.w[s + j], self.w[pos + j], fl)) return false;
+                    return self.run(c, pos + len);
+                } else {
+                    if (pos < len) return false;
+                    for (0..len) |j| if (!sameChar(self.w[s + j], self.w[pos - len + j], fl)) return false;
+                    return self.run(c, pos - len);
+                }
+            },
         }
+    }
+
+    /// Backreference comparison: equal, or case-equivalent under i.
+    fn sameChar(a: u21, b: u21, fl: Flags) bool {
+        return a == b or (fl.i and alpha.canonicalize(a, fl) == alpha.canonicalize(b, fl));
     }
 };
 
@@ -392,7 +483,7 @@ pub const Caps = struct {
             self.ordinal[idx] = self.count;
             self.count += 1;
         }
-        if (n.op != .atom) {
+        if (n.op != .atom and n.op != .backref) {
             if (!self.walk(t, n.a)) return false;
             if (Op.isBinary(n.op) and !self.walk(t, n.b)) return false;
         }
@@ -432,6 +523,7 @@ fn serNode(t: *const Ast, idx: u8, out: *std.ArrayList(u8), gpa: std.mem.Allocat
             try serNode(t, n.a, out, gpa);
             try out.append(gpa, ')');
         },
+        .backref => try out.print(gpa, "(backref {d})", .{n.fmod}),
         .concat, .alt => {
             try out.print(gpa, "({s} ", .{@tagName(n.op)});
             try serNode(t, n.a, out, gpa);
@@ -500,6 +592,7 @@ const Parser = struct {
                 n.fmod = try p.int(u8, 10);
                 n.a = try p.node(t);
             },
+            .backref => n.fmod = try p.int(u8, 10),
             else => n.a = try p.node(t),
         }
         try p.expect(')');
@@ -540,11 +633,13 @@ fn countRec(t: *const Ast, idx: u8, out: *[n_constructs]u16) void {
         .group_nc => .nc_group,
         .group_named => .named_group,
         .flag_group => .flag_group,
+        .atomic => .nc_group,
+        .backref => .group,
     };
     out[@intFromEnum(c)] +|= 1;
     if (n.op == .quant and n.quant.lazy) out[@intFromEnum(Construct.lazy)] +|= 1;
     switch (n.op) {
-        .atom => {},
+        .atom, .backref => {},
         .concat, .alt => {
             countRec(t, n.a, out);
             countRec(t, n.b, out);

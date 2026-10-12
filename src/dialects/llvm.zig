@@ -70,3 +70,13 @@ pub const libc: D.Dialect = blk: {
     d.assertions = .{ .caret = false, .dollar = false, .wordb = false, .nwordb = false };
     break :blk d;
 };
+
+/// GNU regex (gawk's copy of the glibc code): POSIX ERE as for llvm, but its anchors behave
+/// unexpectedly in this build ($[[:space:]] matches "\n" at 0 without REG_NEWLINE; (^a){0,2}
+/// matches "aa"), unconfirmed against a real glibc, so ^ and $ are not generated.
+pub const gnu: D.Dialect = blk: {
+    var d = dialect;
+    d.name = "gnu";
+    d.assertions = .{ .caret = false, .dollar = false, .wordb = false, .nwordb = false };
+    break :blk d;
+};

@@ -28,7 +28,7 @@ pub const Prop = enum(u8) {
         return name.len == 1 or cat[1] == name[1];
     }
 };
-pub const Esc = enum(u8) { d, D, w, W, s, S };
+pub const Esc = enum(u8) { d, D, w, W, s, S, h, H, v, V };
 pub const VOp = enum(u8) { sub, inter, uni };
 
 /// Value-typed atom description. Owned ASTs embed these, so a finding never
@@ -100,7 +100,7 @@ pub fn category(a: AtomSpec) Category {
 // ---------------------------------------------------------------------------
 // v-mode set operands (static, so specs that reference them stay owned values)
 
-pub const OperandKind = enum(u8) { esc, range, char, list, neglist, prop };
+pub const OperandKind = enum(u8) { esc, range, char, list, neglist, prop, qstr };
 pub const Operand = struct {
     kind: OperandKind,
     esc: Esc = .d,
@@ -129,6 +129,9 @@ pub const v_operands = [_]Operand{
     .{ .kind = .prop, .syms = .{ @intFromEnum(Prop.L), 0 } },
     .{ .kind = .prop, .syms = .{ @intFromEnum(Prop.Lu), 0 } },
     .{ .kind = .prop, .syms = .{ @intFromEnum(Prop.Ll), 0 } },
+    // ClassStringDisjunction with one-character strings (\q{a|s}): a list, spelled differently.
+    .{ .kind = .qstr, .syms = .{ 'a', 's' }, .n = 2 },
+    .{ .kind = .qstr, .syms = .{ 'k', 0x17F }, .n = 2 },
 };
 
 pub const explicit_ranges = [_][2]u21{
@@ -145,7 +148,7 @@ pub const explicit_ranges = [_][2]u21{
 // ---------------------------------------------------------------------------
 // CharSet expressions
 
-const SetKind = enum { list, range, digit, space, word, dotset, all, comp, fold, uni, inter, diff, prop };
+const SetKind = enum { list, range, digit, space, word, dotset, all, comp, fold, uni, inter, diff, prop, hspace, vspace };
 const SetNode = struct {
     kind: SetKind,
     lo: u21 = 0,
@@ -172,6 +175,8 @@ fn has(n: *const SetNode, flags: Flags, x: u21) bool {
         .digit => dialect.active.isDigit(x),
         .space => alpha.isSpace(x),
         .word => alpha.isWordChar(x, flags),
+        .hspace => dialect.active.isHSpace(x),
+        .vspace => dialect.active.isVSpace(x),
         .dotset => alpha.inAllCharacters(x, flags) and
             (if (dialect.active.dot_all_unless_m) !flags.m or x != '\n' else flags.s or !alpha.isLineTerminator(x)),
         .all => alpha.inAllCharacters(x, flags),
@@ -214,6 +219,10 @@ fn escSet(ar: *SetArena, e: Esc, flags: Flags) *const SetNode {
         .S => ar.add(.{ .kind = .comp, .a = ar.add(.{ .kind = .space }) }),
         .w => ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .word }) }),
         .W => ar.add(.{ .kind = .comp, .a = ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .word }) }) }),
+        .h => ar.add(.{ .kind = .hspace }),
+        .H => ar.add(.{ .kind = .comp, .a = ar.add(.{ .kind = .hspace }) }),
+        .v => ar.add(.{ .kind = .vspace }),
+        .V => ar.add(.{ .kind = .comp, .a = ar.add(.{ .kind = .vspace }) }),
     };
 }
 
@@ -225,6 +234,7 @@ fn operandSet(ar: *SetArena, op: *const Operand, flags: Flags) *const SetNode {
         .list => ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..op.n] }) }),
         .neglist => ar.add(.{ .kind = .comp, .a = ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..op.n] }) }) }),
         .prop => ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .prop, .lo = @intCast(op.syms[0]) }) }),
+        .qstr => ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..op.n] }) }),
     };
 }
 
@@ -241,6 +251,8 @@ fn compile(spec: *const AtomSpec, flags: Flags, ar: *SetArena) Compiled {
                     .W => .w,
                     .D => .d,
                     .S => .s,
+                    .H => .h,
+                    .V => .v,
                     else => e,
                 };
                 return .{ .root = escSet(ar, pos, flags), .invert = pos != e };
@@ -401,7 +413,10 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
 
     for (syms) |c| try out.append(gpa, .{ .kind = .lit, .syms = .{ c, 0, 0, 0 } });
     try out.append(gpa, .{ .kind = .dot });
-    for (std.enums.values(Esc)) |e| try out.append(gpa, .{ .kind = .esc, .sub = @intFromEnum(e) });
+    for (std.enums.values(Esc)) |e| {
+        if ((e == .h or e == .H or e == .v or e == .V) and !dialect.active.hv_escapes) continue;
+        try out.append(gpa, .{ .kind = .esc, .sub = @intFromEnum(e) });
+    }
     for (explicit_ranges) |rg| {
         if (rg[1] > 0x7F and dialect.active.ascii_only) continue;
         try out.append(gpa, .{ .kind = .range, .syms = .{ rg[0], rg[1], 0, 0 } });

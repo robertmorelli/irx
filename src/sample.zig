@@ -201,6 +201,8 @@ const dialect = @import("dialect.zig");
 
 /// Config [grammar] duplicate_names (set at startup): off for engines that reject a repeated name.
 pub var allow_duplicate_names: bool = true;
+/// Config [grammar] extended_mode (set at startup).
+pub var allow_extended: bool = true;
 
 pub const Printer = struct {
     flags: Flags,
@@ -221,6 +223,12 @@ pub const Printer = struct {
     /// reuses (none = 255); name_num[i] = the printed number naming node i.
     alias: [ast.max_nodes]u8 = undefined,
     name_num: [ast.max_nodes]u8 = undefined,
+    /// Per tree capture (opening order): the printed name number if it is a named group, else 0.
+    named_target: [ast.max_caps]u8 = [_]u8{0} ** ast.max_caps,
+    /// Extended mode: the pattern is printed inside (?x:…) with spaces and # comments between
+    /// concatenated items (space and # literals escaped).
+    xmode: bool = false,
+    x_ordinal: u32 = 0,
     /// The atom being printed sits directly in an alternative or group body, where an
     /// empty atom may print as nothing.
     bare_ok: bool = false,
@@ -248,14 +256,18 @@ pub const Printer = struct {
         // A quarter of patterns (by spelling seed) let groups in different alternatives share a name.
         if (dialect.active.duplicate_names and allow_duplicate_names and self.spell != 0 and (self.spell >> 13) % 4 == 0)
             planAliases(t, &self.alias);
+        // A quarter of patterns (by spelling seed) are printed in extended mode.
+        self.xmode = dialect.active.extended_mode and allow_extended and self.spell != 0 and (self.spell >> 17) % 4 == 0;
+        if (self.xmode) try self.put("(?x:");
         try self.node(t, t.root, .alt);
+        if (self.xmode) try self.putc(')');
     }
 
     /// First named group (in printing order) in the subtree, or 255.
     fn firstNamed(t: *const ast.Ast, idx: u8) u8 {
         const n = t.nodes[idx];
         if (n.op == .group_named) return idx;
-        if (n.op == .atom) return 255;
+        if (n.op.isLeaf()) return 255;
         const l = firstNamed(t, n.a);
         if (l != 255 or !n.op.isBinary()) return l;
         return firstNamed(t, n.b);
@@ -281,7 +293,7 @@ pub const Printer = struct {
         const n = t.nodes[idx];
         return switch (n.op) {
             .atom => n.atom.isConsuming() or n.atom.kind == .empty,
-            .group_cap, .group_nc, .group_named, .flag_group => true,
+            .group_cap, .group_nc, .group_named, .flag_group, .atomic, .backref => true,
             else => false,
         };
     }
@@ -343,6 +355,11 @@ pub const Printer = struct {
                 const wrap = @intFromEnum(prec) > @intFromEnum(Prec.concat);
                 if (wrap) try self.put("(?:");
                 try self.node(t, n.a, .concat);
+                if (self.xmode) {
+                    // Ignored whitespace, sometimes a comment running to the end of the line.
+                    self.x_ordinal += 1;
+                    try self.put(if (((self.spell >> 20) +% self.x_ordinal *% 7) % 5 == 0) " # c\n " else " ");
+                }
                 try self.node(t, n.b, .concat);
                 if (wrap) try self.putc(')');
             },
@@ -418,6 +435,7 @@ pub const Printer = struct {
                 // separately (.NET) can put them back in opening-parenthesis order.
                 self.noteTreeGroup();
                 self.name_num[idx] = if (self.alias[idx] != 255) self.name_num[self.alias[idx]] else self.printed_groups;
+                if (self.n_tree_groups > 0) self.named_target[self.n_tree_groups - 1] = self.name_num[idx];
                 switch (dialect.active.named_group) {
                     .angle => try self.fmt("(?<g{d}>", .{self.name_num[idx]}),
                     .p_angle => try self.fmt("(?P<g{d}>", .{self.name_num[idx]}),
@@ -426,6 +444,33 @@ pub const Printer = struct {
                 self.group_counter += 1;
                 try self.bareChild(t, n.a);
                 try self.putc(')');
+            },
+            .atomic => {
+                // Possessive spelling (x*+) for an atomic greedy loop where the dialect has it and
+                // the result is not itself quantified (x*+* would not parse); else (?>…).
+                const ch = t.nodes[n.a];
+                const counted = ch.op == .quant and (ch.quant.form == .range or ch.quant.form == .open or ch.quant.form == .exact);
+                if (dialect.active.possessive and prec != .quant_body and ch.op == .quant and !ch.quant.lazy and isQuantAtom(t, ch.a) and (!counted or dialect.active.possessive_counted)) {
+                    try self.node(t, n.a, .concat);
+                    try self.putc('+');
+                } else if (ch.op == .atom and ch.atom.kind == .empty) {
+                    try self.put("(?>(?:))"); // some engines reject an empty atomic group
+                } else {
+                    try self.put("(?>");
+                    try self.bareChild(t, n.a);
+                    try self.putc(')');
+                }
+            },
+            .backref => {
+                // By the printed number of the target group (printed earlier: mutation only refers
+                // back); wrapped so a following digit cannot extend the number.
+                const num: u8 = if (n.fmod < self.n_tree_groups) self.tree_groups[n.fmod] else 0;
+                const named = if (n.fmod < self.n_tree_groups) self.named_target[n.fmod] else 0;
+                if (num == 0) {
+                    try self.put("(?:)");
+                } else if (dialect.active.backref_by_name and named != 0) {
+                    try self.fmt("(?:\\k<g{d}>)", .{named});
+                } else try self.fmt("(?:\\{d})", .{num});
             },
         }
     }
@@ -447,7 +492,7 @@ pub const Printer = struct {
 
     /// Literal outside classes.
     pub fn literal(self: *Printer, c: u21) PrintError!void {
-        if (!isPrintableAscii(c) or self.extraMeta(c)) return self.escapedCodePoint(c);
+        if (!isPrintableAscii(c) or self.extraMeta(c) or (self.xmode and (c == ' ' or c == '#'))) return self.escapedCodePoint(c);
         const b: u8 = @intCast(c);
         if (std.mem.indexOfScalar(u8, "^$\\.*+?()[]{}|/", b) != null) try self.putc('\\');
         try self.putc(b);
@@ -459,7 +504,7 @@ pub const Printer = struct {
 
     /// Literal inside a class, per mode.
     pub fn classLiteral(self: *Printer, c: u21) PrintError!void {
-        if (!isPrintableAscii(c) or self.extraMeta(c)) return self.escapedCodePoint(c);
+        if (!isPrintableAscii(c) or self.extraMeta(c) or (self.xmode and (c == ' ' or c == '#'))) return self.escapedCodePoint(c);
         const b: u8 = @intCast(c);
         const needs = if (self.flags.v)
             // ClassSetSyntaxCharacter, ClassSetReservedPunctuator, and the remaining
@@ -479,6 +524,10 @@ pub const Printer = struct {
             .W => "\\W",
             .s => "\\s",
             .S => "\\S",
+            .h => "\\h",
+            .H => "\\H",
+            .v => "\\v",
+            .V => "\\V",
         };
     }
 
@@ -493,6 +542,14 @@ pub const Printer = struct {
                 try self.putc(']');
             },
             .char => try self.classLiteral(o.syms[0]),
+            .qstr => {
+                try self.put("\\q{");
+                for (o.syms[0..o.n], 0..) |c, k| {
+                    if (k > 0) try self.putc('|');
+                    try self.classLiteral(c);
+                }
+                try self.putc('}');
+            },
             .prop => {
                 try self.put("\\p{");
                 try self.put(@tagName(@as(atoms.Prop, @enumFromInt(o.syms[0]))));
@@ -697,7 +754,7 @@ const TreeEnum = struct {
     fn copySub(dst: *ast.Ast, src: *const ast.Ast, idx: u8) !u8 {
         var n = src.nodes[idx];
         switch (n.op) {
-            .atom => {},
+            .atom, .backref => {},
             .concat, .alt => {
                 n.a = try copySub(dst, src, n.a);
                 n.b = try copySub(dst, src, n.b);

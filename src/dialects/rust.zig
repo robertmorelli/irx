@@ -10,6 +10,7 @@ fn lineTerminator(c: u21) bool {
 }
 
 const base: D.Dialect = .{
+    .extended_mode = true,
     .scoped_flags = true,
     .unicode_props = true,
     .prop_case = .equivalence_invert,
@@ -35,6 +36,9 @@ pub const dialect: D.Dialect = base;
 pub const fancy: D.Dialect = blk: {
     var d = base;
     d.name = "fancy";
+    d.atomic_groups = true;
+    d.backrefs = true;
+    d.backref_by_name = true; // a numbered reference to a named group is a syntax error
     d.allow_lookahead = true;
     d.allow_lookbehind = true;
     d.allow_empty_quant = false;

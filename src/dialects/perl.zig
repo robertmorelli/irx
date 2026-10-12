@@ -26,8 +26,19 @@ fn lineTerminator(c: u21) bool {
     return c == '\n';
 }
 
+/// Perl's \h: Unicode Blank (tab plus Zs), so not U+180E (no longer Zs since Unicode 6.3).
+fn hspace(c: u21) bool {
+    return c != 0x180E and D.defaultHSpace(c);
+}
+
 pub const dialect: D.Dialect = .{
+    .atomic_groups = true,
+    .possessive = true,
+    .backrefs = true,
+    .extended_mode = true,
     .scoped_flags = true,
+    .hv_escapes = true,
+    .isHSpace = hspace,
     .unicode_props = true,
     .prop_case = .cased,
     .name = "perl",
@@ -61,6 +72,7 @@ pub fn pcre2Space(c: u21) bool {
 pub const pcre2: D.Dialect = blk: {
     var d = dialect;
     d.name = "pcre2";
+    d.isHSpace = D.defaultHSpace; // PCRE2's fixed \h list includes U+180E
     d.isWord = pcre2Word;
     d.isSpace = pcre2Space;
     break :blk d;
@@ -126,11 +138,32 @@ pub const boost: D.Dialect = blk: {
     d.caret_after_trailing_newline = true;
     // Lookbehind bodies must be fixed-length with no quantifier at all ((?<=(?:)?) is rejected).
     d.lookbehind_no_variable = true;
+    d.lookbehind_no_quant = true; // not even {1}
+    // Under m, \r\n is one line break: no ^ or $ between \r and \n.
+    d.crlf_atomic = true;
     d.ascii_only = true;
     d.lookbehind_fixed = true;
     // A loop whose body matches empty at an assertion fails ((?:$)+, (?:$(?:))+ under m on "":
     // IRX-BOOST-1); nullable loop bodies only under ?.
     d.quantify_assertions = false;
     d.nullable_quant_opt_only = true;
+    break :blk d;
+};
+
+/// PCRE1 8.45 with UCP: \w is \p{L}, \p{N} and _ (PCRE2 10.43 added Mn and Pc).
+fn pcre1Word(c: u21, _: D.Flags) bool {
+    const k = ucd.category(c);
+    return c == '_' or k[0] == 'L' or k[0] == 'N';
+}
+pub const pcre1: D.Dialect = blk: {
+    var d = pcre2;
+    d.name = "pcre1";
+    d.isWord = pcre1Word;
+    // Fixed-length lookbehind branches only: no variable quantifier inside, not even ()?.
+    d.lookbehind_no_variable = true;
+    // Different-length alternatives only at the top level of a lookbehind: model it as fixed.
+    d.lookbehind_fixed = true;
+    // /i does not reach \p{Lu} / \p{Ll} (PCRE2 treats them as any cased letter).
+    d.prop_case = .plain;
     break :blk d;
 };
