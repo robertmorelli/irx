@@ -9,23 +9,25 @@
    Speed cells use a diverging ramp: blue faster than Rust, red slower. */
 :root {
   --bg: #f4f6f5; --ink: #1f2624; --ink-2: #5e6966; --muted: #8c9693; --line: #d9dfdc; --wash: #e9edeb;
-  --accent: #2b6cb0; --board: #1c1f1e; --tile: #fbfcfb; --tile-ink: #1f2624; --bar-stroke: #1f2624; --board-edge: transparent;
+  --accent: #2b6cb0; --board: #1c1f1e; --tile: #fbfcfb; --tile-ink: #1f2624; --bar-stroke: #1f2624; --board-edge: transparent; --board-row: #1c1f1e; --board-rule: #9aa5a2;
   --tier-s: #ff7f7f; --tier-a: #ffbf7f; --tier-b: #ffdf7f; --tier-c: #ffff7f; --tier-d: #bfff7f; --tier-f: #7fffff;
   --d-n3: #1d4f9e; --d-n2: #4a86d8; --d-n1: #b4cff2; --d-mid: #e4e9e7; --d-p1: #f4c9bd; --d-p2: #e9927c; --d-p3: #d4573f; --d-p4: #a8341f; --d-p5: #6c1d10;
   --font: "Recursive", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #161a19; --ink: #e8edeb; --ink-2: #aab4b1; --muted: #7d8885; --line: #2e3533; --wash: #222826;
-    --accent: #7fb0ee; --board: #0e1110; --tile: #232927; --tile-ink: #e8edeb; --tier-s: #c9706c; --tier-a: #c99263; --tier-b: #c9ad62; --tier-c: #bfbd60; --tier-d: #93b85f; --tier-f: #5fb3b3; --bar-stroke: transparent; --board-edge: #343c39;
-    --d-n3: #9cc2f5; --d-n2: #4f8fe6; --d-n1: #1f3d66; --d-mid: #2a302e; --d-p1: #5a2f27; --d-p2: #8f3d2e; --d-p3: #c4523b; --d-p4: #e5745b; --d-p5: #f6ad9b;
+    --bg: #171b1a; --ink: #e6ebe9; --ink-2: #a3adaa; --muted: #a3adaa; --line: #2c3331; --wash: #222826;
+    --accent: #7fb0ee; --board: #2c3331; --board-row: #171b1a; --board-rule: #a3adaa; --board-edge: transparent; --tile: #222826; --tile-ink: #e6ebe9; --bar-stroke: transparent;
+    --tier-s: #c9706c; --tier-a: #c99263; --tier-b: #c9ad62; --tier-c: #bfbd60; --tier-d: #93b85f; --tier-f: #5fb3b3;
+    --d-n3: #9cc2f5; --d-n2: #4f8fe6; --d-n1: #1f3d66; --d-mid: #222826; --d-p1: #5a2f27; --d-p2: #8f3d2e; --d-p3: #c4523b; --d-p4: #e5745b; --d-p5: #f6ad9b;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #161a19; --ink: #e8edeb; --ink-2: #aab4b1; --muted: #7d8885; --line: #2e3533; --wash: #222826;
-  --accent: #7fb0ee; --board: #0e1110; --tile: #232927; --tile-ink: #e8edeb; --tier-s: #c9706c; --tier-a: #c99263; --tier-b: #c9ad62; --tier-c: #bfbd60; --tier-d: #93b85f; --tier-f: #5fb3b3; --bar-stroke: transparent; --board-edge: #343c39;
-  --d-n3: #9cc2f5; --d-n2: #4f8fe6; --d-n1: #1f3d66; --d-mid: #2a302e; --d-p1: #5a2f27; --d-p2: #8f3d2e; --d-p3: #c4523b; --d-p4: #e5745b; --d-p5: #f6ad9b;
+  --bg: #171b1a; --ink: #e6ebe9; --ink-2: #a3adaa; --muted: #a3adaa; --line: #2c3331; --wash: #222826;
+    --accent: #7fb0ee; --board: #2c3331; --board-row: #171b1a; --board-rule: #a3adaa; --board-edge: transparent; --tile: #222826; --tile-ink: #e6ebe9; --bar-stroke: transparent;
+    --tier-s: #c9706c; --tier-a: #c99263; --tier-b: #c9ad62; --tier-c: #bfbd60; --tier-d: #93b85f; --tier-f: #5fb3b3;
+    --d-n3: #9cc2f5; --d-n2: #4f8fe6; --d-n1: #1f3d66; --d-mid: #222826; --d-p1: #5a2f27; --d-p2: #8f3d2e; --d-p3: #c4523b; --d-p4: #e5745b; --d-p5: #f6ad9b;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -46,15 +48,15 @@ section { display: grid; gap: 16px; min-width: 0; }
 .wide { width: min(1400px, calc(100vw - 40px)); margin-left: calc(50% - min(700px, calc(50vw - 20px))); }
 .note { font-size: 14px; color: var(--muted); max-width: 80ch; }
 /* Tier board */
-.tiers { display: grid; gap: 3px; background: var(--board); padding: 3px; box-shadow: 0 0 0 1px var(--board-edge); }
+.tiers { display: grid; gap: 3px; background: var(--board); padding: 3px; }
 .tier { display: grid; grid-template-columns: 92px 1fr; gap: 3px; align-items: stretch; }
 .tier .badge { display: grid; place-items: center; color: #1c1f1e; font-weight: 1000; font-variation-settings: "CASL" 1; font-size: 42px; min-height: 78px; }
-.tier .row { background: var(--board); padding: 8px; min-width: 0; display: grid; align-content: center; }
-.tier .rule { font-size: 12.5px; color: #9aa5a2; margin: 0 0 6px 2px; }
+.tier .row { background: var(--board-row); padding: 8px; min-width: 0; display: grid; align-content: center; }
+.tier .rule { font-size: 12.5px; color: var(--board-rule); margin: 0 0 6px 2px; }
 .chips { display: flex; flex-wrap: wrap; gap: 3px; }
 .chip { display: inline-flex; flex-direction: column; gap: 0; padding: 7px 11px 6px; background: var(--tile); color: var(--tile-ink); font-size: 14.5px; font-weight: 650; white-space: nowrap; line-height: 1.25; }
 .chip small { font-size: 12px; font-weight: 450; color: var(--muted); }
-.empty { font-size: 14px; color: #6f7a77; padding: 6px 2px; }
+.empty { font-size: 14px; color: var(--board-rule); padding: 6px 2px; }
 /* View switch */
 .switch { display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 15px; }
 .switch[hidden], [hidden] { display: none !important; }
