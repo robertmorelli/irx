@@ -359,6 +359,9 @@ def report(out):
             "by_outcome": {o2: g(lambda c, o, o2=o2: o == o2) for o2 in ("accept", "reject")},
             "by_bin": {b: g(lambda c, o, b=b: c["bin"] == b) for b, _, _ in BINS},
             "by_set_bin": {f"{s}/{b}": g(lambda c, o, s=s, b=b: c["set"] == s and c["bin"] == b) for s in ("ascii", "unicode") for b, _, _ in BINS},
+            # The full cross: set x outcome x size.
+            "cross": {f"{s}/{o2}/{b}": g(lambda c, o, s=s, o2=o2, b=b: c["set"] == s and o == o2 and c["bin"] == b)
+                      for s in ("ascii", "unicode") for o2 in ("accept", "reject") for b, _, _ in BINS},
             "compile_median_ns": sorted(comp)[len(comp) // 2] if comp else None,
             "statuses": statuses, "coverage": statuses.get("ok", 0) / len(cases),
         }

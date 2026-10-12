@@ -76,6 +76,72 @@
     "n": 300
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 1.0,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 1.0,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 1.0,
+    "n": 153
+   },
+   "ascii/accept/large": {
+    "geo": 1.0,
+    "n": 163
+   },
+   "ascii/reject/tiny": {
+    "geo": 1.0,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 1.0,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 1.0,
+    "n": 147
+   },
+   "ascii/reject/large": {
+    "geo": 1.0,
+    "n": 137
+   },
+   "unicode/accept/tiny": {
+    "geo": 1.0,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 1.0,
+    "n": 161
+   },
+   "unicode/accept/medium": {
+    "geo": 1.0,
+    "n": 167
+   },
+   "unicode/accept/large": {
+    "geo": 1.0,
+    "n": 173
+   },
+   "unicode/reject/tiny": {
+    "geo": 1.0,
+    "n": 137
+   },
+   "unicode/reject/small": {
+    "geo": 1.0,
+    "n": 139
+   },
+   "unicode/reject/medium": {
+    "geo": 1.0,
+    "n": 133
+   },
+   "unicode/reject/large": {
+    "geo": 1.0,
+    "n": 127
+   }
+  },
   "compile_median_ns": 116416,
   "statuses": {
    "ok": 1200
@@ -173,6 +239,72 @@
    "unicode/large": {
     "geo": 16.50538275684251,
     "n": 300
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 13.749905160420473,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 23.281213784908157,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 27.99876264752698,
+    "n": 153
+   },
+   "ascii/accept/large": {
+    "geo": 35.14123438577354,
+    "n": 163
+   },
+   "ascii/reject/tiny": {
+    "geo": 16.166724192922956,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 31.11626325963795,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 52.22638392624725,
+    "n": 147
+   },
+   "ascii/reject/large": {
+    "geo": 81.18947679715718,
+    "n": 137
+   },
+   "unicode/accept/tiny": {
+    "geo": 8.330597084728646,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 10.626314358041796,
+    "n": 161
+   },
+   "unicode/accept/medium": {
+    "geo": 12.164163531776564,
+    "n": 167
+   },
+   "unicode/accept/large": {
+    "geo": 15.034225895364731,
+    "n": 173
+   },
+   "unicode/reject/tiny": {
+    "geo": 5.9543112784223515,
+    "n": 137
+   },
+   "unicode/reject/small": {
+    "geo": 8.336163640738201,
+    "n": 139
+   },
+   "unicode/reject/medium": {
+    "geo": 13.945274161867092,
+    "n": 133
+   },
+   "unicode/reject/large": {
+    "geo": 18.74370965817031,
+    "n": 127
    }
   },
   "compile_median_ns": 5583,
@@ -273,6 +405,72 @@
     "n": 300
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 14.583260716937916,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 25.168428014770598,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 31.32657775958044,
+    "n": 153
+   },
+   "ascii/accept/large": {
+    "geo": 42.22170841376502,
+    "n": 163
+   },
+   "ascii/reject/tiny": {
+    "geo": 14.687401261594074,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 29.06138139804566,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 48.60252838403323,
+    "n": 147
+   },
+   "ascii/reject/large": {
+    "geo": 75.6280592311603,
+    "n": 137
+   },
+   "unicode/accept/tiny": {
+    "geo": 13.64140685551516,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 17.957590293559434,
+    "n": 161
+   },
+   "unicode/accept/medium": {
+    "geo": 22.41520561672122,
+    "n": 167
+   },
+   "unicode/accept/large": {
+    "geo": 29.145119600103712,
+    "n": 173
+   },
+   "unicode/reject/tiny": {
+    "geo": 9.02408666018937,
+    "n": 137
+   },
+   "unicode/reject/small": {
+    "geo": 12.628009394486307,
+    "n": 139
+   },
+   "unicode/reject/medium": {
+    "geo": 19.564658689376586,
+    "n": 133
+   },
+   "unicode/reject/large": {
+    "geo": 25.85000209921621,
+    "n": 127
+   }
+  },
   "compile_median_ns": 62167,
   "statuses": {
    "ok": 1200
@@ -370,6 +568,72 @@
    "unicode/large": {
     "geo": 40.5838231885493,
     "n": 170
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 5.19422284568189,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 12.328566791064196,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 22.198596430532284,
+    "n": 152
+   },
+   "ascii/accept/large": {
+    "geo": 43.19577498876141,
+    "n": 122
+   },
+   "ascii/reject/tiny": {
+    "geo": 8.627664963476162,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 16.943833218505166,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 34.447023761363006,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 67.75587374865351,
+    "n": 90
+   },
+   "unicode/accept/tiny": {
+    "geo": 3.9702210710116113,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 8.208658172016895,
+    "n": 161
+   },
+   "unicode/accept/medium": {
+    "geo": 14.510992285090508,
+    "n": 160
+   },
+   "unicode/accept/large": {
+    "geo": 33.132637686134686,
+    "n": 111
+   },
+   "unicode/reject/tiny": {
+    "geo": 5.309830919654578,
+    "n": 137
+   },
+   "unicode/reject/small": {
+    "geo": 7.870506771659761,
+    "n": 139
+   },
+   "unicode/reject/medium": {
+    "geo": 16.867836592130566,
+    "n": 126
+   },
+   "unicode/reject/large": {
+    "geo": 59.44217183821517,
+    "n": 59
    }
   },
   "compile_median_ns": 57875,
@@ -472,6 +736,72 @@
     "n": 194
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 1.3373519971613617,
+    "n": 118
+   },
+   "ascii/accept/small": {
+    "geo": 2.3194484750004305,
+    "n": 115
+   },
+   "ascii/accept/medium": {
+    "geo": 2.9967959281091514,
+    "n": 117
+   },
+   "ascii/accept/large": {
+    "geo": 4.115593697297933,
+    "n": 121
+   },
+   "ascii/reject/tiny": {
+    "geo": 0.8934001325856,
+    "n": 66
+   },
+   "ascii/reject/small": {
+    "geo": 3.228970516789992,
+    "n": 69
+   },
+   "ascii/reject/medium": {
+    "geo": 8.213768640060907,
+    "n": 67
+   },
+   "ascii/reject/large": {
+    "geo": 17.31008547137263,
+    "n": 63
+   },
+   "unicode/accept/tiny": {
+    "geo": 1.6350705990610859,
+    "n": 124
+   },
+   "unicode/accept/small": {
+    "geo": 2.6192349389419127,
+    "n": 126
+   },
+   "unicode/accept/medium": {
+    "geo": 3.400126099487443,
+    "n": 125
+   },
+   "unicode/accept/large": {
+    "geo": 4.302180734487814,
+    "n": 130
+   },
+   "unicode/reject/tiny": {
+    "geo": 1.1926438030210518,
+    "n": 70
+   },
+   "unicode/reject/small": {
+    "geo": 2.853999429141168,
+    "n": 68
+   },
+   "unicode/reject/medium": {
+    "geo": 5.164668658983339,
+    "n": 69
+   },
+   "unicode/reject/large": {
+    "geo": 8.431793658586379,
+    "n": 64
+   }
+  },
   "compile_median_ns": 61542,
   "statuses": {
    "unsupported": 444,
@@ -572,6 +902,72 @@
     "n": 188
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 1.5521037683255186,
+    "n": 117
+   },
+   "ascii/accept/small": {
+    "geo": 2.067033969020897,
+    "n": 114
+   },
+   "ascii/accept/medium": {
+    "geo": 2.385414736799061,
+    "n": 116
+   },
+   "ascii/accept/large": {
+    "geo": 3.001351514279384,
+    "n": 120
+   },
+   "ascii/reject/tiny": {
+    "geo": 1.0841733012435033,
+    "n": 65
+   },
+   "ascii/reject/small": {
+    "geo": 2.3041800612316305,
+    "n": 68
+   },
+   "ascii/reject/medium": {
+    "geo": 4.81553730480047,
+    "n": 66
+   },
+   "ascii/reject/large": {
+    "geo": 10.154804503563144,
+    "n": 62
+   },
+   "unicode/accept/tiny": {
+    "geo": 1.8537656074509612,
+    "n": 122
+   },
+   "unicode/accept/small": {
+    "geo": 2.4790950831350766,
+    "n": 124
+   },
+   "unicode/accept/medium": {
+    "geo": 2.865653813438162,
+    "n": 123
+   },
+   "unicode/accept/large": {
+    "geo": 3.82640580240665,
+    "n": 128
+   },
+   "unicode/reject/tiny": {
+    "geo": 1.3450733701036288,
+    "n": 66
+   },
+   "unicode/reject/small": {
+    "geo": 2.7939931471708923,
+    "n": 64
+   },
+   "unicode/reject/medium": {
+    "geo": 4.855325684337356,
+    "n": 65
+   },
+   "unicode/reject/large": {
+    "geo": 8.291777591574549,
+    "n": 60
+   }
+  },
   "compile_median_ns": 486417,
   "statuses": {
    "unsupported": 460,
@@ -670,6 +1066,72 @@
    "unicode/large": {
     "geo": 3.1379550054861496,
     "n": 296
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 1.7039109535194426,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 1.9508478610604714,
+    "n": 146
+   },
+   "ascii/accept/medium": {
+    "geo": 2.218227306260591,
+    "n": 152
+   },
+   "ascii/accept/large": {
+    "geo": 2.513701480620269,
+    "n": 162
+   },
+   "ascii/reject/tiny": {
+    "geo": 7.4103117460011285,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 10.12002297906751,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 13.579826187300215,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 18.711451719029093,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 1.6704114095072577,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 1.5680984503598543,
+    "n": 161
+   },
+   "unicode/accept/medium": {
+    "geo": 1.8762377926463736,
+    "n": 167
+   },
+   "unicode/accept/large": {
+    "geo": 1.961040484923083,
+    "n": 172
+   },
+   "unicode/reject/tiny": {
+    "geo": 2.8927757266690266,
+    "n": 135
+   },
+   "unicode/reject/small": {
+    "geo": 3.772197717729987,
+    "n": 137
+   },
+   "unicode/reject/medium": {
+    "geo": 5.0675733359726225,
+    "n": 131
+   },
+   "unicode/reject/large": {
+    "geo": 6.023329214836672,
+    "n": 124
    }
   },
   "compile_median_ns": 186041,
@@ -776,6 +1238,72 @@
     "n": 170
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 1.634556770802858,
+    "n": 89
+   },
+   "ascii/accept/small": {
+    "geo": 2.609140296843564,
+    "n": 85
+   },
+   "ascii/accept/medium": {
+    "geo": 5.675435818431563,
+    "n": 87
+   },
+   "ascii/accept/large": {
+    "geo": 11.528344263819298,
+    "n": 91
+   },
+   "ascii/reject/tiny": {
+    "geo": 1.1303741515993029,
+    "n": 69
+   },
+   "ascii/reject/small": {
+    "geo": 1.041129587449567,
+    "n": 73
+   },
+   "ascii/reject/medium": {
+    "geo": 0.8335318750190881,
+    "n": 71
+   },
+   "ascii/reject/large": {
+    "geo": 0.7674172605739749,
+    "n": 67
+   },
+   "unicode/accept/tiny": {
+    "geo": 1.7208598933958807,
+    "n": 99
+   },
+   "unicode/accept/small": {
+    "geo": 3.3668620994581673,
+    "n": 103
+   },
+   "unicode/accept/medium": {
+    "geo": 6.456126025691024,
+    "n": 106
+   },
+   "unicode/accept/large": {
+    "geo": 21.318836671402483,
+    "n": 111
+   },
+   "unicode/reject/tiny": {
+    "geo": 1.4055128488938107,
+    "n": 71
+   },
+   "unicode/reject/small": {
+    "geo": 1.0952298221207843,
+    "n": 67
+   },
+   "unicode/reject/medium": {
+    "geo": 1.16880780682758,
+    "n": 64
+   },
+   "unicode/reject/large": {
+    "geo": 1.0135525760816753,
+    "n": 59
+   }
+  },
   "compile_median_ns": 1156125,
   "statuses": {
    "ok": 656,
@@ -875,6 +1403,72 @@
     "n": 292
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 5.987618522346921,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 8.83806127900442,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 10.47126346588271,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 13.556935560676248,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 7.272190875327238,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 9.688944491008385,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 14.33515551964289,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 21.26955139432824,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 3.8091925551949366,
+    "n": 161
+   },
+   "unicode/accept/small": {
+    "geo": 5.260512111642555,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 6.321359373642542,
+    "n": 165
+   },
+   "unicode/accept/large": {
+    "geo": 9.162050751880413,
+    "n": 170
+   },
+   "unicode/reject/tiny": {
+    "geo": 3.1308210166758434,
+    "n": 133
+   },
+   "unicode/reject/small": {
+    "geo": 4.526752795191103,
+    "n": 133
+   },
+   "unicode/reject/medium": {
+    "geo": 7.408571147958604,
+    "n": 127
+   },
+   "unicode/reject/large": {
+    "geo": 10.640091076960179,
+    "n": 122
+   }
+  },
   "compile_median_ns": 5125,
   "statuses": {
    "ok": 1178,
@@ -905,7 +1499,8 @@
    "IRX-PCRE2-3",
    "IRX-PCRE2-4",
    "IRX-PCRE2-5",
-   "IRX-PCRE2-6"
+   "IRX-PCRE2-6",
+   "IRX-PCRE2-7"
   ],
   "fast": false,
   "featureful": true,
@@ -989,6 +1584,72 @@
     "n": 288
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 1.3451592566604833,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 2.0547171319376356,
+    "n": 146
+   },
+   "ascii/accept/medium": {
+    "geo": 2.306042422565233,
+    "n": 152
+   },
+   "ascii/accept/large": {
+    "geo": 2.822304599444754,
+    "n": 162
+   },
+   "ascii/reject/tiny": {
+    "geo": 1.7581059562960835,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 2.0104944443875095,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 2.9008081862930974,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 4.550689669529601,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 0.8588309261015983,
+    "n": 162
+   },
+   "unicode/accept/small": {
+    "geo": 1.0368070019209192,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 1.2977749433124193,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 1.5339213282955428,
+    "n": 166
+   },
+   "unicode/reject/tiny": {
+    "geo": 0.9208259246036598,
+    "n": 134
+   },
+   "unicode/reject/small": {
+    "geo": 0.9642681615854495,
+    "n": 133
+   },
+   "unicode/reject/medium": {
+    "geo": 1.5631933081810312,
+    "n": 128
+   },
+   "unicode/reject/large": {
+    "geo": 2.532527644355247,
+    "n": 122
+   }
+  },
   "compile_median_ns": 12583,
   "statuses": {
    "ok": 1181,
@@ -1019,7 +1680,8 @@
    "IRX-PCRE2-3",
    "IRX-PCRE2-4",
    "IRX-PCRE2-5",
-   "IRX-PCRE2-6"
+   "IRX-PCRE2-6",
+   "IRX-PCRE2-7"
   ],
   "fast": true,
   "featureful": true,
@@ -1101,6 +1763,72 @@
    "unicode/large": {
     "geo": 10.92067332284257,
     "n": 292
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 4.921352593935492,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 8.57813033872505,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 10.826631092739174,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 13.439118295915911,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 7.808973526868066,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 10.77885635931285,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 18.65030131452193,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 26.827695268231736,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 3.2388971900385624,
+    "n": 161
+   },
+   "unicode/accept/small": {
+    "geo": 5.629817052225259,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 6.916259825421624,
+    "n": 165
+   },
+   "unicode/accept/large": {
+    "geo": 9.708954244979095,
+    "n": 170
+   },
+   "unicode/reject/tiny": {
+    "geo": 3.4616354498292354,
+    "n": 133
+   },
+   "unicode/reject/small": {
+    "geo": 5.392514562224652,
+    "n": 133
+   },
+   "unicode/reject/medium": {
+    "geo": 9.374450604322316,
+    "n": 127
+   },
+   "unicode/reject/large": {
+    "geo": 12.86536853333937,
+    "n": 122
    }
   },
   "compile_median_ns": 3542,
@@ -1209,6 +1937,72 @@
    "unicode/large": {
     "geo": 24.34781184311555,
     "n": 292
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 10.932549288917544,
+    "n": 149
+   },
+   "ascii/accept/small": {
+    "geo": 15.05749571544057,
+    "n": 146
+   },
+   "ascii/accept/medium": {
+    "geo": 13.211578254513446,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 15.329231226148181,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 11.315248634271049,
+    "n": 147
+   },
+   "ascii/reject/small": {
+    "geo": 14.523260638545512,
+    "n": 150
+   },
+   "ascii/reject/medium": {
+    "geo": 30.361859600261983,
+    "n": 144
+   },
+   "ascii/reject/large": {
+    "geo": 70.19832076456457,
+    "n": 134
+   },
+   "unicode/accept/tiny": {
+    "geo": 14.833350210794675,
+    "n": 162
+   },
+   "unicode/accept/small": {
+    "geo": 12.52475060409941,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 13.267943238831375,
+    "n": 165
+   },
+   "unicode/accept/large": {
+    "geo": 16.439535757824416,
+    "n": 169
+   },
+   "unicode/reject/tiny": {
+    "geo": 6.239852381578206,
+    "n": 134
+   },
+   "unicode/reject/small": {
+    "geo": 7.135602850709593,
+    "n": 133
+   },
+   "unicode/reject/medium": {
+    "geo": 17.958409227084317,
+    "n": 129
+   },
+   "unicode/reject/large": {
+    "geo": 41.76580689506229,
+    "n": 123
    }
   },
   "compile_median_ns": 20000,
@@ -1322,6 +2116,72 @@
     "n": 300
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 3.1148944926722026,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 3.666790727359533,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 3.609908994888652,
+    "n": 153
+   },
+   "ascii/accept/large": {
+    "geo": 4.418306256484728,
+    "n": 163
+   },
+   "ascii/reject/tiny": {
+    "geo": 2.8260683531895596,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 3.454672042248987,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 4.440407474615237,
+    "n": 147
+   },
+   "ascii/reject/large": {
+    "geo": 4.684711474921537,
+    "n": 137
+   },
+   "unicode/accept/tiny": {
+    "geo": 1.6243481352034295,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 1.7553688031989354,
+    "n": 161
+   },
+   "unicode/accept/medium": {
+    "geo": 1.8042679551676017,
+    "n": 167
+   },
+   "unicode/accept/large": {
+    "geo": 2.364355440139752,
+    "n": 173
+   },
+   "unicode/reject/tiny": {
+    "geo": 0.9824238925912204,
+    "n": 137
+   },
+   "unicode/reject/small": {
+    "geo": 0.8881399159460701,
+    "n": 139
+   },
+   "unicode/reject/medium": {
+    "geo": 0.9011802140051586,
+    "n": 133
+   },
+   "unicode/reject/large": {
+    "geo": 0.8919473131172769,
+    "n": 127
+   }
+  },
   "compile_median_ns": 48459,
   "statuses": {
    "ok": 1200
@@ -1424,6 +2284,72 @@
     "n": 286
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 5.11261191787331,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 7.975616374756107,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 9.586184592352524,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 12.104262900003564,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 8.20997126811228,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 12.414975976557468,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 17.403973522488787,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 27.794202139407876,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 3.3697158832217986,
+    "n": 160
+   },
+   "unicode/accept/small": {
+    "geo": 4.992860341276985,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 6.219749337924181,
+    "n": 165
+   },
+   "unicode/accept/large": {
+    "geo": 8.15418688143886,
+    "n": 168
+   },
+   "unicode/reject/tiny": {
+    "geo": 4.333922846999341,
+    "n": 134
+   },
+   "unicode/reject/small": {
+    "geo": 5.670883047149283,
+    "n": 133
+   },
+   "unicode/reject/medium": {
+    "geo": 8.748129050854539,
+    "n": 127
+   },
+   "unicode/reject/large": {
+    "geo": 10.308007806999882,
+    "n": 118
+   }
+  },
   "compile_median_ns": 17875,
   "statuses": {
    "ok": 1175,
@@ -1444,9 +2370,10 @@
    "word_boundary",
    "grapheme",
    "unicode_classes",
+   "full_case_fold",
    "extended_mode"
   ],
-  "feature_count": 13,
+  "feature_count": 14,
   "open_bugs": [
    "ICU-1",
    "ICU-2",
@@ -1455,7 +2382,8 @@
    "IRX-ICU-2",
    "IRX-ICU-3",
    "IRX-ICU-4",
-   "IRX-ICU-5"
+   "IRX-ICU-5",
+   "IRX-ICU-6"
   ],
   "fast": false,
   "featureful": true,
@@ -1537,6 +2465,72 @@
    "unicode/large": {
     "geo": 1.7827239586638686,
     "n": 192
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 1.5313932512057014,
+    "n": 118
+   },
+   "ascii/accept/small": {
+    "geo": 1.948458767884614,
+    "n": 115
+   },
+   "ascii/accept/medium": {
+    "geo": 1.5845061537612841,
+    "n": 117
+   },
+   "ascii/accept/large": {
+    "geo": 1.605102575344561,
+    "n": 121
+   },
+   "ascii/reject/tiny": {
+    "geo": 1.5863830297629031,
+    "n": 66
+   },
+   "ascii/reject/small": {
+    "geo": 2.079478726435104,
+    "n": 69
+   },
+   "ascii/reject/medium": {
+    "geo": 2.4966443231595488,
+    "n": 67
+   },
+   "ascii/reject/large": {
+    "geo": 3.6771443214618165,
+    "n": 63
+   },
+   "unicode/accept/tiny": {
+    "geo": 1.8081492576367484,
+    "n": 124
+   },
+   "unicode/accept/small": {
+    "geo": 2.1443260518351934,
+    "n": 126
+   },
+   "unicode/accept/medium": {
+    "geo": 1.6981429908944017,
+    "n": 125
+   },
+   "unicode/accept/large": {
+    "geo": 1.8170064027401265,
+    "n": 130
+   },
+   "unicode/reject/tiny": {
+    "geo": 2.007022825665554,
+    "n": 68
+   },
+   "unicode/reject/small": {
+    "geo": 1.4826838044057822,
+    "n": 66
+   },
+   "unicode/reject/medium": {
+    "geo": 1.3808912680011498,
+    "n": 67
+   },
+   "unicode/reject/large": {
+    "geo": 1.7129269310935797,
+    "n": 62
    }
   },
   "compile_median_ns": 1479750,
@@ -1640,6 +2634,72 @@
     "n": 142
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 51.01835156903889,
+    "n": 85
+   },
+   "ascii/accept/small": {
+    "geo": 116.79933266675272,
+    "n": 81
+   },
+   "ascii/accept/medium": {
+    "geo": 149.74379244147582,
+    "n": 82
+   },
+   "ascii/accept/large": {
+    "geo": 226.0568194186831,
+    "n": 83
+   },
+   "ascii/reject/tiny": {
+    "geo": 80.29925164531315,
+    "n": 41
+   },
+   "ascii/reject/small": {
+    "geo": 310.1252559236677,
+    "n": 45
+   },
+   "ascii/reject/medium": {
+    "geo": 1522.9105726452585,
+    "n": 44
+   },
+   "ascii/reject/large": {
+    "geo": 6213.148781495957,
+    "n": 43
+   },
+   "unicode/accept/tiny": {
+    "geo": 54.71830904604156,
+    "n": 87
+   },
+   "unicode/accept/small": {
+    "geo": 119.38796601362704,
+    "n": 92
+   },
+   "unicode/accept/medium": {
+    "geo": 131.5845097955369,
+    "n": 91
+   },
+   "unicode/accept/large": {
+    "geo": 152.96452141330573,
+    "n": 95
+   },
+   "unicode/reject/tiny": {
+    "geo": 99.13968819838884,
+    "n": 55
+   },
+   "unicode/reject/small": {
+    "geo": 298.63521434933904,
+    "n": 50
+   },
+   "unicode/reject/medium": {
+    "geo": 867.5291541472809,
+    "n": 51
+   },
+   "unicode/reject/large": {
+    "geo": 5022.978767144734,
+    "n": 47
+   }
+  },
   "compile_median_ns": 10584,
   "statuses": {
    "compile_error": 664,
@@ -1735,6 +2795,72 @@
    "unicode/large": {
     "geo": 127.77638899219438,
     "n": 142
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 22.424612442252567,
+    "n": 85
+   },
+   "ascii/accept/small": {
+    "geo": 40.28792462291855,
+    "n": 81
+   },
+   "ascii/accept/medium": {
+    "geo": 53.943240388479786,
+    "n": 82
+   },
+   "ascii/accept/large": {
+    "geo": 88.06885590563756,
+    "n": 83
+   },
+   "ascii/reject/tiny": {
+    "geo": 20.537049085716106,
+    "n": 41
+   },
+   "ascii/reject/small": {
+    "geo": 73.50766453925932,
+    "n": 45
+   },
+   "ascii/reject/medium": {
+    "geo": 257.29072423136466,
+    "n": 44
+   },
+   "ascii/reject/large": {
+    "geo": 891.0103088321976,
+    "n": 43
+   },
+   "unicode/accept/tiny": {
+    "geo": 18.384475704494353,
+    "n": 87
+   },
+   "unicode/accept/small": {
+    "geo": 28.61915021710888,
+    "n": 92
+   },
+   "unicode/accept/medium": {
+    "geo": 33.6220083465412,
+    "n": 91
+   },
+   "unicode/accept/large": {
+    "geo": 43.25192833182422,
+    "n": 95
+   },
+   "unicode/reject/tiny": {
+    "geo": 32.831126086468544,
+    "n": 55
+   },
+   "unicode/reject/small": {
+    "geo": 97.99582376473157,
+    "n": 50
+   },
+   "unicode/reject/medium": {
+    "geo": 271.7766921845866,
+    "n": 51
+   },
+   "unicode/reject/large": {
+    "geo": 1141.1700196509466,
+    "n": 47
    }
   },
   "compile_median_ns": 12750,
@@ -1834,6 +2960,72 @@
     "n": 142
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 3.8406285820081827,
+    "n": 85
+   },
+   "ascii/accept/small": {
+    "geo": 6.113000120957823,
+    "n": 81
+   },
+   "ascii/accept/medium": {
+    "geo": 7.912217270055901,
+    "n": 82
+   },
+   "ascii/accept/large": {
+    "geo": 12.229584772895205,
+    "n": 83
+   },
+   "ascii/reject/tiny": {
+    "geo": 6.248831078644579,
+    "n": 41
+   },
+   "ascii/reject/small": {
+    "geo": 12.37494057092366,
+    "n": 45
+   },
+   "ascii/reject/medium": {
+    "geo": 38.72740550809211,
+    "n": 44
+   },
+   "ascii/reject/large": {
+    "geo": 136.83348097536185,
+    "n": 43
+   },
+   "unicode/accept/tiny": {
+    "geo": 4.306649222705275,
+    "n": 87
+   },
+   "unicode/accept/small": {
+    "geo": 6.236667111926104,
+    "n": 92
+   },
+   "unicode/accept/medium": {
+    "geo": 6.798424968749336,
+    "n": 91
+   },
+   "unicode/accept/large": {
+    "geo": 8.698680054467697,
+    "n": 95
+   },
+   "unicode/reject/tiny": {
+    "geo": 9.684477333613705,
+    "n": 55
+   },
+   "unicode/reject/small": {
+    "geo": 26.73872239008115,
+    "n": 50
+   },
+   "unicode/reject/medium": {
+    "geo": 79.80407000939049,
+    "n": 51
+   },
+   "unicode/reject/large": {
+    "geo": 352.7391201953421,
+    "n": 47
+   }
+  },
   "compile_median_ns": 10500,
   "statuses": {
    "compile_error": 664,
@@ -1928,6 +3120,72 @@
     "n": 142
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 71.89101912418857,
+    "n": 85
+   },
+   "ascii/accept/small": {
+    "geo": 78.75518982141494,
+    "n": 81
+   },
+   "ascii/accept/medium": {
+    "geo": 72.91102921444289,
+    "n": 82
+   },
+   "ascii/accept/large": {
+    "geo": 90.62530998216717,
+    "n": 83
+   },
+   "ascii/reject/tiny": {
+    "geo": 57.84699728956505,
+    "n": 41
+   },
+   "ascii/reject/small": {
+    "geo": 61.1591317878505,
+    "n": 45
+   },
+   "ascii/reject/medium": {
+    "geo": 86.08624604943837,
+    "n": 44
+   },
+   "ascii/reject/large": {
+    "geo": 142.98425351239518,
+    "n": 43
+   },
+   "unicode/accept/tiny": {
+    "geo": 59.691517296386394,
+    "n": 87
+   },
+   "unicode/accept/small": {
+    "geo": 60.76084929686376,
+    "n": 92
+   },
+   "unicode/accept/medium": {
+    "geo": 60.976171765831985,
+    "n": 91
+   },
+   "unicode/accept/large": {
+    "geo": 75.7709903666422,
+    "n": 95
+   },
+   "unicode/reject/tiny": {
+    "geo": 74.47208804689745,
+    "n": 55
+   },
+   "unicode/reject/small": {
+    "geo": 105.51662870545638,
+    "n": 50
+   },
+   "unicode/reject/medium": {
+    "geo": 145.28076158778467,
+    "n": 51
+   },
+   "unicode/reject/large": {
+    "geo": 243.14639919376603,
+    "n": 47
+   }
+  },
   "compile_median_ns": 6625,
   "statuses": {
    "compile_error": 664,
@@ -2020,6 +3278,72 @@
    "unicode/large": {
     "geo": 159.27780516270062,
     "n": 294
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 27.695102118492624,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 67.01186425316685,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 90.64127761899435,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 127.09794075748286,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 90.31065365613584,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 244.76052118142346,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 650.6141907441531,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 1724.5982014786453,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 22.29786485785494,
+    "n": 161
+   },
+   "unicode/accept/small": {
+    "geo": 38.557083692506275,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 54.44061818940703,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 76.71347807789122,
+    "n": 170
+   },
+   "unicode/reject/tiny": {
+    "geo": 33.72504412412346,
+    "n": 133
+   },
+   "unicode/reject/small": {
+    "geo": 70.19734653828806,
+    "n": 134
+   },
+   "unicode/reject/medium": {
+    "geo": 180.0643152190072,
+    "n": 130
+   },
+   "unicode/reject/large": {
+    "geo": 433.6514752120319,
+    "n": 124
    }
   },
   "compile_median_ns": 4834,
@@ -2126,6 +3450,72 @@
     "n": 296
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 16.41738178113843,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 21.270953876020588,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 24.28912439481512,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 26.021680129272454,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 27.59619497919008,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 28.414842172947008,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 45.28292847122955,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 51.46103861478165,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 6.930750860663641,
+    "n": 161
+   },
+   "unicode/accept/small": {
+    "geo": 10.246014988562347,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 11.630264649207518,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 13.227117926565729,
+    "n": 172
+   },
+   "unicode/reject/tiny": {
+    "geo": 7.7384229931179425,
+    "n": 133
+   },
+   "unicode/reject/small": {
+    "geo": 9.448816730774347,
+    "n": 134
+   },
+   "unicode/reject/medium": {
+    "geo": 14.927468771368467,
+    "n": 128
+   },
+   "unicode/reject/large": {
+    "geo": 24.051079402184214,
+    "n": 124
+   }
+  },
   "compile_median_ns": 24292,
   "statuses": {
    "ok": 1182,
@@ -2138,19 +3528,18 @@
    "lookahead",
    "lookbehind",
    "backrefs",
-   "atomic",
-   "possessive",
    "named_groups",
    "inline_flags",
    "lazy",
    "word_boundary",
    "extended_mode"
   ],
-  "feature_count": 10,
+  "feature_count": 8,
   "open_bugs": [
    "IRX-BOOST-1",
    "IRX-BOOST-2",
-   "IRX-BOOST-3"
+   "IRX-BOOST-3",
+   "IRX-BOOST-4"
   ],
   "fast": false,
   "featureful": true,
@@ -2232,6 +3621,72 @@
    "unicode/large": {
     "geo": 1.5234953753579494,
     "n": 296
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 1.1793265875750027,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 1.414457535275837,
+    "n": 146
+   },
+   "ascii/accept/medium": {
+    "geo": 1.391059937214223,
+    "n": 152
+   },
+   "ascii/accept/large": {
+    "geo": 1.5930300760644451,
+    "n": 162
+   },
+   "ascii/reject/tiny": {
+    "geo": 1.0895766741854613,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 1.1728013401014123,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 1.4442509277887807,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 1.8270020818034676,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 0.8676508501022155,
+    "n": 162
+   },
+   "unicode/accept/small": {
+    "geo": 1.1107581392913215,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 1.2654483688955953,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 1.7560264883544425,
+    "n": 171
+   },
+   "unicode/reject/tiny": {
+    "geo": 0.6968793750829633,
+    "n": 134
+   },
+   "unicode/reject/small": {
+    "geo": 0.826649346836021,
+    "n": 136
+   },
+   "unicode/reject/medium": {
+    "geo": 1.0208679403472962,
+    "n": 130
+   },
+   "unicode/reject/large": {
+    "geo": 1.2544383611340149,
+    "n": 125
    }
   },
   "compile_median_ns": 5000,
@@ -2339,6 +3794,72 @@
     "n": 0
    },
    "unicode/large": {
+    "geo": null,
+    "n": 0
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 39.88129922544495,
+    "n": 104
+   },
+   "ascii/accept/small": {
+    "geo": 61.27660251209828,
+    "n": 100
+   },
+   "ascii/accept/medium": {
+    "geo": 71.46355678477332,
+    "n": 102
+   },
+   "ascii/accept/large": {
+    "geo": 98.90920929791514,
+    "n": 110
+   },
+   "ascii/reject/tiny": {
+    "geo": 43.36544258182383,
+    "n": 112
+   },
+   "ascii/reject/small": {
+    "geo": 93.03948903466573,
+    "n": 116
+   },
+   "ascii/reject/medium": {
+    "geo": 230.27401909930123,
+    "n": 114
+   },
+   "ascii/reject/large": {
+    "geo": 595.9282451721901,
+    "n": 106
+   },
+   "unicode/accept/tiny": {
+    "geo": null,
+    "n": 0
+   },
+   "unicode/accept/small": {
+    "geo": null,
+    "n": 0
+   },
+   "unicode/accept/medium": {
+    "geo": null,
+    "n": 0
+   },
+   "unicode/accept/large": {
+    "geo": null,
+    "n": 0
+   },
+   "unicode/reject/tiny": {
+    "geo": null,
+    "n": 0
+   },
+   "unicode/reject/small": {
+    "geo": null,
+    "n": 0
+   },
+   "unicode/reject/medium": {
+    "geo": null,
+    "n": 0
+   },
+   "unicode/reject/large": {
     "geo": null,
     "n": 0
    }
@@ -2452,6 +3973,72 @@
     "n": 296
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 1.0139427382911712,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 1.3541443278626635,
+    "n": 146
+   },
+   "ascii/accept/medium": {
+    "geo": 1.391317039689457,
+    "n": 152
+   },
+   "ascii/accept/large": {
+    "geo": 1.5925153890424688,
+    "n": 162
+   },
+   "ascii/reject/tiny": {
+    "geo": 1.15387139007725,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 1.254720887779058,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 1.5123072782946156,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 1.8957035085769909,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 0.7234424407952377,
+    "n": 162
+   },
+   "unicode/accept/small": {
+    "geo": 0.9613793190062769,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 1.1197574583473642,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 1.5588159657068075,
+    "n": 171
+   },
+   "unicode/reject/tiny": {
+    "geo": 0.669556187529736,
+    "n": 134
+   },
+   "unicode/reject/small": {
+    "geo": 0.793872682828931,
+    "n": 136
+   },
+   "unicode/reject/medium": {
+    "geo": 0.9792009097346928,
+    "n": 130
+   },
+   "unicode/reject/large": {
+    "geo": 1.216131425227523,
+    "n": 125
+   }
+  },
   "compile_median_ns": 2197,
   "statuses": {
    "ok": 1188,
@@ -2556,6 +4143,72 @@
     "n": 293
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 0.8955659135850655,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 1.284908921945543,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 1.6160738687023044,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 2.0206110436783344,
+    "n": 158
+   },
+   "ascii/reject/tiny": {
+    "geo": 1.224201231868598,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 1.7159335447137651,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 2.742780184268153,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 4.847850886265201,
+    "n": 132
+   },
+   "unicode/accept/tiny": {
+    "geo": 0.73538956821679,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 1.2406593897877014,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 1.6014055817489465,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 2.394587943670453,
+    "n": 171
+   },
+   "unicode/reject/tiny": {
+    "geo": 0.7672685823088292,
+    "n": 135
+   },
+   "unicode/reject/small": {
+    "geo": 1.3390928153835797,
+    "n": 136
+   },
+   "unicode/reject/medium": {
+    "geo": 2.252151460814361,
+    "n": 130
+   },
+   "unicode/reject/large": {
+    "geo": 3.8468119761352124,
+    "n": 122
+   }
+  },
   "compile_median_ns": 0,
   "statuses": {
    "ok": 1186,
@@ -2576,7 +4229,8 @@
   ],
   "feature_count": 9,
   "open_bugs": [
-   "IRX-JSC-3"
+   "IRX-JSC-3",
+   "IRX-JSC-4"
   ],
   "fast": true,
   "featureful": true,
@@ -2658,6 +4312,72 @@
    "unicode/large": {
     "geo": 1.8671062939300216,
     "n": 296
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 0.9626177187783997,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 1.3256508454162046,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 1.6435755323208574,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 2.1284243929319935,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 1.281877715732326,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 1.5606111913744314,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 2.4137369965544244,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 3.870750076101363,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 0.8093421232547556,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 1.0970776198723442,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 1.3295217860339392,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 1.8247747444438978,
+    "n": 171
+   },
+   "unicode/reject/tiny": {
+    "geo": 0.7313807844283988,
+    "n": 135
+   },
+   "unicode/reject/small": {
+    "geo": 0.8962397737582244,
+    "n": 136
+   },
+   "unicode/reject/medium": {
+    "geo": 1.359725562767986,
+    "n": 130
+   },
+   "unicode/reject/large": {
+    "geo": 1.9266109483605316,
+    "n": 125
    }
   },
   "compile_median_ns": 3917,
@@ -2760,6 +4480,72 @@
    "unicode/large": {
     "geo": 34.640655278616485,
     "n": 296
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 11.440442345103023,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 21.021478587256365,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 26.28362457704575,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 34.05052460323715,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 21.78401286420181,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 52.72740300898699,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 137.20200949999628,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 362.6626675797018,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 7.068990043392393,
+    "n": 162
+   },
+   "unicode/accept/small": {
+    "geo": 10.242508316380512,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 12.755207389845049,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 17.579226270982467,
+    "n": 171
+   },
+   "unicode/reject/tiny": {
+    "geo": 7.804071071345666,
+    "n": 134
+   },
+   "unicode/reject/small": {
+    "geo": 14.001859104637711,
+    "n": 136
+   },
+   "unicode/reject/medium": {
+    "geo": 38.0579232294784,
+    "n": 130
+   },
+   "unicode/reject/large": {
+    "geo": 87.61535305533414,
+    "n": 125
    }
   },
   "compile_median_ns": 2000,
@@ -2866,6 +4652,72 @@
     "n": 192
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 7.2202069309037515,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 4.250806638854156,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 5.6642508169927295,
+    "n": 117
+   },
+   "ascii/accept/large": {
+    "geo": 8.169303075261423,
+    "n": 92
+   },
+   "ascii/reject/tiny": {
+    "geo": 3.5320493171646326,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 1.61251528414947,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 3.4373689203484776,
+    "n": 87
+   },
+   "ascii/reject/large": {
+    "geo": 6.526317756864921,
+    "n": 57
+   },
+   "unicode/accept/tiny": {
+    "geo": 5.5693592444243905,
+    "n": 162
+   },
+   "unicode/accept/small": {
+    "geo": 3.929211424769237,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 5.916201930514133,
+    "n": 163
+   },
+   "unicode/accept/large": {
+    "geo": 8.20756377036646,
+    "n": 115
+   },
+   "unicode/reject/tiny": {
+    "geo": 2.289363247041241,
+    "n": 135
+   },
+   "unicode/reject/small": {
+    "geo": 1.0749123303473387,
+    "n": 139
+   },
+   "unicode/reject/medium": {
+    "geo": 1.7378571449691578,
+    "n": 123
+   },
+   "unicode/reject/large": {
+    "geo": 1.2414896643830753,
+    "n": 77
+   }
+  },
   "compile_median_ns": 0,
   "statuses": {
    "ok": 1200
@@ -2967,6 +4819,72 @@
    "unicode/large": {
     "geo": 36.15403459888367,
     "n": 288
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 78.28267859762373,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 64.70455428040508,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 55.21119218157042,
+    "n": 148
+   },
+   "ascii/accept/large": {
+    "geo": 55.19289498472808,
+    "n": 159
+   },
+   "ascii/reject/tiny": {
+    "geo": 32.214059552653566,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 34.43643487960208,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 65.16703387748736,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 160.95544624255098,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 41.701330958730566,
+    "n": 161
+   },
+   "unicode/accept/small": {
+    "geo": 27.306399861585465,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 24.917649484622707,
+    "n": 165
+   },
+   "unicode/accept/large": {
+    "geo": 31.096550534910946,
+    "n": 168
+   },
+   "unicode/reject/tiny": {
+    "geo": 12.005901878712338,
+    "n": 133
+   },
+   "unicode/reject/small": {
+    "geo": 9.194678913564255,
+    "n": 134
+   },
+   "unicode/reject/medium": {
+    "geo": 18.83792547590093,
+    "n": 127
+   },
+   "unicode/reject/large": {
+    "geo": 44.64564927976237,
+    "n": 120
    }
   },
   "compile_median_ns": 0,
@@ -3078,6 +4996,72 @@
    "unicode/large": {
     "geo": 67.30807358758817,
     "n": 263
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 15.259568170316282,
+    "n": 149
+   },
+   "ascii/accept/small": {
+    "geo": 30.44705671588872,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 38.89715136986656,
+    "n": 149
+   },
+   "ascii/accept/large": {
+    "geo": 71.99154841190052,
+    "n": 136
+   },
+   "ascii/reject/tiny": {
+    "geo": 25.137617903839313,
+    "n": 147
+   },
+   "ascii/reject/small": {
+    "geo": 56.887358157051736,
+    "n": 150
+   },
+   "ascii/reject/medium": {
+    "geo": 145.19144854692462,
+    "n": 144
+   },
+   "ascii/reject/large": {
+    "geo": 371.3886350592043,
+    "n": 134
+   },
+   "unicode/accept/tiny": {
+    "geo": 10.407938466824428,
+    "n": 161
+   },
+   "unicode/accept/small": {
+    "geo": 16.04910340105166,
+    "n": 158
+   },
+   "unicode/accept/medium": {
+    "geo": 18.480043621413866,
+    "n": 160
+   },
+   "unicode/accept/large": {
+    "geo": 35.084928873294515,
+    "n": 142
+   },
+   "unicode/reject/tiny": {
+    "geo": 10.552277443027727,
+    "n": 134
+   },
+   "unicode/reject/small": {
+    "geo": 20.102586041766276,
+    "n": 133
+   },
+   "unicode/reject/medium": {
+    "geo": 62.56638565765943,
+    "n": 126
+   },
+   "unicode/reject/large": {
+    "geo": 144.58397122449963,
+    "n": 121
    }
   },
   "compile_median_ns": 0,
@@ -3193,6 +5177,72 @@
     "n": 240
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 14.192470458090622,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 19.1714014821746,
+    "n": 143
+   },
+   "ascii/accept/medium": {
+    "geo": 22.317510229932413,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 32.589613015769345,
+    "n": 134
+   },
+   "ascii/reject/tiny": {
+    "geo": 13.557398021992185,
+    "n": 147
+   },
+   "ascii/reject/small": {
+    "geo": 20.27502142913103,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 33.310444751789326,
+    "n": 143
+   },
+   "ascii/reject/large": {
+    "geo": 83.55737288162412,
+    "n": 112
+   },
+   "unicode/accept/tiny": {
+    "geo": 9.178594876929347,
+    "n": 160
+   },
+   "unicode/accept/small": {
+    "geo": 11.402102886422728,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 13.506984084893096,
+    "n": 165
+   },
+   "unicode/accept/large": {
+    "geo": 21.69968456081299,
+    "n": 142
+   },
+   "unicode/reject/tiny": {
+    "geo": 5.453052411670964,
+    "n": 133
+   },
+   "unicode/reject/small": {
+    "geo": 6.789163536388343,
+    "n": 133
+   },
+   "unicode/reject/medium": {
+    "geo": 11.078950790074112,
+    "n": 127
+   },
+   "unicode/reject/large": {
+    "geo": 20.969381647166227,
+    "n": 98
+   }
+  },
   "compile_median_ns": 0,
   "statuses": {
    "ok": 1180,
@@ -3300,6 +5350,72 @@
     "n": 296
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 10.286160108786609,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 15.320791148022419,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 17.836511716419675,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 22.117381909986623,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 12.062005479248882,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 18.349839063452773,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 27.401497449602733,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 40.83276586060749,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 5.422317821199772,
+    "n": 162
+   },
+   "unicode/accept/small": {
+    "geo": 6.533163676896432,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 7.245883402796979,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 9.106798922518466,
+    "n": 171
+   },
+   "unicode/reject/tiny": {
+    "geo": 4.609895602024647,
+    "n": 134
+   },
+   "unicode/reject/small": {
+    "geo": 5.708469234505536,
+    "n": 134
+   },
+   "unicode/reject/medium": {
+    "geo": 9.8939114501774,
+    "n": 130
+   },
+   "unicode/reject/large": {
+    "geo": 13.43037628556295,
+    "n": 125
+   }
+  },
   "compile_median_ns": 45042,
   "statuses": {
    "ok": 1184,
@@ -3402,6 +5518,72 @@
    "unicode/large": {
     "geo": 9.300197349950475,
     "n": 298
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 19.617435285464012,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 22.99438613165696,
+    "n": 146
+   },
+   "ascii/accept/medium": {
+    "geo": 21.819850054190542,
+    "n": 152
+   },
+   "ascii/accept/large": {
+    "geo": 23.184944367172765,
+    "n": 162
+   },
+   "ascii/reject/tiny": {
+    "geo": 21.644506529314544,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 17.419095777430563,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 20.38267926714691,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 29.392577526508184,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 10.740299834728424,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 9.034650292454426,
+    "n": 161
+   },
+   "unicode/accept/medium": {
+    "geo": 7.956971522042198,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 10.059001968255084,
+    "n": 172
+   },
+   "unicode/reject/tiny": {
+    "geo": 8.022008116303509,
+    "n": 137
+   },
+   "unicode/reject/small": {
+    "geo": 4.963330568639093,
+    "n": 137
+   },
+   "unicode/reject/medium": {
+    "geo": 6.1344480232974155,
+    "n": 132
+   },
+   "unicode/reject/large": {
+    "geo": 8.35591158920326,
+    "n": 126
    }
   },
   "compile_median_ns": 123250,
@@ -3508,6 +5690,72 @@
    "unicode/large": {
     "geo": 15.157215820007442,
     "n": 296
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 7.418442284556808,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 10.39737456410284,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 11.001920864549955,
+    "n": 153
+   },
+   "ascii/accept/large": {
+    "geo": 13.021759840841266,
+    "n": 163
+   },
+   "ascii/reject/tiny": {
+    "geo": 10.851229096461504,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 12.049702734097304,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 22.676233711831415,
+    "n": 147
+   },
+   "ascii/reject/large": {
+    "geo": 52.36679936081298,
+    "n": 137
+   },
+   "unicode/accept/tiny": {
+    "geo": 5.553426542863703,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 6.458146801205262,
+    "n": 161
+   },
+   "unicode/accept/medium": {
+    "geo": 6.9176000491878415,
+    "n": 167
+   },
+   "unicode/accept/large": {
+    "geo": 9.912087707254562,
+    "n": 173
+   },
+   "unicode/reject/tiny": {
+    "geo": 4.94734437298407,
+    "n": 135
+   },
+   "unicode/reject/small": {
+    "geo": 5.3070357706838704,
+    "n": 135
+   },
+   "unicode/reject/medium": {
+    "geo": 11.302670517078102,
+    "n": 129
+   },
+   "unicode/reject/large": {
+    "geo": 27.54578508419361,
+    "n": 123
    }
   },
   "compile_median_ns": 9000,
@@ -3620,6 +5868,72 @@
    "unicode/large": {
     "geo": 7.16859181695057,
     "n": 298
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 18.664677208614627,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 20.68087964221436,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 16.97493090104186,
+    "n": 153
+   },
+   "ascii/accept/large": {
+    "geo": 15.229448220752381,
+    "n": 163
+   },
+   "ascii/reject/tiny": {
+    "geo": 16.557330096412628,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 11.749901609465594,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 9.251633775600636,
+    "n": 147
+   },
+   "ascii/reject/large": {
+    "geo": 9.889182159322605,
+    "n": 137
+   },
+   "unicode/accept/tiny": {
+    "geo": 11.712938386570693,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 10.005639345105832,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 8.481812287457648,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 9.975734776658033,
+    "n": 172
+   },
+   "unicode/reject/tiny": {
+    "geo": 6.8155429535857674,
+    "n": 137
+   },
+   "unicode/reject/small": {
+    "geo": 3.7378142579032727,
+    "n": 136
+   },
+   "unicode/reject/medium": {
+    "geo": 3.625384369679737,
+    "n": 132
+   },
+   "unicode/reject/large": {
+    "geo": 4.5659367398275945,
+    "n": 126
    }
   },
   "compile_median_ns": 24000,
@@ -3739,6 +6053,72 @@
     "n": 290
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 2.453988090179177,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 3.3660385240135176,
+    "n": 146
+   },
+   "ascii/accept/medium": {
+    "geo": 3.5453449815778124,
+    "n": 152
+   },
+   "ascii/accept/large": {
+    "geo": 4.148704301607471,
+    "n": 162
+   },
+   "ascii/reject/tiny": {
+    "geo": 2.4648061415586824,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 2.5436150853607415,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 3.3823334497569864,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 5.179277802656137,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 1.3452190898961485,
+    "n": 162
+   },
+   "unicode/accept/small": {
+    "geo": 1.4906630023037009,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 1.7415828725029985,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 2.143775967109159,
+    "n": 168
+   },
+   "unicode/reject/tiny": {
+    "geo": 1.2328514314849546,
+    "n": 134
+   },
+   "unicode/reject/small": {
+    "geo": 1.1283223691750328,
+    "n": 133
+   },
+   "unicode/reject/medium": {
+    "geo": 1.758804652088129,
+    "n": 128
+   },
+   "unicode/reject/large": {
+    "geo": 2.867802225493572,
+    "n": 122
+   }
+  },
   "compile_median_ns": 17917,
   "statuses": {
    "ok": 1182,
@@ -3769,7 +6149,8 @@
    "IRX-PCRE2-3",
    "IRX-PCRE2-4",
    "IRX-PCRE2-5",
-   "IRX-PCRE2-6"
+   "IRX-PCRE2-6",
+   "IRX-PCRE2-7"
   ],
   "fast": true,
   "featureful": true,
@@ -3851,6 +6232,72 @@
    "unicode/large": {
     "geo": 6.869804268536484,
     "n": 300
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 42.896161930019716,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 35.06518481890353,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 24.373980970271433,
+    "n": 153
+   },
+   "ascii/accept/large": {
+    "geo": 20.558371379509115,
+    "n": 163
+   },
+   "ascii/reject/tiny": {
+    "geo": 41.74942897634292,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 26.431082208351743,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 19.466409406585033,
+    "n": 147
+   },
+   "ascii/reject/large": {
+    "geo": 22.51589301025005,
+    "n": 137
+   },
+   "unicode/accept/tiny": {
+    "geo": 24.360616363648894,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 14.316886850909077,
+    "n": 161
+   },
+   "unicode/accept/medium": {
+    "geo": 10.066244147051608,
+    "n": 167
+   },
+   "unicode/accept/large": {
+    "geo": 10.16358843902873,
+    "n": 173
+   },
+   "unicode/reject/tiny": {
+    "geo": 15.606192058806096,
+    "n": 137
+   },
+   "unicode/reject/small": {
+    "geo": 6.57721118472013,
+    "n": 139
+   },
+   "unicode/reject/medium": {
+    "geo": 4.526644341621042,
+    "n": 133
+   },
+   "unicode/reject/large": {
+    "geo": 4.0293004500169864,
+    "n": 127
    }
   },
   "compile_median_ns": 75000,
@@ -3951,6 +6398,72 @@
     "n": 294
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 7.3855312345762565,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 11.86958906195957,
+    "n": 145
+   },
+   "ascii/accept/medium": {
+    "geo": 14.315549203401096,
+    "n": 151
+   },
+   "ascii/accept/large": {
+    "geo": 19.09398172423845,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 9.295903577471048,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 17.536512289947144,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 28.76086190303915,
+    "n": 147
+   },
+   "ascii/reject/large": {
+    "geo": 43.88906832907396,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 5.120108611007416,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 7.589056183117174,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 9.410400222194871,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 10.0356242402985,
+    "n": 167
+   },
+   "unicode/reject/tiny": {
+    "geo": 4.961049781823552,
+    "n": 137
+   },
+   "unicode/reject/small": {
+    "geo": 7.554657541790568,
+    "n": 138
+   },
+   "unicode/reject/medium": {
+    "geo": 11.67897895344864,
+    "n": 132
+   },
+   "unicode/reject/large": {
+    "geo": 15.492057755157045,
+    "n": 127
+   }
+  },
   "compile_median_ns": 21833,
   "statuses": {
    "ok": 1191,
@@ -3980,6 +6493,7 @@
    "IRX-JAVA-4",
    "IRX-JAVA-5",
    "IRX-JAVA-6",
+   "IRX-JAVA-7",
    "JAVA-1",
    "JAVA-2",
    "JAVA-3",
@@ -4065,6 +6579,72 @@
    "unicode/large": {
     "geo": 18.06342823831219,
     "n": 300
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 19.063145492628305,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 28.199866524319138,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 31.5244244653129,
+    "n": 153
+   },
+   "ascii/accept/large": {
+    "geo": 38.1054154209905,
+    "n": 163
+   },
+   "ascii/reject/tiny": {
+    "geo": 17.144779132459355,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 25.71677622641731,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 40.50263477085344,
+    "n": 147
+   },
+   "ascii/reject/large": {
+    "geo": 62.60218606260839,
+    "n": 137
+   },
+   "unicode/accept/tiny": {
+    "geo": 12.075813231723087,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 13.342252335184808,
+    "n": 161
+   },
+   "unicode/accept/medium": {
+    "geo": 15.40402259660902,
+    "n": 167
+   },
+   "unicode/accept/large": {
+    "geo": 19.761526418810668,
+    "n": 173
+   },
+   "unicode/reject/tiny": {
+    "geo": 6.874182155311891,
+    "n": 137
+   },
+   "unicode/reject/small": {
+    "geo": 8.221624548282842,
+    "n": 139
+   },
+   "unicode/reject/medium": {
+    "geo": 12.26176640958017,
+    "n": 133
+   },
+   "unicode/reject/large": {
+    "geo": 15.98256680867109,
+    "n": 127
    }
   },
   "compile_median_ns": 23125,
@@ -4167,6 +6747,72 @@
     "n": 296
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 7.309097024913151,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 8.913211853600925,
+    "n": 146
+   },
+   "ascii/accept/medium": {
+    "geo": 8.418029596912854,
+    "n": 152
+   },
+   "ascii/accept/large": {
+    "geo": 9.33096217296218,
+    "n": 162
+   },
+   "ascii/reject/tiny": {
+    "geo": 10.130406350110439,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 9.176170170416638,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 8.360174835821534,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 10.259397944662279,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 4.780690319076544,
+    "n": 162
+   },
+   "unicode/accept/small": {
+    "geo": 4.902127877832325,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 5.056470867480855,
+    "n": 165
+   },
+   "unicode/accept/large": {
+    "geo": 5.931733242921116,
+    "n": 170
+   },
+   "unicode/reject/tiny": {
+    "geo": 4.533650962224155,
+    "n": 136
+   },
+   "unicode/reject/small": {
+    "geo": 3.4852833524462494,
+    "n": 137
+   },
+   "unicode/reject/medium": {
+    "geo": 3.3801137750161123,
+    "n": 131
+   },
+   "unicode/reject/large": {
+    "geo": 4.026023619112787,
+    "n": 126
+   }
+  },
   "compile_median_ns": 13200,
   "statuses": {
    "ok": 1189,
@@ -4179,7 +6825,6 @@
    "lookahead",
    "lookbehind",
    "backrefs",
-   "atomic",
    "unicode_props",
    "named_groups",
    "inline_flags",
@@ -4188,11 +6833,12 @@
    "unicode_classes",
    "extended_mode"
   ],
-  "feature_count": 11,
+  "feature_count": 10,
   "open_bugs": [
    "DOTNET-4",
    "DOTNET-6",
    "IRX-DOTNET-10",
+   "IRX-DOTNET-11",
    "IRX-DOTNET-6",
    "IRX-DOTNET-7",
    "IRX-DOTNET-8",
@@ -4280,6 +6926,72 @@
     "n": 296
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 3.3674672061141835,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 3.853138386052413,
+    "n": 146
+   },
+   "ascii/accept/medium": {
+    "geo": 3.50217669652047,
+    "n": 152
+   },
+   "ascii/accept/large": {
+    "geo": 3.9689202753521067,
+    "n": 162
+   },
+   "ascii/reject/tiny": {
+    "geo": 4.931796072146243,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 3.57918354744389,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 2.8839361019883887,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 3.159976275661506,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 1.9850087821687574,
+    "n": 162
+   },
+   "unicode/accept/small": {
+    "geo": 1.8874567332397354,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 1.9639715086958893,
+    "n": 165
+   },
+   "unicode/accept/large": {
+    "geo": 2.267826166854696,
+    "n": 170
+   },
+   "unicode/reject/tiny": {
+    "geo": 2.131310762315321,
+    "n": 136
+   },
+   "unicode/reject/small": {
+    "geo": 1.4251712385192374,
+    "n": 137
+   },
+   "unicode/reject/medium": {
+    "geo": 1.283016084174405,
+    "n": 131
+   },
+   "unicode/reject/large": {
+    "geo": 1.4625185913834629,
+    "n": 126
+   }
+  },
   "compile_median_ns": 42400,
   "statuses": {
    "ok": 1189,
@@ -4292,7 +7004,6 @@
    "lookahead",
    "lookbehind",
    "backrefs",
-   "atomic",
    "unicode_props",
    "named_groups",
    "inline_flags",
@@ -4301,11 +7012,12 @@
    "unicode_classes",
    "extended_mode"
   ],
-  "feature_count": 11,
+  "feature_count": 10,
   "open_bugs": [
    "DOTNET-4",
    "DOTNET-6",
    "IRX-DOTNET-10",
+   "IRX-DOTNET-11",
    "IRX-DOTNET-6",
    "IRX-DOTNET-7",
    "IRX-DOTNET-8",
@@ -4393,6 +7105,72 @@
     "n": 300
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 7.113547573291065,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 6.834974527901685,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 5.960135544720633,
+    "n": 153
+   },
+   "ascii/accept/large": {
+    "geo": 5.400394984600494,
+    "n": 163
+   },
+   "ascii/reject/tiny": {
+    "geo": 7.257451353381835,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 6.891977630763756,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 7.090407839331081,
+    "n": 147
+   },
+   "ascii/reject/large": {
+    "geo": 8.252454329147408,
+    "n": 137
+   },
+   "unicode/accept/tiny": {
+    "geo": 1.8777501907266483,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 1.4584619917793429,
+    "n": 161
+   },
+   "unicode/accept/medium": {
+    "geo": 1.2729728221565308,
+    "n": 167
+   },
+   "unicode/accept/large": {
+    "geo": 1.3408487086696699,
+    "n": 173
+   },
+   "unicode/reject/tiny": {
+    "geo": 1.1378692420107812,
+    "n": 137
+   },
+   "unicode/reject/small": {
+    "geo": 0.7422110045397501,
+    "n": 139
+   },
+   "unicode/reject/medium": {
+    "geo": 0.8220412877871395,
+    "n": 133
+   },
+   "unicode/reject/large": {
+    "geo": 1.067276868140185,
+    "n": 127
+   }
+  },
   "compile_median_ns": 534000,
   "statuses": {
    "ok": 1200
@@ -4413,6 +7191,7 @@
    "DOTNET-4",
    "DOTNET-6",
    "IRX-DOTNET-10",
+   "IRX-DOTNET-11",
    "IRX-DOTNET-6",
    "IRX-DOTNET-7",
    "IRX-DOTNET-8",
@@ -4498,6 +7277,72 @@
    "unicode/large": {
     "geo": 12.434807409647906,
     "n": 300
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 5.899545250921573,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 11.568710361176718,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 15.608808142687783,
+    "n": 153
+   },
+   "ascii/accept/large": {
+    "geo": 24.315565092268105,
+    "n": 163
+   },
+   "ascii/reject/tiny": {
+    "geo": 9.937198715607057,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 14.64827568550976,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 23.347005964711947,
+    "n": 147
+   },
+   "ascii/reject/large": {
+    "geo": 40.20764647416503,
+    "n": 137
+   },
+   "unicode/accept/tiny": {
+    "geo": 3.920634921491705,
+    "n": 163
+   },
+   "unicode/accept/small": {
+    "geo": 6.1031033882844365,
+    "n": 161
+   },
+   "unicode/accept/medium": {
+    "geo": 8.472109389030424,
+    "n": 167
+   },
+   "unicode/accept/large": {
+    "geo": 12.171000472776411,
+    "n": 173
+   },
+   "unicode/reject/tiny": {
+    "geo": 4.310211780754315,
+    "n": 137
+   },
+   "unicode/reject/small": {
+    "geo": 5.483252580885113,
+    "n": 139
+   },
+   "unicode/reject/medium": {
+    "geo": 9.387630867947593,
+    "n": 133
+   },
+   "unicode/reject/large": {
+    "geo": 12.803390208707967,
+    "n": 127
    }
   },
   "compile_median_ns": 6458,
@@ -4596,6 +7441,72 @@
    "unicode/large": {
     "geo": 176.49042752361296,
     "n": 290
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 99.27963792874992,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 159.69488577630352,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 197.03208780706245,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 228.08431779349795,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 133.69927049620063,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 202.14070567271705,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 307.1582537778817,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 443.34703154356424,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 71.41651319354793,
+    "n": 160
+   },
+   "unicode/accept/small": {
+    "geo": 99.92650720999109,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 128.62888259272324,
+    "n": 165
+   },
+   "unicode/accept/large": {
+    "geo": 167.16832388343346,
+    "n": 169
+   },
+   "unicode/reject/tiny": {
+    "geo": 67.07931563499386,
+    "n": 130
+   },
+   "unicode/reject/small": {
+    "geo": 96.16843226450106,
+    "n": 133
+   },
+   "unicode/reject/medium": {
+    "geo": 140.3801414005255,
+    "n": 127
+   },
+   "unicode/reject/large": {
+    "geo": 190.386995839294,
+    "n": 121
    }
   },
   "compile_median_ns": 78625,
@@ -4712,6 +7623,72 @@
     "n": 292
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 18.256747570552875,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 25.01233016770516,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 27.4641781460237,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 31.244583605360546,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 23.436479528452324,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 31.93825945116665,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 42.82457147133309,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 65.00299794716979,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 13.804184226252916,
+    "n": 159
+   },
+   "unicode/accept/small": {
+    "geo": 18.638935395825563,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 20.628999029488334,
+    "n": 165
+   },
+   "unicode/accept/large": {
+    "geo": 27.01460300480622,
+    "n": 170
+   },
+   "unicode/reject/tiny": {
+    "geo": 12.253365174056707,
+    "n": 133
+   },
+   "unicode/reject/small": {
+    "geo": 15.71181803997372,
+    "n": 133
+   },
+   "unicode/reject/medium": {
+    "geo": 22.807446497198562,
+    "n": 127
+   },
+   "unicode/reject/large": {
+    "geo": 36.63203864626054,
+    "n": 122
+   }
+  },
   "compile_median_ns": 11750,
   "statuses": {
    "ok": 1177,
@@ -4732,9 +7709,10 @@
    "word_boundary",
    "grapheme",
    "unicode_classes",
+   "full_case_fold",
    "extended_mode"
   ],
-  "feature_count": 13,
+  "feature_count": 14,
   "open_bugs": [
    "ICU-1",
    "ICU-2",
@@ -4743,7 +7721,8 @@
    "IRX-ICU-2",
    "IRX-ICU-3",
    "IRX-ICU-4",
-   "IRX-ICU-5"
+   "IRX-ICU-5",
+   "IRX-ICU-6"
   ],
   "fast": false,
   "featureful": true,
@@ -4827,6 +7806,72 @@
     "n": 296
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 23.39379987961623,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 29.5702403090899,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 59.50421258182999,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 170.30302177694412,
+    "n": 161
+   },
+   "ascii/reject/tiny": {
+    "geo": 28.189273163920596,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 28.872400215073416,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 52.0888548402856,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 124.05940421393052,
+    "n": 137
+   },
+   "unicode/accept/tiny": {
+    "geo": 13.606610621610463,
+    "n": 161
+   },
+   "unicode/accept/small": {
+    "geo": 16.36708245964418,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 36.372453165284334,
+    "n": 165
+   },
+   "unicode/accept/large": {
+    "geo": 284.78761901596795,
+    "n": 172
+   },
+   "unicode/reject/tiny": {
+    "geo": 11.639560715861181,
+    "n": 133
+   },
+   "unicode/reject/small": {
+    "geo": 11.42844789158401,
+    "n": 133
+   },
+   "unicode/reject/medium": {
+    "geo": 24.986081283361205,
+    "n": 127
+   },
+   "unicode/reject/large": {
+    "geo": 93.28325897914956,
+    "n": 124
+   }
+  },
   "compile_median_ns": 4709,
   "statuses": {
    "ok": 1181,
@@ -4856,7 +7901,8 @@
    "IRX-PCRE2-3",
    "IRX-PCRE2-4",
    "IRX-PCRE2-5",
-   "IRX-PCRE2-6"
+   "IRX-PCRE2-6",
+   "IRX-PCRE2-7"
   ],
   "fast": false,
   "featureful": true,
@@ -4938,6 +7984,72 @@
    "unicode/large": {
     "geo": 57.32086579601581,
     "n": 276
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 8.535551718782662,
+    "n": 126
+   },
+   "ascii/accept/small": {
+    "geo": 48.086093950823745,
+    "n": 124
+   },
+   "ascii/accept/medium": {
+    "geo": 54.577684018917,
+    "n": 129
+   },
+   "ascii/accept/large": {
+    "geo": 63.71327131362766,
+    "n": 139
+   },
+   "ascii/reject/tiny": {
+    "geo": 9.749740011711618,
+    "n": 136
+   },
+   "ascii/reject/small": {
+    "geo": 51.51824384496237,
+    "n": 138
+   },
+   "ascii/reject/medium": {
+    "geo": 71.85251696104515,
+    "n": 133
+   },
+   "ascii/reject/large": {
+    "geo": 119.95084996922347,
+    "n": 123
+   },
+   "unicode/accept/tiny": {
+    "geo": 9.249776261262179,
+    "n": 154
+   },
+   "unicode/accept/small": {
+    "geo": 34.85830211611524,
+    "n": 154
+   },
+   "unicode/accept/medium": {
+    "geo": 39.558318353023,
+    "n": 160
+   },
+   "unicode/accept/large": {
+    "geo": 53.04331795939988,
+    "n": 163
+   },
+   "unicode/reject/tiny": {
+    "geo": 6.572976867075864,
+    "n": 126
+   },
+   "unicode/reject/small": {
+    "geo": 24.440738240496106,
+    "n": 124
+   },
+   "unicode/reject/medium": {
+    "geo": 36.52658599969262,
+    "n": 118
+   },
+   "unicode/reject/large": {
+    "geo": 64.10595390672862,
+    "n": 113
    }
   },
   "compile_median_ns": 17000,
@@ -5050,6 +8162,72 @@
     "n": 292
    }
   },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 25.66734768656957,
+    "n": 150
+   },
+   "ascii/accept/small": {
+    "geo": 33.825089048002866,
+    "n": 144
+   },
+   "ascii/accept/medium": {
+    "geo": 37.99352189288499,
+    "n": 150
+   },
+   "ascii/accept/large": {
+    "geo": 40.827179585153445,
+    "n": 160
+   },
+   "ascii/reject/tiny": {
+    "geo": 38.53047755424759,
+    "n": 148
+   },
+   "ascii/reject/small": {
+    "geo": 45.998002259195474,
+    "n": 152
+   },
+   "ascii/reject/medium": {
+    "geo": 89.15792234950834,
+    "n": 146
+   },
+   "ascii/reject/large": {
+    "geo": 208.90637281907877,
+    "n": 136
+   },
+   "unicode/accept/tiny": {
+    "geo": 17.51032618116384,
+    "n": 162
+   },
+   "unicode/accept/small": {
+    "geo": 16.684380974238547,
+    "n": 159
+   },
+   "unicode/accept/medium": {
+    "geo": 19.54248900674328,
+    "n": 165
+   },
+   "unicode/accept/large": {
+    "geo": 26.72367013821649,
+    "n": 169
+   },
+   "unicode/reject/tiny": {
+    "geo": 16.39121366149846,
+    "n": 134
+   },
+   "unicode/reject/small": {
+    "geo": 18.013513571702216,
+    "n": 135
+   },
+   "unicode/reject/medium": {
+    "geo": 40.6998694477782,
+    "n": 129
+   },
+   "unicode/reject/large": {
+    "geo": 109.97576309994851,
+    "n": 123
+   }
+  },
   "compile_median_ns": 5007,
   "statuses": {
    "ok": 1181,
@@ -5148,6 +8326,72 @@
    "unicode/large": {
     "geo": 59.67171819204835,
     "n": 296
+   }
+  },
+  "cross": {
+   "ascii/accept/tiny": {
+    "geo": 37.25627790950475,
+    "n": 151
+   },
+   "ascii/accept/small": {
+    "geo": 60.35127324047082,
+    "n": 147
+   },
+   "ascii/accept/medium": {
+    "geo": 72.45950350307076,
+    "n": 153
+   },
+   "ascii/accept/large": {
+    "geo": 104.65309411692311,
+    "n": 163
+   },
+   "ascii/reject/tiny": {
+    "geo": 30.056766704492837,
+    "n": 149
+   },
+   "ascii/reject/small": {
+    "geo": 47.39106861164541,
+    "n": 153
+   },
+   "ascii/reject/medium": {
+    "geo": 98.16029256285037,
+    "n": 147
+   },
+   "ascii/reject/large": {
+    "geo": 247.37170972143505,
+    "n": 137
+   },
+   "unicode/accept/tiny": {
+    "geo": 23.449414043198907,
+    "n": 162
+   },
+   "unicode/accept/small": {
+    "geo": 25.52708946761875,
+    "n": 160
+   },
+   "unicode/accept/medium": {
+    "geo": 33.153515254382434,
+    "n": 166
+   },
+   "unicode/accept/large": {
+    "geo": 52.48187805280559,
+    "n": 172
+   },
+   "unicode/reject/tiny": {
+    "geo": 11.205570626671037,
+    "n": 134
+   },
+   "unicode/reject/small": {
+    "geo": 13.167463030758125,
+    "n": 134
+   },
+   "unicode/reject/medium": {
+    "geo": 27.462870010549334,
+    "n": 128
+   },
+   "unicode/reject/large": {
+    "geo": 71.30367522600092,
+    "n": 124
    }
   },
   "compile_median_ns": 32667,

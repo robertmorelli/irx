@@ -75,6 +75,10 @@ td .tag { display: inline-block; width: 22px; text-align: center; border-radius:
 .ramp { height: 10px; width: 240px; max-width: 60vw; border-radius: 3px; }
 .key { display: inline-flex; align-items: center; gap: 6px; }
 .key i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; box-shadow: inset 0 0 0 1px var(--line); }
+.cross th.grp { text-align: center; border-bottom: 1px solid var(--line); font-size: 12px; }
+.cross th.set { text-align: center; font-family: var(--font-display); font-stretch: 85%; font-size: 14px; color: var(--ink); }
+.cross th.sep, .cross td.sep { border-left: 2px solid var(--line); }
+.cross td.cell { min-width: 46px; padding: 4px 5px; }
 .bugs { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2); white-space: normal; text-align: left; max-width: 420px; }
 footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
 a { color: var(--accent); }
@@ -105,6 +109,12 @@ a { color: var(--accent); }
     <p>The same ratio, split four ways: ASCII against Unicode patterns and subjects, inputs Rust accepted against inputs it rejected, and four subject sizes (16, 128, 1,024 and 8,192 characters). A cell compares the engine with Rust on that slice only, so a row shows how an engine's speed changes, not which slice is slow overall.</p>
     <div class="card"><div class="scrollx"><table id="t-split"></table></div>
       <div class="legend" id="ramp-legend"></div></div>
+  </section>
+
+  <section aria-labelledby="h-cross">
+    <h2 id="h-cross">The full matrix</h2>
+    <p>All three splits crossed: for each engine, ASCII or Unicode, an input Rust accepted or rejected, and the subject size. Each cell is the geometric-mean ratio to Rust over the 125–170 inputs in that slice. Reading across a block shows how an engine scales with size; comparing the accept and reject blocks shows whether it is quicker to find a match or to rule one out.</p>
+    <div class="card"><div class="scrollx"><table class="cross" id="t-cross"></table></div></div>
   </section>
 
   <section aria-labelledby="h-scale">
@@ -189,6 +199,25 @@ function textOn(x) { return x <= 0.5 || x > 10 ? "#fff" : "var(--ink)"; }
   }
   document.getElementById("t-split").innerHTML = h + "</tbody>";
   document.getElementById("ramp-legend").innerHTML = `<span>faster than Rust</span><span style="display:inline-flex;gap:0">${RAMP.map(v => `<i style="display:inline-block;width:26px;height:10px;background:var(${v})"></i>`).join("")}</span><span>slower</span><span class="key">stops at ${STOPS.join(", ")}×</span><span class="key">Compile: median per pattern, smallest bin</span>`;
+})();
+
+// Full cross matrix: set x outcome x size
+(function () {
+  const sets = [["ascii", "ASCII"], ["unicode", "Unicode"]], outs = [["accept", "accept"], ["reject", "reject"]];
+  const bins = M.bins.map(b => b[0]), sizes = { tiny: "16", small: "128", medium: "1k", large: "8k" };
+  let h = `<thead><tr><th rowspan="3">Engine</th><th rowspan="3">Tier</th>${sets.map(([, l]) => `<th class="set sep" colspan="${outs.length * bins.length}">${l}</th>`).join("")}</tr>`;
+  h += `<tr>${sets.map(() => outs.map(([, l], j) => `<th class="grp${j === 0 ? " sep" : ""}" colspan="${bins.length}">${l}</th>`).join("")).join("")}</tr>`;
+  h += `<tr>${sets.map(() => outs.map((o, j) => bins.map((b, k) => `<th class="${j === 0 && k === 0 ? "sep" : ""}" style="text-align:center">${sizes[b] || b}</th>`).join("")).join("")).join("")}</tr></thead><tbody>`;
+  for (const n of bySpeed) {
+    const s = S[n];
+    h += `<tr><td>${esc(label(n))}</td><td><span class="tag" style="background:${tierColor(s.tier)}">${s.tier}</span></td>`;
+    sets.forEach(([sk]) => outs.forEach(([ok], j) => bins.forEach((b, k) => {
+      const c = (s.cross || {})[`${sk}/${ok}/${b}`], v = c && c.geo, sep = j === 0 && k === 0 ? " sep" : "";
+      h += v ? `<td class="cell${sep}" style="background:${rampVar(v)};color:${textOn(v)}" title="${esc(label(n))}: ${sk}, ${ok}, ${sizes[b]} chars, n=${c.n}">${fmt(v)}</td>` : `<td class="cell${sep}">–</td>`;
+    })));
+    h += "</tr>";
+  }
+  document.getElementById("t-cross").innerHTML = h + "</tbody>";
 })();
 
 // Scaling chart
