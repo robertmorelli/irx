@@ -154,20 +154,23 @@ a { color: var(--accent); }
 
 <script>
 const D = /*DATA*/null;
-const S = D.summary, M = D.meta;
+const S0 = D.summary, M = D.meta, EX = D.extras || {};
+// Untiered comparison rows (engines irx does not fuzz) join the speed views only.
+const S = Object.assign({}, S0, Object.fromEntries(Object.entries(EX).map(([n, v]) => [n, Object.assign({ tier: "–", extra: true, open_bugs: [], features: [], feature_count: 0 }, v)])));
 const TIER_ORDER = ["S", "A", "B", "C", "D", "F"];
 let VIEW = "strict";
 try { if (localStorage.getItem("shootout2-view") === "own") VIEW = "own"; } catch (e) {}
 // The speed object an engine is shown with: its strict shared set (core set for core engines,
 // the all-engine set otherwise) or everything it ran.
 const MX = n => VIEW === "strict" ? S[n].rank : S[n];
-const setMark = n => VIEW === "strict" ? (S[n].core ? "" : `<span class="mark" title="ranked on the ${M.strict.all_inputs} inputs every engine ran">all-engine set</span>`) : "";
+const setMark = n => S[n].extra ? `<span class="mark" title="${esc(S[n].note || "")}">not an irx engine · untiered</span>` : VIEW === "strict" ? (S[n].core ? "" : `<span class="mark" title="ranked on the ${M.strict.all_inputs} inputs every engine ran">all-engine set</span>`) : "";
 const TIER_RULE = { S: "correct · fast · featureful", A: "correct · fast or featureful", B: "correct only", C: "bugs · fast · featureful", D: "bugs · fast or featureful", F: "bugs · neither" };
-const tierColor = t => `var(--tier-${t.toLowerCase()})`;
-const names = Object.keys(S).filter(n => S[n].rank.overall.geo);
+const tierColor = t => t === "–" ? "var(--muted)" : `var(--tier-${t.toLowerCase()})`;
+const names = Object.keys(S0).filter(n => S0[n].rank.overall.geo);
+const speedNames = names.concat(Object.keys(EX).filter(n => S[n].rank && S[n].rank.overall.geo));
 let bySpeed = [];
 const fmt = x => x == null ? "–" : x < 10 ? x.toFixed(2) : x < 100 ? x.toFixed(1) : Math.round(x).toString();
-const label = n => M.labels[n] || n;
+const label = n => (EX[n] && EX[n].label) || M.labels[n] || n;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 document.getElementById("fast-x").textContent = M.fast;
@@ -183,7 +186,7 @@ function rampVar(x) { let i = 0; while (i < STOPS.length && x > STOPS[i]) i++; r
 function textOn(x) { return x <= 0.5 || x > 10 ? "#fff" : "var(--ink)"; }
 
 function render() {
-  bySpeed = names.slice().sort((a, b) => MX(a).overall.geo - MX(b).overall.geo);
+  bySpeed = speedNames.slice().sort((a, b) => MX(a).overall.geo - MX(b).overall.geo);
   const st = M.strict;
   document.getElementById("view-note").innerHTML = VIEW === "strict"
     ? `Every engine is compared with Rust on inputs it shares with a whole group of engines, so rankings are like for like. The <strong>${st.core_engines} engines that ran at least ${Math.round(st.core_coverage * 100)}% of cases</strong> share ${st.core_inputs.toLocaleString()} of the ${st.total_inputs.toLocaleString()} timed inputs. The others (POSIX engines, DFA-only engines, V8's linear engine, RE#, Racket) are ranked on the ${st.all_inputs} inputs <strong>every</strong> engine ran, marked “all-engine set”. Tiers use these numbers.`
@@ -205,9 +208,9 @@ document.getElementById("tiers").innerHTML = TIER_ORDER.map(t => {
   }
   bySpeed.forEach((n, i) => {
     const y = top + i * rowH, v = MX(n).overall.geo;
-    s += `<text class="lbl" x="${left - 10}" y="${y + 13}" text-anchor="end">${esc(label(n))}</text>`;
+    s += `<text class="lbl" x="${left - 10}" y="${y + 13}" text-anchor="end"${S[n].extra ? ' font-style="italic"' : ""}>${esc(label(n))}${S[n].extra ? " *" : ""}</text>`;
     s += `<rect x="${Math.min(x(1), x(v))}" y="${y + 3}" width="${Math.max(1.5, Math.abs(x(v) - x(1)))}" height="${rowH - 7}" rx="2" fill="${tierColor(S[n].tier)}"/>`;
-    s += `<text class="axis" x="${Math.max(x(1), x(v)) + 6}" y="${y + 13}">${fmt(v)}× · ${VIEW === "strict" ? (S[n].core ? "core set" : "all-engine set") : Math.round(S[n].coverage * 100) + "% ran"}</text>`;
+    s += `<text class="axis" x="${Math.max(x(1), x(v)) + 6}" y="${y + 13}">${fmt(v)}× · ${S[n].extra ? "not irx, untiered" : VIEW === "strict" ? (S[n].core ? "core set" : "all-engine set") : Math.round(S[n].coverage * 100) + "% ran"}</text>`;
   });
   document.getElementById("c-speed").innerHTML = s + "</svg>";
 }
@@ -297,5 +300,5 @@ for (const id of ["view-strict", "view-own"]) {
   document.getElementById("t-bugs").innerHTML = h + "</tbody>";
 })();
 
-document.getElementById("foot").innerHTML = `<div>Measured ${M.date} on an Apple Silicon Mac with the fuzzing campaign paused, engines run one at a time. Each case compiles once (timed), runs one untimed warm-up search per subject, then times repeated unanchored “is there a match?” searches; loops shorter than 2 ms are rerun with more repetitions, which matters for shells with millisecond clocks (Boa, XS, Hermes). Times are in-process and exclude startup and I/O. JavaScript engines and the JVM time warm code; Java's JIT is shared across cases.</div><div>Speed thresholds: fast means at most ${M.fast}× Rust overall. Features: ${M.features.length} families from the dialect model; featureful means at least ${M.featureful}. Bugs: open ledger entries on ${M.date}.</div><div>Harness: <code>tools/irx_bench.py</code> (bench mode in every irx host). Previous shootout: regex_comparison.</div>`;
+document.getElementById("foot").innerHTML = Object.keys(EX).map(n => `<div>* ${esc(label(n))}: shown for comparison only. It is not an irx engine, so it has no tier, features or bug count. Timed on the same workload through its own runner, with the fuzzing campaign running, so its ratios are against a Rust run timed under the same load.</div>`).join("") + `<div>Measured ${M.date} on an Apple Silicon Mac with the fuzzing campaign paused, engines run one at a time. Each case compiles once (timed), runs one untimed warm-up search per subject, then times repeated unanchored “is there a match?” searches; loops shorter than 2 ms are rerun with more repetitions, which matters for shells with millisecond clocks (Boa, XS, Hermes). Times are in-process and exclude startup and I/O. JavaScript engines and the JVM time warm code; Java's JIT is shared across cases.</div><div>Speed thresholds: fast means at most ${M.fast}× Rust overall. Features: ${M.features.length} families from the dialect model; featureful means at least ${M.featureful}. Bugs: open ledger entries on ${M.date}.</div><div>Harness: <code>tools/irx_bench.py</code> (bench mode in every irx host). Previous shootout: regex_comparison.</div>`;
 </script>

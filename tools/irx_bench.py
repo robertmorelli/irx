@@ -442,7 +442,7 @@ FEATURE_LABELS = {"lookahead": "look→", "lookbehind": "←look", "backrefs": "
 SCALE = ["rust-regex", "pcre2-jit", "bun", "v8", "re2", "go-regexp", "python-re", "java"]
 
 
-def page(out, dest):
+def page(out, dest, extras=None):
     summary = json.load(open(os.path.join(out, "summary.json")))
     cases = json.load(open(os.path.join(out, "workload.json")))
     scale = {}
@@ -459,7 +459,8 @@ def page(out, dest):
     meta = {"strict": strict_meta, "labels": LABELS, "fast": FAST, "featureful": FEATUREFUL, "features": FEATURES, "feature_labels": FEATURE_LABELS,
             "patterns": len(cases) // len(BINS) // 2, "inputs": len(cases) * 2, "bins": [[b, n] for b, n, _ in BINS],
             "scale_engines": SCALE, "ledger_open": sum(1 for _, _, o in ledger_rows() if o), "date": time.strftime("%Y-%m-%d")}
-    html = open(os.path.join(ROOT, "tools", "shootout2.html")).read().replace("/*DATA*/null", json.dumps({"summary": summary, "meta": meta, "scale": scale}))
+    html = open(os.path.join(ROOT, "tools", "shootout2.html")).read().replace("/*DATA*/null", json.dumps({"summary": summary, "meta": meta, "scale": scale,
+                                                                                                 "extras": json.load(open(extras)) if extras else {}}))
     open(dest, "w").write(html)
     print("wrote", dest)
 
@@ -468,6 +469,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["run", "report", "smoke", "page"])
     ap.add_argument("--html", default=None)
+    ap.add_argument("--extras", default=None, help="page: JSON of untiered rows shown for comparison only (engines irx does not fuzz)")
     ap.add_argument("--engines", default=None)
     ap.add_argument("--patterns", type=int, default=150)
     ap.add_argument("--seed", type=int, default=2)
@@ -489,7 +491,7 @@ def main():
     elif a.cmd == "run":
         for name, target, _, mode in sel: run_engine(name, target, mode, cases, a.out, a.timeout)
     elif a.cmd == "page":
-        page(a.out, a.html or os.path.join(a.out, "shootout2.html"))
+        page(a.out, a.html or os.path.join(a.out, "shootout2.html"), a.extras)
     else:
         report(a.out)
 
