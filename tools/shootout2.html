@@ -79,6 +79,11 @@ td .tag { display: inline-block; width: 22px; text-align: center; border-radius:
 .cross th.set { text-align: center; font-family: var(--font-display); font-stretch: 85%; font-size: 14px; color: var(--ink); }
 .cross th.sep, .cross td.sep { border-left: 2px solid var(--line); }
 .cross td.cell { min-width: 46px; padding: 4px 5px; }
+.switch { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; }
+.switch label { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
+.switch input { accent-color: var(--accent); }
+.switch input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mark { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); margin-left: 5px; }
 .bugs { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2); white-space: normal; text-align: left; max-width: 420px; }
 footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
 a { color: var(--accent); }
@@ -98,9 +103,18 @@ a { color: var(--accent); }
     <div class="tiers" id="tiers"></div>
   </section>
 
+  <section aria-labelledby="h-view">
+    <h2 id="h-view">Which inputs</h2>
+    <p id="view-note"></p>
+    <div class="switch" role="radiogroup" aria-label="Comparison set">
+      <label><input type="radio" name="view" id="view-strict" value="strict" checked> Strict: shared inputs only</label>
+      <label><input type="radio" name="view" id="view-own" value="own"> Everything each engine ran</label>
+    </div>
+  </section>
+
   <section aria-labelledby="h-speed">
     <h2 id="h-speed">Overall speed</h2>
-    <p>Each engine's search time divided by Rust's on the same input, combined as a geometric mean over every input both ran. Bars right of the line are slower than Rust. Coverage is the share of the 1,200 cases the engine compiled and ran: POSIX engines reject lazy quantifiers and <code>\b</code>, DFA engines reject Unicode word boundaries, and timeouts count as not run.</p>
+    <p>Each engine's search time divided by Rust's on the same input, combined as a geometric mean over the inputs chosen above. Bars right of the line are slower than Rust. Engines differ in what they can run: POSIX engines reject lazy quantifiers and <code>\b</code>, DFA engines reject Unicode word boundaries, and timeouts count as not run, which is why the strict view compares engines only on shared inputs.</p>
     <div class="card"><div class="chart" id="c-speed" role="img" aria-label="Geometric-mean slowdown versus Rust per engine"></div></div>
   </section>
 
@@ -142,10 +156,16 @@ a { color: var(--accent); }
 const D = /*DATA*/null;
 const S = D.summary, M = D.meta;
 const TIER_ORDER = ["S", "A", "B", "C", "D", "F"];
+let VIEW = "strict";
+try { if (localStorage.getItem("shootout2-view") === "own") VIEW = "own"; } catch (e) {}
+// The speed object an engine is shown with: its strict shared set (core set for core engines,
+// the all-engine set otherwise) or everything it ran.
+const MX = n => VIEW === "strict" ? S[n].rank : S[n];
+const setMark = n => VIEW === "strict" ? (S[n].core ? "" : `<span class="mark" title="ranked on the ${M.strict.all_inputs} inputs every engine ran">all-engine set</span>`) : "";
 const TIER_RULE = { S: "correct · fast · featureful", A: "correct · fast or featureful", B: "correct only", C: "bugs · fast · featureful", D: "bugs · fast or featureful", F: "bugs · neither" };
 const tierColor = t => `var(--tier-${t.toLowerCase()})`;
-const names = Object.keys(S).filter(n => S[n].overall.geo);
-const bySpeed = names.slice().sort((a, b) => S[a].overall.geo - S[b].overall.geo);
+const names = Object.keys(S).filter(n => S[n].rank.overall.geo);
+let bySpeed = [];
 const fmt = x => x == null ? "–" : x < 10 ? x.toFixed(2) : x < 100 ? x.toFixed(1) : Math.round(x).toString();
 const label = n => M.labels[n] || n;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -156,69 +176,83 @@ const counts = TIER_ORDER.map(t => names.filter(n => S[n].tier === t).length);
 document.getElementById("lede").innerHTML = `Every engine irx fuzzes, timed on one shared workload: ${M.patterns} random patterns in an ASCII and a Unicode set, each against subjects of four sizes, about ${M.inputs.toLocaleString()} timed inputs per engine. <strong>${counts[0] === 1 ? names.filter(n => S[n].tier === "S").map(label)[0] + " is the only engine in S tier" : counts[0] + " engines reach S tier"}</strong>; ${names.filter(n => !S[n].open_bugs.length).length} of ${names.length} have no open bug.`;
 document.getElementById("facts").innerHTML = [["Engines", names.length], ["Patterns", (M.patterns * 2).toLocaleString()], ["Timed inputs / engine", M.inputs.toLocaleString()], ["Size bins", "16 → 8,192"], ["Bugs in ledger", M.ledger_open]].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
 
-// Tier board
-document.getElementById("tiers").innerHTML = TIER_ORDER.map(t => {
-  const es = names.filter(n => S[n].tier === t).sort((a, b) => S[a].overall.geo - S[b].overall.geo);
-  return `<div class="tier"><div class="badge" style="background:${tierColor(t)}">${t}</div><div class="row"><div class="rule">${TIER_RULE[t]}</div>${es.length ? `<div class="chips">${es.map(n => `<span class="chip">${esc(label(n))}<small>${fmt(S[n].overall.geo)}× · ${S[n].feature_count}/14${S[n].open_bugs.length ? " · " + S[n].open_bugs.length + " bug" + (S[n].open_bugs.length > 1 ? "s" : "") : ""}</small></span>`).join("")}</div>` : `<div class="empty">none</div>`}</div></div>`;
-}).join("");
-
 // Diverging ramp on log2(ratio)
 const RAMP = ["--d-n3", "--d-n2", "--d-n1", "--d-mid", "--d-p1", "--d-p2", "--d-p3", "--d-p4", "--d-p5"];
 const STOPS = [0.25, 0.5, 0.8, 1.25, 2, 4, 10, 30];
 function rampVar(x) { let i = 0; while (i < STOPS.length && x > STOPS[i]) i++; return `var(${RAMP[i]})`; }
 function textOn(x) { return x <= 0.5 || x > 10 ? "#fff" : "var(--ink)"; }
 
+function render() {
+  bySpeed = names.slice().sort((a, b) => MX(a).overall.geo - MX(b).overall.geo);
+  const st = M.strict;
+  document.getElementById("view-note").innerHTML = VIEW === "strict"
+    ? `Every engine is compared with Rust on inputs it shares with a whole group of engines, so rankings are like for like. The <strong>${st.core_engines} engines that ran at least ${Math.round(st.core_coverage * 100)}% of cases</strong> share ${st.core_inputs.toLocaleString()} of the ${st.total_inputs.toLocaleString()} timed inputs. The others (POSIX engines, DFA-only engines, V8's linear engine, RE#, Racket) are ranked on the ${st.all_inputs} inputs <strong>every</strong> engine ran, marked “all-engine set”. Tiers use these numbers.`
+    : `Each engine against Rust on every input it ran. Engines that reject lazy quantifiers or <code>\\b</code> are judged on an easier subset here, so their rows are not comparable with the rest; tiers still use the strict sets.`;
+// Tier board
+document.getElementById("tiers").innerHTML = TIER_ORDER.map(t => {
+  const es = names.filter(n => S[n].tier === t).sort((a, b) => MX(a).overall.geo - MX(b).overall.geo);
+  return `<div class="tier"><div class="badge" style="background:${tierColor(t)}">${t}</div><div class="row"><div class="rule">${TIER_RULE[t]}</div>${es.length ? `<div class="chips">${es.map(n => `<span class="chip">${esc(label(n))}<small>${fmt(MX(n).overall.geo)}× · ${S[n].feature_count}/14${S[n].open_bugs.length ? " · " + S[n].open_bugs.length + " bug" + (S[n].open_bugs.length > 1 ? "s" : "") : ""}</small></span>`).join("")}</div>` : `<div class="empty">none</div>`}</div></div>`;
+}).join("");
+
 // Speed chart (log x)
-(function () {
+{
   const W = 900, rowH = 19, top = 26, left = 180, right = 120, H = top + bySpeed.length * rowH + 10;
-  const lo = Math.log10(0.2), hi = Math.log10(Math.max(...bySpeed.map(n => S[n].overall.geo)) * 1.2);
+  const lo = Math.log10(0.2), hi = Math.log10(Math.max(...bySpeed.map(n => MX(n).overall.geo)) * 1.2);
   const x = v => left + (Math.log10(v) - lo) / (hi - lo) * (W - left - right);
   let s = `<svg viewBox="0 0 ${W} ${H}">`;
   for (const t of [0.25, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500].filter(t => Math.log10(t) <= hi)) {
     s += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 6}" y2="${H - 8}" stroke="var(--line)" stroke-width="${t === 1 ? 2 : 1}"/><text class="axis" x="${x(t)}" y="${top - 10}" text-anchor="middle">${t}×</text>`;
   }
   bySpeed.forEach((n, i) => {
-    const y = top + i * rowH, v = S[n].overall.geo;
+    const y = top + i * rowH, v = MX(n).overall.geo;
     s += `<text class="lbl" x="${left - 10}" y="${y + 13}" text-anchor="end">${esc(label(n))}</text>`;
     s += `<rect x="${Math.min(x(1), x(v))}" y="${y + 3}" width="${Math.max(1.5, Math.abs(x(v) - x(1)))}" height="${rowH - 7}" rx="2" fill="${tierColor(S[n].tier)}"/>`;
-    s += `<text class="axis" x="${Math.max(x(1), x(v)) + 6}" y="${y + 13}">${fmt(v)}× · ${Math.round(S[n].coverage * 100)}%</text>`;
+    s += `<text class="axis" x="${Math.max(x(1), x(v)) + 6}" y="${y + 13}">${fmt(v)}× · ${VIEW === "strict" ? (S[n].core ? "core set" : "all-engine set") : Math.round(S[n].coverage * 100) + "% ran"}</text>`;
   });
   document.getElementById("c-speed").innerHTML = s + "</svg>";
-})();
+}
 
 // Split table
-(function () {
+{
   const cols = [["ASCII", s => s.by_set.ascii], ["Unicode", s => s.by_set.unicode], ["Accept", s => s.by_outcome.accept], ["Reject", s => s.by_outcome.reject],
     ["16", s => s.by_bin.tiny], ["128", s => s.by_bin.small], ["1,024", s => s.by_bin.medium], ["8,192", s => s.by_bin.large]];
   let h = `<thead><tr><th>Engine</th><th>Tier</th><th>Overall</th>${cols.map(c => `<th>${c[0]}</th>`).join("")}<th>Compile</th></tr></thead><tbody>`;
   for (const n of bySpeed) {
-    const s = S[n];
-    h += `<tr><td>${esc(label(n))}<span class="fam">${s.family}</span></td><td><span class="tag" style="background:${tierColor(s.tier)}">${s.tier}</span></td><td class="num">${fmt(s.overall.geo)}</td>`;
-    for (const [, f] of cols) { const v = f(s).geo; h += v ? `<td class="cell" style="background:${rampVar(v)};color:${textOn(v)}">${fmt(v)}</td>` : `<td class="cell">–</td>`; }
+    const s = S[n], m = MX(n);
+    h += `<tr><td>${esc(label(n))}<span class="fam">${s.family}</span>${setMark(n)}</td><td><span class="tag" style="background:${tierColor(s.tier)}">${s.tier}</span></td><td class="num">${fmt(m.overall.geo)}</td>`;
+    for (const [, f] of cols) { const v = f(m).geo; h += v ? `<td class="cell" style="background:${rampVar(v)};color:${textOn(v)}">${fmt(v)}</td>` : `<td class="cell">–</td>`; }
     h += `<td class="num">${s.compile_median_ns ? (s.compile_median_ns / 1000).toFixed(s.compile_median_ns < 10000 ? 1 : 0) + " µs" : "–"}</td></tr>`;
   }
   document.getElementById("t-split").innerHTML = h + "</tbody>";
   document.getElementById("ramp-legend").innerHTML = `<span>faster than Rust</span><span style="display:inline-flex;gap:0">${RAMP.map(v => `<i style="display:inline-block;width:26px;height:10px;background:var(${v})"></i>`).join("")}</span><span>slower</span><span class="key">stops at ${STOPS.join(", ")}×</span><span class="key">Compile: median per pattern, smallest bin</span>`;
-})();
+}
 
 // Full cross matrix: set x outcome x size
-(function () {
+{
   const sets = [["ascii", "ASCII"], ["unicode", "Unicode"]], outs = [["accept", "accept"], ["reject", "reject"]];
   const bins = M.bins.map(b => b[0]), sizes = { tiny: "16", small: "128", medium: "1k", large: "8k" };
   let h = `<thead><tr><th rowspan="3">Engine</th><th rowspan="3">Tier</th>${sets.map(([, l]) => `<th class="set sep" colspan="${outs.length * bins.length}">${l}</th>`).join("")}</tr>`;
   h += `<tr>${sets.map(() => outs.map(([, l], j) => `<th class="grp${j === 0 ? " sep" : ""}" colspan="${bins.length}">${l}</th>`).join("")).join("")}</tr>`;
   h += `<tr>${sets.map(() => outs.map((o, j) => bins.map((b, k) => `<th class="${j === 0 && k === 0 ? "sep" : ""}" style="text-align:center">${sizes[b] || b}</th>`).join("")).join("")).join("")}</tr></thead><tbody>`;
   for (const n of bySpeed) {
-    const s = S[n];
-    h += `<tr><td>${esc(label(n))}</td><td><span class="tag" style="background:${tierColor(s.tier)}">${s.tier}</span></td>`;
+    const s = S[n], m = MX(n);
+    h += `<tr><td>${esc(label(n))}${setMark(n)}</td><td><span class="tag" style="background:${tierColor(s.tier)}">${s.tier}</span></td>`;
     sets.forEach(([sk]) => outs.forEach(([ok], j) => bins.forEach((b, k) => {
-      const c = (s.cross || {})[`${sk}/${ok}/${b}`], v = c && c.geo, sep = j === 0 && k === 0 ? " sep" : "";
+      const c = (m.cross || {})[`${sk}/${ok}/${b}`], v = c && c.geo, sep = j === 0 && k === 0 ? " sep" : "";
       h += v ? `<td class="cell${sep}" style="background:${rampVar(v)};color:${textOn(v)}" title="${esc(label(n))}: ${sk}, ${ok}, ${sizes[b]} chars, n=${c.n}">${fmt(v)}</td>` : `<td class="cell${sep}">–</td>`;
     })));
     h += "</tr>";
   }
   document.getElementById("t-cross").innerHTML = h + "</tbody>";
-})();
+}
+
+}
+render();
+for (const id of ["view-strict", "view-own"]) {
+  const el = document.getElementById(id);
+  if (el.value === VIEW) el.checked = true;
+  el.addEventListener("change", () => { VIEW = el.value; try { localStorage.setItem("shootout2-view", VIEW); } catch (e) {} render(); });
+}
 
 // Scaling chart
 (function () {
@@ -249,7 +283,7 @@ function textOn(x) { return x <= 0.5 || x > 10 ? "#fff" : "var(--ink)"; }
 // Feature matrix
 (function () {
   const F = M.features, short = M.feature_labels;
-  const rows = names.slice().sort((a, b) => S[b].feature_count - S[a].feature_count || S[a].overall.geo - S[b].overall.geo);
+  const rows = names.slice().sort((a, b) => S[b].feature_count - S[a].feature_count || S[a].rank.overall.geo - S[b].rank.overall.geo);
   let h = `<thead><tr><th>Engine</th><th>Count</th>${F.map(f => `<th title="${f}">${short[f]}</th>`).join("")}</tr></thead><tbody>`;
   for (const n of rows) h += `<tr><td>${esc(label(n))}</td><td class="num">${S[n].feature_count}</td>${F.map(f => S[n].features.includes(f) ? `<td class="cell yes">●</td>` : `<td class="cell no">·</td>`).join("")}</tr>`;
   document.getElementById("t-feat").innerHTML = h + "</tbody>";

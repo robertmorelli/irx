@@ -306,6 +306,11 @@ def open_bugs(name, rows):
 FEATURES = ["lookahead", "lookbehind", "backrefs", "atomic", "possessive", "unicode_props", "named_groups", "inline_flags",
             "lazy", "word_boundary", "grapheme", "unicode_classes", "full_case_fold", "extended_mode"]
 FAST, FEATUREFUL = 2.5, 8
+CORE_COVERAGE = 0.95
+# Features the engine supports but its dialect stops generating because a known bug would drown
+# other findings (see the dialect comments): they still count toward the feature score.
+SUPPRESSED = {"dotnet": ["atomic"], "dotnet-compiled": ["atomic"], "boost": ["atomic", "possessive", "grapheme"], "pcre1": ["grapheme"]}
+STRICT_META = {}
 
 
 def features():
@@ -365,25 +370,56 @@ def report(out):
             "compile_median_ns": sorted(comp)[len(comp) // 2] if comp else None,
             "statuses": statuses, "coverage": statuses.get("ok", 0) / len(cases),
         }
+    # Strict comparability: geometric means over inputs that a whole group of engines ran.
+    # "core": every engine with at least CORE_COVERAGE of the cases; "all": every engine.
+    def ran(name):
+        d = data[name]
+        return {(c["id"], key) for c, key, _, ref_ns in inputs
+                if (e := d.get(c["id"])) and e["status"] == "ok" and ref_ns > 0 and e[key] > 0}
+    ran_by = {n: ran(n) for n in summary}
+    core = [n for n in summary if summary[n]["coverage"] >= CORE_COVERAGE]
+    shared_core = set.intersection(*(ran_by[n] for n in core)) if core else set()
+    shared_all = set.intersection(*ran_by.values()) if ran_by else set()
+    by_key = {(c["id"], key): (c, outcome, ref_ns) for c, key, outcome, ref_ns in inputs}
+    def strict(name, keys):
+        d = data[name]
+        rows = [(by_key[k][0], by_key[k][1], d[k[0]][k[1]] / by_key[k][2]) for k in keys]
+        def g(f): v = [x for c, o, x in rows if f(c, o)]; return {"geo": gmean(v), "n": len(v)}
+        return {"overall": g(lambda c, o: True),
+                "by_set": {s: g(lambda c, o, s=s: c["set"] == s) for s in ("ascii", "unicode")},
+                "by_outcome": {o2: g(lambda c, o, o2=o2: o == o2) for o2 in ("accept", "reject")},
+                "by_bin": {b: g(lambda c, o, b=b: c["bin"] == b) for b, _, _ in BINS},
+                "cross": {f"{s}/{o2}/{b}": g(lambda c, o, s=s, o2=o2, b=b: c["set"] == s and o == o2 and c["bin"] == b)
+                          for s in ("ascii", "unicode") for o2 in ("accept", "reject") for b, _, _ in BINS}}
+    for n in summary:
+        summary[n]["strict_all"] = strict(n, shared_all)
+        summary[n]["core"] = n in core
+        if n in core: summary[n]["strict_core"] = strict(n, shared_core)
+        # The ranking speed: the core set for core engines, the all-engine set otherwise.
+        summary[n]["rank"] = (summary[n]["strict_core"] if n in core else summary[n]["strict_all"])
+    STRICT_META.update({"core_engines": len(core), "core_inputs": len(shared_core), "all_inputs": len(shared_all),
+                        "total_inputs": len(inputs), "core_coverage": CORE_COVERAGE})
     rows_l, feats = ledger_rows(), features()
     for name in summary:
         tgt = dict((e[0], e[1]) for e in ENGINES)[name]
         dia = re.search(r'^dialect = "(.*?)"', open(os.path.join(ROOT, "targets", tgt, "target.toml")).read(), re.M).group(1)
         f = feats.get(dia, {})
-        have = [k for k in FEATURES if f.get(k)]
+        have = [k for k in FEATURES if f.get(k) or k in SUPPRESSED.get(dia, [])]
         bugs = open_bugs(name, rows_l)
-        geo = summary[name]["overall"]["geo"]
+        geo = summary[name]["rank"]["overall"]["geo"]
         summary[name].update({"dialect": dia, "features": have, "feature_count": len(have), "open_bugs": bugs,
                               "fast": bool(geo and geo <= FAST), "featureful": len(have) >= FEATUREFUL,
                               "family": dict((e[0], e[2]) for e in ENGINES)[name]})
         summary[name]["tier"] = tier(not bugs, summary[name]["fast"], summary[name]["featureful"])
     json.dump(summary, open(os.path.join(out, "summary.json"), "w"), indent=1)
-    order = sorted(summary, key=lambda n: summary[n]["overall"]["geo"] or 1e9)
+    json.dump(STRICT_META, open(os.path.join(out, "strict.json"), "w"))
+    print(f"core set: {STRICT_META['core_engines']} engines, {STRICT_META['core_inputs']} of {STRICT_META['total_inputs']} inputs; all-engine set: {STRICT_META['all_inputs']} inputs")
+    order = sorted(summary, key=lambda n: summary[n]["rank"]["overall"]["geo"] or 1e9)
     fmt = lambda x: f"{x:7.2f}" if x else "     - "
     print(f"{'engine':24} {'tier':>4} {'bugs':>4} {'feat':>4} {'overall':>7} {'ascii':>7} {'uni':>7} {'accept':>7} {'reject':>7} {'tiny':>7} {'small':>7} {'medium':>7} {'large':>7}  cover")
     for n in order:
         s = summary[n]
-        print(f"{n:24} {s['tier']:>4} {len(s['open_bugs']):>4} {s['feature_count']:>4} {fmt(s['overall']['geo'])} {fmt(s['by_set']['ascii']['geo'])} {fmt(s['by_set']['unicode']['geo'])} "
+        print(f"{n:24} {s['tier']:>4} {len(s['open_bugs']):>4} {s['feature_count']:>4} {fmt(s['rank']['overall']['geo'])} {fmt(s['by_set']['ascii']['geo'])} {fmt(s['by_set']['unicode']['geo'])} "
               f"{fmt(s['by_outcome']['accept']['geo'])} {fmt(s['by_outcome']['reject']['geo'])} "
               + " ".join(fmt(s['by_bin'][b]['geo']) for b, _, _ in BINS) + f"  {s['coverage']:.0%}")
 
@@ -419,7 +455,8 @@ def page(out, dest):
             v = sorted(x for c in cases if c["bin"] == b and c["set"] == "ascii" and d.get(str(c["id"]), {}).get("status") == "ok"
                        for x in (d[str(c["id"])]["a_ns"], d[str(c["id"])]["r_ns"]) if x > 0)
             if v: scale[name][b] = v[len(v) // 2]
-    meta = {"labels": LABELS, "fast": FAST, "featureful": FEATUREFUL, "features": FEATURES, "feature_labels": FEATURE_LABELS,
+    strict_meta = json.load(open(os.path.join(out, "strict.json")))
+    meta = {"strict": strict_meta, "labels": LABELS, "fast": FAST, "featureful": FEATUREFUL, "features": FEATURES, "feature_labels": FEATURE_LABELS,
             "patterns": len(cases) // len(BINS) // 2, "inputs": len(cases) * 2, "bins": [[b, n] for b, n, _ in BINS],
             "scale_engines": SCALE, "ledger_open": sum(1 for _, _, o in ledger_rows() if o), "date": time.strftime("%Y-%m-%d")}
     html = open(os.path.join(ROOT, "tools", "shootout2.html")).read().replace("/*DATA*/null", json.dumps({"summary": summary, "meta": meta, "scale": scale}))
