@@ -156,6 +156,9 @@ Engine families disagree on a few things that only matter for spans and captures
 * **Match selection** (`span_semantics`): first in priority order for backtracking engines, leftmost-longest
   for LLVM, Tcl and RE#.
 
+Every semantic difference the dialects record (classes, case folding, anchors, loops, lookbehind rules,
+backreferences, offsets, syntax spellings) is collected in [`docs/semantic-quirks.md`](docs/semantic-quirks.md).
+
 ## Configuration
 
 A campaign's configuration is [`weights.toml`](weights.toml) followed by the target's `target.toml`
