@@ -167,7 +167,8 @@ const S0 = D.summary, M = D.meta, EX = D.extras || {};
 const S = Object.assign({}, S0, Object.fromEntries(Object.entries(EX).map(([n, v]) => [n, Object.assign({ tier: "–", extra: true, open_bugs: [], features: [], feature_count: 0 }, v)])));
 const TIER_ORDER = ["S", "A", "B", "C", "D", "F"];
 let VIEW = "strict";
-try { if (localStorage.getItem("shootout2-view") === "own") VIEW = "own"; } catch (e) {}
+try { if (!M.strict_only && localStorage.getItem("shootout2-view") === "own") VIEW = "own"; } catch (e) {}
+if (M.strict_only) { const sw = document.querySelector(".switch"); if (sw) sw.hidden = true; }
 // The speed object an engine is shown with: its strict shared set (core set for core engines,
 // the all-engine set otherwise) or everything it ran.
 const MX = n => VIEW === "strict" ? S[n].rank : S[n];
