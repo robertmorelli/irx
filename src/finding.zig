@@ -257,8 +257,8 @@ pub fn writeRepro(out: *std.ArrayList(u8), gpa: Allocator, c: *const Case, pred:
     try jsString(out, gpa, if (long) c.la else c.a.slice());
     try out.appendSlice(gpa, ";\nvar R = ");
     try jsString(out, gpa, if (long) c.lr else c.r.slice());
-    if (spec != null and spec.?.expect == .offset) {
-        try out.print(gpa, ";\n// offset mode: unanchored search starting at lastIndex\nvar re = new RegExp(src, flags + \"g\");\nfunction at(s, k) {{ re.lastIndex = k; var m = re.exec(s); return m ? [m.index, m.index + m[0].length] : null; }}\nprint(JSON.stringify([at(A, {d}), at(R, {d})]));\n", .{ c.off_a, c.off_r });
+    if (spec != null and spec.?.expect.usesOffsets()) {
+        try out.print(gpa, ";\n// offset/sticky mode: search starting at lastIndex (sticky: anchored there)\nvar re = new RegExp(src, flags + \"{s}\");\nfunction at(s, k) {{ re.lastIndex = k; var m = re.exec(s); return m ? [m.index, m.index + m[0].length] : null; }}\nprint(JSON.stringify([at(A, {d}), at(R, {d})]));\n", .{ if (spec.?.expect == .sticky) "y" else "g", c.off_a, c.off_r });
         return;
     }
     try out.appendSlice(gpa, ";\nvar re = new RegExp(src, flags);\nvar got = [re.test(A), re.test(R)");

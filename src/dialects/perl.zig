@@ -47,3 +47,21 @@ pub const dialect: D.Dialect = .{
     // Perl rejects unbounded lookbehind ("Lookbehind longer than 255").
     .lookbehind_len_cap = 16,
 };
+
+/// PCRE2 10.43+ with UCP: \w is \p{L}, \p{N}, \p{Mn}, \p{Pc} (no join controls; all of N);
+/// \s is \h plus \v, whose fixed list includes U+180E MONGOLIAN VOWEL SEPARATOR.
+pub fn pcre2Word(c: u21, _: D.Flags) bool {
+    const k = ucd.category(c);
+    return k[0] == 'L' or k[0] == 'N' or (k[0] == 'M' and k[1] == 'n') or (k[0] == 'P' and k[1] == 'c');
+}
+pub fn pcre2Space(c: u21) bool {
+    return space(c) or c == 0x180E;
+}
+
+pub const pcre2: D.Dialect = blk: {
+    var d = dialect;
+    d.name = "pcre2";
+    d.isWord = pcre2Word;
+    d.isSpace = pcre2Space;
+    break :blk d;
+};

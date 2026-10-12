@@ -4,7 +4,9 @@
 [target]
 title = "QuickJS"
 kind = "shell"   # d8 | perl | shell
-command = "/opt/homebrew/bin/qjs --std {driver} {mode}"
+# Upstream source build (vendor/quickjs, bellard/quickjs 9d01a96): the Homebrew 2026-06-04 release
+# still has IRX-QJS-1 (fixed upstream), which rejects every `v` pattern containing `-`.
+command = "{root}/vendor/quickjs/bin/qjs --std {driver} {mode}"
 dialect = "es"   # src/dialects/
 selfcheck = true
 
@@ -18,3 +20,4 @@ loop = "reset"  # loop bodies' captures per iteration (docs/phase2-captures.md)
 
 [offset]
 enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true

@@ -119,11 +119,11 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
 
   // Offset mode (ospan): flags carry "<flags>@<a>,<r>"; search each subject from that
   // lastIndex (g flag), report the span like span mode.
-  function offsetCase(c) {
+  function offsetCase(c, sticky) {
     var at = c[0].indexOf("@");
     var fl = c[0].slice(0, at), offs = c[0].slice(at + 1).split(",");
     var re;
-    try { re = new RegExp(c[3], fl + "g"); } catch (e) { return "fe" + hx((e instanceof SyntaxError) ? 4 : 8) + "0000"; }
+    try { re = new RegExp(c[3], fl + (sticky ? "y" : "g")); } catch (e) { return "fe" + hx((e instanceof SyntaxError) ? 4 : 8) + "0000"; }
     var s = "";
     try {
       for (var k = 1; k <= 2; k++) {
@@ -167,7 +167,7 @@ var __irx_args = typeof __IRX_MODE !== "undefined" ? [__IRX_MODE]
     var parts = new Array(cases.length);
     for (var i = 0; i < cases.length; i++) {
       if (mode === "span" || mode === "lspan") { parts[i] = spanCase(cases[i], mode === "lspan"); continue; }
-      if (mode === "ospan") { parts[i] = offsetCase(cases[i]); continue; }
+      if (mode === "ospan" || mode === "aspan") { parts[i] = offsetCase(cases[i], mode === "aspan"); continue; }
       if (mode === "capture" || mode === "lcapture") { parts[i] = captureCase(cases[i], mode === "lcapture"); continue; }
       var b = runCase(cases[i]);
       parts[i] = HEX[(b >> 4) & 15] + HEX[b & 15];

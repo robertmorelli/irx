@@ -31,7 +31,7 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
     if (!re.ok()) return 0x04;
     for (int k = 0; k < 2; k++) {
         absl::string_view text(subj[k], lens[k]), m;
-        if (re.Match(text, host_start[k], text.size(), RE2::UNANCHORED, &m, 1)) { out[2 * k] = m.data() - text.data(); out[2 * k + 1] = out[2 * k] + (long)m.size(); }
+        if (re.Match(text, host_start[k], text.size(), host_anchored ? RE2::ANCHOR_START : RE2::UNANCHORED, &m, 1)) { out[2 * k] = m.data() - text.data(); out[2 * k + 1] = out[2 * k] + (long)m.size(); }
         else out[2 * k] = out[2 * k + 1] = -1;
     }
     return 0;

@@ -76,6 +76,11 @@ pub fn reference(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16) ?S
 /// The same search starting at UTF-16 offset `start` (a character boundary); the text before
 /// it stays visible to lookbehind and assertions. Null if `start` is not a boundary.
 pub fn referenceFrom(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16, start: u16) ?Span {
+    return referenceAt(t, flags, subject, start, false);
+}
+
+/// `anchored`: only a match starting exactly at `start` (sticky).
+pub fn referenceAt(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16, start: u16, anchored: bool) ?Span {
     var syms: [31]u21 = undefined;
     const w = decodeAny(subject, flags, &syms) orelse return null;
     defer freeSyms(w, &syms);
@@ -92,6 +97,7 @@ pub fn referenceFrom(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16
             var mt: ast.Matcher = .{ .t = t, .flags = flags, .w = w, .budget = 200_000 + 200 * n };
             var i: usize = k;
             while (i <= n) : (i += 1) {
+                if (anchored and i > k) break;
                 const r = mt.matchAt(i) orelse return null;
                 if (r) {
                     found = true;
@@ -105,12 +111,14 @@ pub fn referenceFrom(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16
             if (n > relmod.Rel16.max_len) {
                 // Long subjects: the leftmost start that reaches any end, then its last end.
                 const se = longmod.leftmostLongest(std.heap.smp_allocator, t, flags, w, k) orelse return null;
+                if (anchored) if (se) |x| if (x[0] != k) return .{ .found = false };
                 if (se) |x| return .{ .found = true, .s = utf16Offset(w, x[0]), .e = utf16Offset(w, x[1]) };
                 return .{ .found = false };
             }
             const rel = ast.evalRel(relmod.Rel16, t, t.root, flags, w);
             var i: usize = k;
             outer: while (i <= n) : (i += 1) {
+                if (anchored and i > k) break;
                 var j: usize = n + 1;
                 while (j > i) {
                     j -= 1;
@@ -232,12 +240,16 @@ pub fn check(c: *const finding.Case, raw: []const u8, units: config.SpanUnits, l
 }
 
 pub fn checkFrom(c: *const finding.Case, raw: []const u8, units: config.SpanUnits, long: bool, from_offset: bool) Check {
+    return checkAt(c, raw, units, long, from_offset, false);
+}
+
+pub fn checkAt(c: *const finding.Case, raw: []const u8, units: config.SpanUnits, long: bool, from_offset: bool, anchored: bool) Check {
     if (failBits(raw, long)) |b| return .{ .bits = b };
     if (dialect.active.empty_iteration == .unmodeled and hasNullableLoop(&c.tree, c.tree.root)) return .{ .bits = harness.Bits.skipped };
     const sa = if (long) c.la else c.a.slice();
     const sr = if (long) c.lr else c.r.slice();
-    const ra = referenceFrom(&c.tree, c.flags, sa, if (from_offset) c.off_a else 0) orelse return .{ .bits = harness.Bits.skipped };
-    const rr = referenceFrom(&c.tree, c.flags, sr, if (from_offset) c.off_r else 0) orelse return .{ .bits = harness.Bits.skipped };
+    const ra = referenceAt(&c.tree, c.flags, sa, if (from_offset) c.off_a else 0, anchored) orelse return .{ .bits = harness.Bits.skipped };
+    const rr = referenceAt(&c.tree, c.flags, sr, if (from_offset) c.off_r else 0, anchored) orelse return .{ .bits = harness.Bits.skipped };
     const ga = hostSpan(sa, wirePos(raw, long, 0), wirePos(raw, long, 1), units);
     const gr = hostSpan(sr, wirePos(raw, long, 2), wirePos(raw, long, 3), units);
     var bits: u8 = 0;

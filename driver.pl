@@ -76,7 +76,7 @@ sub span_case {
 
 # Offset mode (ospan): flags carry "<flags>@<a>,<r>" (code points); search from pos().
 sub offset_case {
-    my ($c) = @_;
+    my ($c, $anch) = @_;
     my ($flags, $a, $r, $src) = @$c;
     my ($fl, $offs) = split /\@/, $flags, 2;
     my @off = split /,/, $offs;
@@ -94,7 +94,8 @@ sub offset_case {
         for my $s0 ($a, $r) {
             my $s = $s0;
             pos($s) = $off[$k++];
-            $out .= ($s =~ /$re/g) ? sprintf('%02x%02x', $-[0], $+[0]) : 'ffff';
+            my $hit = $anch ? ($s =~ /\G$re/g) : ($s =~ /$re/g);
+            $out .= $hit ? sprintf('%02x%02x', $-[0], $+[0]) : 'ffff';
         }
         1;
     };
@@ -146,7 +147,7 @@ while (defined(my $line = <STDIN>)) {
     }
     my ($seq, $cases) = @$msg;
     if ($mode eq 'span' || $mode eq 'lspan') { print $seq, ' ', join('', map { span_case($_) } @$cases), "\n"; next; }
-    if ($mode eq 'ospan') { print $seq, ' ', join('', map { offset_case($_) } @$cases), "\n"; next; }
+    if ($mode eq 'ospan' || $mode eq 'aspan') { print $seq, ' ', join('', map { offset_case($_, $mode eq 'aspan') } @$cases), "\n"; next; }
     if ($mode eq 'capture' || $mode eq 'lcapture') { print $seq, ' ', join('', map { capture_case($_) } @$cases), "\n"; next; }
     print $seq, ' ', join('', map { sprintf '%02x', run_case($_) } @$cases), "\n";
 }

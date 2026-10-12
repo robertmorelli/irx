@@ -52,6 +52,8 @@ pub const Config = struct {
     // [grammar]
     max_size: u8 = 24,
     max_rep_bound: u8 = 3,
+    /// Fraction of tables drawn from an alternate character pool (alphabet.alt_pools).
+    pool_rotation: f64 = 0,
     /// Large repeat bounds N added as {0,N}, {1,N}, {N,} and {N} (and lazy forms), each at
     /// `big_rep_weight` times a small bound's weight. Only applied to a single consuming atom
     /// (so a large count never means exponential backtracking or an oversized compiled program).
@@ -140,6 +142,9 @@ pub const Config = struct {
     /// A and R (lastIndex, pos, start offset), with the text before it still visible to
     /// lookbehind and \b, and ^ matching only at the real start.
     offset: bool = false,
+    /// Sticky mode (the match anchored at the offset): only for hosts with a native anchored
+    /// search; emulating it from the offset search would repeat the offset check.
+    sticky: bool = false,
 
     // [capture]
     /// Run the capture mode too: like span mode, plus the spans of the first groups.
@@ -208,6 +213,7 @@ pub const Config = struct {
         if (self.max_rep_bound > 254) return error.RepBoundTooLarge;
         for (self.big_rep_bounds[0..self.n_big_rep_bounds]) |b| if (b <= self.max_rep_bound or b > 254) return error.BadBigRepBound;
         if (self.big_rep_weight < 0) return error.BadBigRepWeight;
+        if (self.pool_rotation < 0 or self.pool_rotation > 1) return error.BadPoolRotation;
         if (self.class_max_members > 4) return error.ClassMembersTooLarge;
         if (self.batch_size == 0) return error.InvalidBatchSize;
         if (self.max_pairs == 0 or self.max_prods == 0) return error.InvalidLimits;
@@ -473,6 +479,10 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
             cfg.offset = try asBool(v);
             return;
         }
+        if (eq(u8, key, "sticky")) {
+            cfg.sticky = try asBool(v);
+            return;
+        }
         return error.UnknownKey;
     }
     if (eq(u8, section, "capture")) {
@@ -526,7 +536,7 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
 fn sectionOf(comptime name: []const u8) ?[]const u8 {
     @setEvalBranchQuota(100_000);
     const grammar = .{ "max_size", "max_rep_bound", "big_rep_weight", "class_max_members", "max_pattern_bytes", "allow_diagonal_lookarounds", "usefulness_pass", "usefulness_workspace" };
-    const strings = .{ "min_len", "max_len", "max_symbols", "max_edit_distance", "long_fraction", "long_min", "long_max" };
+    const strings = .{ "pool_rotation", "min_len", "max_len", "max_symbols", "max_edit_distance", "long_fraction", "long_min", "long_max" };
     const limits = .{ "max_pairs", "max_combos", "max_prods", "max_count_terms", "max_table_bytes", "max_host_bytes", "max_table_attempts", "samples_per_table", "alias_cache", "alias_arena_bytes", "max_pending_findings", "max_pending_finding_bytes", "max_findings_per_group", "max_findings_per_mode" };
     const harness = .{ "batch_size", "max_request_bytes", "startup_deadline_ms", "batch_deadline_base_ms", "batch_deadline_per512_ms", "recycle_cases", "novelty_cap", "novelty_bytes", "journal_bytes", "stderr_tail_bytes", "keep_journals" };
     const adaptive = .{ "adaptive", "adaptive_factor", "adaptive_cap" };

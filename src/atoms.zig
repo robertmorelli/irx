@@ -50,6 +50,22 @@ pub const AtomSpec = struct {
             else => false,
         };
     }
+    /// Under i, the atom may match a character whose full case fold is several characters, so
+    /// its match length can vary (Onigmo rejects such atoms inside lookbehind): properties,
+    /// ranges reaching past ASCII, and literals or listed members with multi-character folds.
+    pub fn mayFoldMulti(a: AtomSpec) bool {
+        const multi = [_]u21{ 0xDF, 0x1E9E, 0x130, 0x149, 0x1F0, 0x390, 0x3B0, 0x587, 0x1FD3, 0x1FE3, 0xFB00, 0xFB01, 0xFB02, 0xFB03, 0xFB04, 0xFB05, 0xFB06 };
+        return switch (a.kind) {
+            .prop => true,
+            .range => a.syms[1] > 0x7F,
+            .lit => std.mem.indexOfScalar(u21, &multi, a.syms[0]) != null,
+            .cls => for (a.syms[0..a.n]) |c| {
+                if (std.mem.indexOfScalar(u21, &multi, c) != null) break true;
+            } else false,
+            else => false,
+        };
+    }
+
     pub fn isConsuming(a: AtomSpec) bool {
         return switch (a.kind) {
             .lit, .dot, .esc, .range, .cls, .vset, .prop => true,
@@ -84,7 +100,7 @@ pub fn category(a: AtomSpec) Category {
 // ---------------------------------------------------------------------------
 // v-mode set operands (static, so specs that reference them stay owned values)
 
-pub const OperandKind = enum(u8) { esc, range, char, list, neglist };
+pub const OperandKind = enum(u8) { esc, range, char, list, neglist, prop };
 pub const Operand = struct {
     kind: OperandKind,
     esc: Esc = .d,
@@ -109,9 +125,22 @@ pub const v_operands = [_]Operand{
     .{ .kind = .char, .syms = .{ 0x017F, 0 } },
     .{ .kind = .char, .syms = .{ 0x212A, 0 } },
     .{ .kind = .list, .syms = .{ alpha.astral_char, 'a' }, .n = 2 },
+    // Unicode properties as set operands ([\p{L}--\p{Lu}]); syms[0] = Prop.
+    .{ .kind = .prop, .syms = .{ @intFromEnum(Prop.L), 0 } },
+    .{ .kind = .prop, .syms = .{ @intFromEnum(Prop.Lu), 0 } },
+    .{ .kind = .prop, .syms = .{ @intFromEnum(Prop.Ll), 0 } },
 };
 
-pub const explicit_ranges = [_][2]u21{ .{ 'a', 'c' }, .{ 'a', 'z' }, .{ 'A', 'Z' }, .{ '0', '9' }, .{ 'k', 's' } };
+pub const explicit_ranges = [_][2]u21{
+    .{ 'a', 'c' }, .{ 'a', 'z' }, .{ 'A', 'Z' }, .{ '0', '9' }, .{ 'k', 's' },
+    // Non-ASCII endpoints, and ranges whose case partners fall outside them (folding bugs).
+    .{ 0xE0, 0xFF }, // à-ÿ (ß below, ÿ's uppercase Ÿ is U+0178)
+    .{ 0xC0, 0xDE }, // À-Þ
+    .{ 0x3B1, 0x3C9 }, // α-ω (contains ς)
+    .{ 0x391, 0x3A9 }, // Α-Ω
+    .{ 0x430, 0x44F }, // а-я
+    .{ 'k', 0x17F }, // k-ſ (crosses into Latin Extended-A; K and Kelvin fold into it)
+};
 
 // ---------------------------------------------------------------------------
 // CharSet expressions
@@ -195,6 +224,7 @@ fn operandSet(ar: *SetArena, op: *const Operand, flags: Flags) *const SetNode {
         .char => ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..1] }) }),
         .list => ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..op.n] }) }),
         .neglist => ar.add(.{ .kind = .comp, .a = ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..op.n] }) }) }),
+        .prop => ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .prop, .lo = @intCast(op.syms[0]) }) }),
     };
 }
 
@@ -372,9 +402,12 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
     for (syms) |c| try out.append(gpa, .{ .kind = .lit, .syms = .{ c, 0, 0, 0 } });
     try out.append(gpa, .{ .kind = .dot });
     for (std.enums.values(Esc)) |e| try out.append(gpa, .{ .kind = .esc, .sub = @intFromEnum(e) });
-    for (explicit_ranges) |rg| try out.append(gpa, .{ .kind = .range, .syms = .{ rg[0], rg[1], 0, 0 } });
+    for (explicit_ranges) |rg| {
+        if (rg[1] > 0x7F and dialect.active.ascii_only) continue;
+        try out.append(gpa, .{ .kind = .range, .syms = .{ rg[0], rg[1], 0, 0 } });
+    }
     // Unicode properties where the dialect has them (ES: only with u or v).
-    if (dialect.active.unicode_props and (flags.unicode() or !dialect.active.props_need_u)) {
+    if (dialect.active.unicode_props and (flags.unicode() or !dialect.active.props_need_u) and !(flags.i and dialect.active.props_multi_fold)) {
         for (std.enums.values(Prop)) |p| for ([_]bool{ false, true }) |neg| {
             try out.append(gpa, .{ .kind = .prop, .sub = @intFromEnum(p), .neg = neg });
         };
@@ -408,6 +441,7 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
         for (std.enums.values(VOp)) |op| {
             for (0..v_operands.len) |l| for (0..v_operands.len) |r| {
                 if (l == r) continue;
+                if (!dialect.active.unicode_props and (v_operands[l].kind == .prop or v_operands[r].kind == .prop)) continue;
                 for ([_]bool{ false, true }) |neg| {
                     try out.append(gpa, .{ .kind = .vset, .sub = @intFromEnum(op), .neg = neg, .syms = .{ @intCast(l), @intCast(r), 0, 0 } });
                 }

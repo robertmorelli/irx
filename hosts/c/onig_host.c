@@ -34,7 +34,8 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
     int e = 0;
     for (int k = 0; k < 2; k++) {
         const UChar *s = (const UChar *)subj[k], *end = s + lens[k];
-        int m = onig_search(re, s, end, s + host_start[k], end, rg, ONIG_OPTION_NONE);
+        int m = host_anchored ? onig_match(re, s, end, s + host_start[k], rg, ONIG_OPTION_NONE)
+                              : onig_search(re, s, end, s + host_start[k], end, rg, ONIG_OPTION_NONE);
         if (m >= 0) { out[2 * k] = rg->beg[0]; out[2 * k + 1] = rg->end[0]; }
         else if (m == ONIG_MISMATCH) out[2 * k] = out[2 * k + 1] = -1;
         else { e = 0x08; break; }

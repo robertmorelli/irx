@@ -78,8 +78,8 @@ pub const aux_bq: u32 = 1 << 27;
 /// built from the alternate flag context (inline flag groups: flags with i toggled); only a
 /// flag_group turns it back into the table's own context
 pub const aux_ctx: u32 = 1 << 28;
-/// contains a \p{…} under case-insensitive matching (Onigmo rejects these in lookbehind: case
-/// folding can make them match more than one character)
+/// contains, under case-insensitive matching, an atom that may match a character with a
+/// multi-character fold (AtomSpec.mayFoldMulti; Onigmo rejects these in lookbehind)
 pub const aux_pi: u32 = 1 << 29;
 /// flags a parent inherits from its children (atom/za are positional)
 pub const aux_inherit: u32 = aux_la | aux_md | aux_vq | aux_uq | aux_cx | aux_lk | aux_cp | aux_cq | aux_lz | aux_bq | aux_ctx | aux_pi;
@@ -118,6 +118,8 @@ pub const Grammar = struct {
     lookbehind_fixed: bool = false,
     /// Forbid lookaheads (and `$` under m) inside quantifiers that can repeat (max >= 2).
     no_la_in_star: bool = false,
+    /// No counted repeat over a subtree containing a lookaround (dialect counted_lookaround).
+    no_counted_lk: bool = false,
     /// Lookbehind bodies may not hold an unbounded quantifier over anything but a single
     /// consuming atom (Java: "no obvious maximum length").
     lb_no_unbounded_group: bool = false,
@@ -138,15 +140,26 @@ pub const Grammar = struct {
     /// (alt_flags = flags with i toggled), reachable only under a flag_group.
     has_alt: bool = false,
     alt_flags: Flags = .{},
+    /// The flag the flag groups toggle, and the pool this grammar was built over.
+    alt_mod: u8 = ast.fmod_i,
+    pool_idx: u8 = 0,
     atom_alt: []bool = &.{},
 
+    /// Per-table grammar choices: the character pool (pool rotation) and the flag a flag group
+    /// toggles (ast.fmod_*).
+    pub const Variant = struct { pool: []const u21, pool_idx: u8 = 0, mod: u8 = ast.fmod_i };
+
     pub fn init(gpa: Allocator, cfg: *const config.Config, flags: Flags) !Grammar {
+        return initVariant(gpa, cfg, flags, .{ .pool = alpha.active_pool });
+    }
+
+    pub fn initVariant(gpa: Allocator, cfg: *const config.Config, flags: Flags, v: Variant) !Grammar {
         const W = &cfg.weights;
-        const inv0 = try atoms.buildInventory(gpa, .{ .pool = alpha.active_pool, .class_max_members = cfg.class_max_members }, flags);
+        const inv0 = try atoms.buildInventory(gpa, .{ .pool = v.pool, .class_max_members = cfg.class_max_members }, flags);
         // Inline flag groups: a second inventory under the toggled flags, appended.
-        const has_alt = W.get(.flag_group) > 0 and dialect_mod.active.scoped_flags;
-        const alt_flags = ast.applyMod(flags, ast.fmod_i);
-        const inv1: []AtomSpec = if (has_alt) try atoms.buildInventory(gpa, .{ .pool = alpha.active_pool, .class_max_members = cfg.class_max_members }, alt_flags) else &.{};
+        const has_alt = W.get(.flag_group) > 0 and dialect_mod.active.scoped_flags and v.mod & dialect_mod.active.scoped_mods != 0;
+        const alt_flags = ast.applyMod(flags, v.mod);
+        const inv1: []AtomSpec = if (has_alt) try atoms.buildInventory(gpa, .{ .pool = v.pool, .class_max_members = cfg.class_max_members }, alt_flags) else &.{};
         const inv = try gpa.alloc(AtomSpec, inv0.len + inv1.len);
         @memcpy(inv[0..inv0.len], inv0);
         @memcpy(inv[inv0.len..], inv1);
@@ -239,6 +252,8 @@ pub const Grammar = struct {
         if (W.get(.alt) > 0) try bin.append(gpa, .{ .op = .alt, .w = W.get(.alt) });
 
         var g: Grammar = .{
+            .pool_idx = v.pool_idx,
+            .alt_mod = v.mod,
             .has_alt = has_alt,
             .alt_flags = alt_flags,
             .atom_alt = atom_alt,
@@ -257,6 +272,7 @@ pub const Grammar = struct {
             .lookbehind_fixed = dialect_mod.active.lookbehind_fixed,
             .no_empty_quant = !dialect_mod.active.allow_empty_quant,
             .no_la_in_star = !dialect_mod.active.lookahead_in_star,
+            .no_counted_lk = !dialect_mod.active.counted_lookaround,
             .lb_no_unbounded_group = dialect_mod.active.lookbehind_no_unbounded_group,
             .lb_no_var = dialect_mod.active.lookbehind_no_variable,
             .no_quant_assert = !dialect_mod.active.quantify_assertions,
@@ -309,6 +325,7 @@ pub const Grammar = struct {
         if (self.lb_no_unbounded_group) m |= aux_uq | aux_atom | aux_cx;
         if (self.no_quant_assert) m |= aux_za;
         if (self.lb_onig) m |= aux_lk | aux_cp | aux_cq | aux_pi;
+        if (self.no_counted_lk) m |= aux_lk;
         if (self.lb_no_lazy) m |= aux_lz;
         if (self.small_rep_bound < 255) m |= aux_bq | aux_atom;
         if (self.has_alt) m |= aux_ctx;
@@ -324,8 +341,8 @@ pub const Grammar = struct {
         h.update(std.mem.asBytes(&self.lookbehind_len_cap));
         h.update(std.mem.asBytes(&self.len_cap));
         h.update(std.mem.asBytes(&self.small_rep_bound));
-        h.update(&[_]u8{ @intFromBool(self.has_alt), self.alt_flags.bits() });
-        h.update(&[_]u8{ @intFromBool(self.no_empty_quant), @intFromBool(self.lookbehind_fixed), @intFromBool(self.no_la_in_star), @intFromBool(self.nullable_opt_only), @intFromBool(self.lb_no_unbounded_group), @intFromBool(self.lb_no_var), @intFromBool(self.no_quant_assert), @intFromBool(self.lb_onig), @intFromBool(self.lb_no_lazy) });
+        h.update(&[_]u8{ @intFromBool(self.has_alt), self.alt_flags.bits(), self.alt_mod, self.pool_idx });
+        h.update(&[_]u8{ @intFromBool(self.no_empty_quant), @intFromBool(self.lookbehind_fixed), @intFromBool(self.no_la_in_star), @intFromBool(self.nullable_opt_only), @intFromBool(self.lb_no_unbounded_group), @intFromBool(self.lb_no_var), @intFromBool(self.no_quant_assert), @intFromBool(self.lb_onig), @intFromBool(self.lb_no_lazy), @intFromBool(self.no_counted_lk) });
         for (self.atoms, self.atom_w) |a, w| {
             h.update(std.mem.asBytes(&a.kind));
             h.update(&[_]u8{ a.sub, @intFromBool(a.neg), a.n });
@@ -1007,6 +1024,7 @@ fn Builder(comptime R: type) type {
                         const q = self.g.quants[u.arg];
                         if (self.g.no_la_in_star and yf & (aux_la | aux_md) != 0 and q.max >= 2) return;
                         if (self.g.no_quant_assert and yf & aux_za != 0) return;
+                        if (self.g.no_counted_lk and yf & aux_lk != 0 and !(q.form == .star or q.form == .plus or q.form == .opt)) return;
                         if (self.g.nullable_opt_only and ymin == 0 and q.form != .opt) return;
                         // Big counts only over a single consuming atom (engines that expand counted
                         // repeats reject large bodies times large counts as too big to compile), and
@@ -1138,9 +1156,9 @@ fn Builder(comptime R: type) type {
                 const alt = self.g.has_alt and self.g.atom_alt[i];
                 const af_flags = if (alt) self.g.alt_flags else self.g.flags;
                 var af: u32 = if (alt) aux_ctx else 0;
-                if (a.kind == .dollar and self.g.flags.m) af |= aux_md;
+                if (a.kind == .dollar and af_flags.m) af |= aux_md;
                 if (a.isConsuming()) af |= aux_atom;
-                if (a.kind == .prop and af_flags.i) af |= aux_pi;
+                if (af_flags.i and a.mayFoldMulti()) af |= aux_pi;
                 if (a.kind == .caret or a.kind == .dollar or a.kind == .wordb or a.kind == .nwordb) af |= aux_za;
                 const len: u32 = if (self.g.len_cap > 0 and a.isConsuming()) (1 | (@as(u32, 1) << aux_min_shift)) else 0;
                 const key = keyAux(atoms.relation(R, a, af_flags, wa), atoms.relation(R, a, af_flags, wr), len | (af & self.g.flagMask()));

@@ -12,6 +12,7 @@ const sys = @import("sys.zig");
 const harness = @import("harness.zig");
 const finding = @import("finding.zig");
 const ast = @import("ast.zig");
+const dialect_mod = @import("dialect.zig");
 const Budget = @import("budget.zig").Budget;
 
 const Allocator = std.mem.Allocator;
@@ -34,6 +35,10 @@ pub const max_modes = 12;
 pub const Run = struct {
     gpa: Allocator,
     cfg: config.Config,
+    /// Character pools: [0] the configured pool, then the alternate pools (pool rotation),
+    /// filtered like the base pool for the dialect.
+    pools: [4][]const u21 = undefined,
+    n_pools: u8 = 0,
     host: Budget,
     global_seed: u64,
     out_dir: []const u8,
@@ -136,6 +141,15 @@ pub const Run = struct {
     // Grammar cache
 
     pub fn grammarFor(self: *Run, flags: alpha.Flags) !*Grammar {
+        return self.grammarVariant(flags, 0, ast.fmod_i);
+    }
+
+    pub fn poolAt(self: *const Run, idx: u8) []const u21 {
+        return if (self.n_pools == 0) alpha.active_pool else self.pools[idx];
+    }
+
+    /// Grammar for (flags, pool, flag-group modifier), cached.
+    pub fn grammarVariant(self: *Run, flags: alpha.Flags, pool_idx: u8, mod: u8) !*Grammar {
         self.grammar_mutex.lock();
         defer self.grammar_mutex.unlock();
         // newest epoch first
@@ -143,10 +157,10 @@ pub const Run = struct {
         while (i > 0) {
             i -= 1;
             const g = self.grammars.items[i];
-            if (g.flags.bits() == flags.bits()) return g;
+            if (g.flags.bits() == flags.bits() and g.pool_idx == pool_idx and g.alt_mod == mod) return g;
         }
         const g = try self.gpa.create(Grammar);
-        g.* = try Grammar.init(self.gpa, &self.cfg, flags);
+        g.* = try Grammar.initVariant(self.gpa, &self.cfg, flags, .{ .pool = self.poolAt(pool_idx), .pool_idx = pool_idx, .mod = mod });
         const bound = try sample.printedLengthBound(self.gpa, g, self.cfg.max_size);
         if (bound > self.cfg.max_pattern_bytes) return error.PatternBoundExceedsMax;
         try self.grammars.append(self.gpa, g);
@@ -186,13 +200,13 @@ pub const Run = struct {
     // ------------------------------------------------------------------
     // Table building
 
-    fn drawCodePoints(self: *Run, rng: *rngmod.Rng, out: *[64]u21) usize {
+    fn drawCodePoints(self: *Run, rng: *rngmod.Rng, out: *[64]u21, pool: []const u21) usize {
         const c = &self.cfg;
         const long = c.long_fraction > 0 and rng.float() < c.long_fraction;
         const lo: u8 = if (long) c.long_min else c.min_len;
         const hi: u8 = if (long) c.long_max else c.max_len;
         const len = lo + @as(u8, @intCast(rng.below(@as(u64, hi - lo) + 1)));
-        for (0..len) |i| out[i] = alpha.active_pool[rng.below(alpha.active_pool.len)];
+        for (0..len) |i| out[i] = pool[rng.below(pool.len)];
         return len;
     }
 
@@ -215,6 +229,17 @@ pub const Run = struct {
         var rng = rngmod.Rng.fromParts(rngmod.Tag.strings, &.{seed});
         const fsets = self.cfg.flagSets();
         const flags = fsets[rng.below(fsets.len)];
+        // Pool rotation and the flag a flag group toggles: from a separate stream of the seed.
+        var vrng = rngmod.Rng.fromParts(0x9001, &.{seed});
+        const pool_idx: u8 = if (self.n_pools > 1 and vrng.float() < self.cfg.pool_rotation) @intCast(1 + vrng.below(self.n_pools - 1)) else 0;
+        const pool = self.poolAt(pool_idx);
+        var mods: [3]u8 = undefined;
+        var nm: usize = 0;
+        for ([_]u8{ ast.fmod_i, ast.fmod_s, ast.fmod_m }) |m| if (dialect_mod.active.scoped_mods & m != 0) {
+            mods[nm] = m;
+            nm += 1;
+        };
+        const mod: u8 = if (nm == 0) ast.fmod_i else mods[vrng.below(nm)];
         var a: finding.Subject = .{};
         var r: finding.Subject = .{};
         var draws: usize = 0;
@@ -222,18 +247,18 @@ pub const Run = struct {
             if (draws > 1000) return .invalid;
             var ca: [64]u21 = undefined;
             var cr: [64]u21 = undefined;
-            const na = self.drawCodePoints(&rng, &ca);
+            const na = self.drawCodePoints(&rng, &ca, pool);
             const nr = if (self.cfg.max_edit_distance == 0)
-                self.drawCodePoints(&rng, &cr)
+                self.drawCodePoints(&rng, &cr, pool)
             else
-                editPair(&rng, ca[0..na], &cr, self.cfg.max_edit_distance);
+                editPairPool(&rng, ca[0..na], &cr, self.cfg.max_edit_distance, pool);
             if (!self.encodeSubject(ca[0..na], flags, &a) or !self.encodeSubject(cr[0..nr], flags, &r)) {
                 _ = self.invalid_draws.fetchAdd(1, .monotonic);
                 continue;
             }
             if (!std.mem.eql(u16, a.slice(), r.slice())) break;
         }
-        const g = self.grammarFor(flags) catch return .invalid;
+        const g = self.grammarVariant(flags, pool_idx, mod) catch return .invalid;
         const t0 = sys.nowNs();
         const tab = tablemod.build(.{
             .grammar = g,
@@ -447,11 +472,14 @@ pub const Run = struct {
 /// R = A after 1..k random code-point edits (insert, delete, substitute from
 /// the pool), so Levenshtein(A, R) <= k. Returns R's length.
 pub fn editPair(rng: *rngmod.Rng, a: []const u21, out: *[64]u21, k: u8) usize {
+    return editPairPool(rng, a, out, k, alpha.active_pool);
+}
+
+pub fn editPairPool(rng: *rngmod.Rng, a: []const u21, out: *[64]u21, k: u8, pool: []const u21) usize {
     var n = a.len;
     @memcpy(out[0..n], a);
     const edits = 1 + rng.below(k);
     for (0..edits) |_| {
-        const pool = alpha.active_pool;
         const op = rng.below(3);
         if (op == 0 and n < out.len) { // insert
             const at = rng.below(n + 1);

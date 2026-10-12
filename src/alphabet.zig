@@ -91,6 +91,17 @@ pub var active_pool: []const u21 = &default_pool;
 
 pub const max_symbols = 32;
 
+/// Alternate pools for pool rotation (config pool_rotation): a few ASCII anchors plus one
+/// family of characters engines treat differently.
+/// Case folding: long s, Kelvin, sharp s and capital sharp s, ligatures, dotted/dotless i,
+/// Dž-style digraphs (title case), final sigma, micro sign, Angstrom sign.
+pub const fold_pool = [_]u21{ 'a', 'A', 'k', 'K', 's', 'S', 'i', 'I', ' ', '\n', 0x017F, 0x212A, 0x00DF, 0x1E9E, 0xFB00, 0xFB01, 0x0130, 0x0131, 0x01C4, 0x01C5, 0x01C6, 0x03C2, 0x03C3, 0x03A3, 0x00B5, 0x03BC, 0x212B, 0x00E5 };
+/// Cyrillic and Greek: case pairs, Ohm sign, theta/phi symbol variants, multi-character folds.
+pub const cyrillic_greek_pool = [_]u21{ 'a', 'b', ' ', '-', '_', '0', '\n', 0x0430, 0x0410, 0x0451, 0x0401, 0x0450, 0x04CF, 0x04C0, 0x03C9, 0x03A9, 0x2126, 0x03D1, 0x03B8, 0x03F4, 0x03D5, 0x03C6, 0x03DC, 0x03DD, 0x0390, 0x1FD3 };
+/// White space, digits and invisibles: \s and \d edge cases, format characters, a combining mark.
+pub const space_digit_pool = [_]u21{ 'a', 'b', '_', '0', '9', ' ', '\n', '\r', '\t', 0x0B, 0x0C, 0x85, 0xA0, 0x1680, 0x180E, 0x2007, 0x202F, 0x3000, 0x2028, 0x2029, 0xFEFF, 0x200B, 0x200D, 0x0301, 0x0663, 0x1D7CE, 0x2177, 0x2460 };
+pub const alt_pools = [_][]const u21{ &fold_pool, &cyrillic_greek_pool, &space_digit_pool };
+
 /// Pool symbols as decoded in the given mode: the astral char becomes its
 /// two surrogate halves without u/v.
 pub fn poolSymbols(pool: []const u21, flags: Flags, out: *[max_symbols * 2]u21) []const u21 {

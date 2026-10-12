@@ -38,6 +38,7 @@ flag_group = 0.05      # (?i:…) / (?-i:…) in dialects that have inline flag 
 uniform = [4, 24]     # or: weights = [D(1), D(2), ...]
 
 [strings]
+pool_rotation = 0.4     # fraction of tables using an alternate pool (case folds; Cyrillic/Greek; spaces/digits)
 min_len = 0            # empty subjects are drawn too
 max_len = 8
 max_symbols = 31

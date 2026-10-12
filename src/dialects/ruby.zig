@@ -20,6 +20,10 @@ fn space(c: u21) bool {
 
 pub const dialect: D.Dialect = .{
     .scoped_flags = true,
+    .props_multi_fold = true,
+    // Ruby's m is dotall; ^ and $ always match at lines, so there is no scoped m.
+    .scoped_mods = 1 | 2,
+    .dotall_letter = 'm',
     .unicode_props = true,
     .prop_case = .equivalence_invert,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
@@ -52,8 +56,17 @@ pub const dialect: D.Dialect = .{
 /// Rejects a quantifier whose body is a bare assertion or an alternation offering one,
 /// seen through non-capturing groups: (?:\b)*, (?:a|^)*, (?:a|(?=a))+ (captures and
 /// sequences are fine: (\b)*, (?:a\b)*).
+/// Oniguruma's Unicode \w: Perl's \p{Word} without the join controls (ZWNJ, ZWJ).
+fn onigWord(c: u21, f: D.Flags) bool {
+    return c != 0x200C and c != 0x200D and perl.word(c, f);
+}
+
 pub const oniguruma: D.Dialect = .{
     .scoped_flags = true,
+    .props_multi_fold = true,
+    // Ruby's m is dotall; ^ and $ always match at lines, so there is no scoped m.
+    .scoped_mods = 1 | 2,
+    .dotall_letter = 'm',
     .unicode_props = true,
     .prop_case = .plain,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
@@ -61,7 +74,7 @@ pub const oniguruma: D.Dialect = .{
     .name = "oniguruma",
     .isLineTerminator = lineTerminator,
     .isSpace = perl.space,
-    .isWord = perl.word,
+    .isWord = onigWord,
     .isDigit = perl.digit,
     .anchors_always_multiline = true,
     .caret_after_trailing_newline = false,

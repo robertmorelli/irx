@@ -60,6 +60,9 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
 
 pub const dialect: D.Dialect = .{
     .scoped_flags = true,
+    // A loop whose body can match empty through an alternation can spin forever on empty
+    // iterations ((?:(?:^|x)^)+ on "": IRX-SWIFT-4); such bodies only under ?.
+    .nullable_quant_opt_only = true,
     .unicode_props = true,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,

@@ -154,7 +154,7 @@ pub const Sampler = struct {
             },
             else => {
                 const a = try self.expand(p.a, k - 1);
-                return self.out.add(.{ .op = op, .a = a, .fmod = if (op == .flag_group) ast.fmod_i else 0 });
+                return self.out.add(.{ .op = op, .a = a, .fmod = if (op == .flag_group) g.alt_mod else 0 });
             },
         }
     }
@@ -367,8 +367,12 @@ pub const Printer = struct {
                 try self.putc(')');
             },
             .flag_group => {
-                // Toggles i relative to the pattern's flags (flag groups do not nest).
-                try self.put(if (self.flags.i) "(?-i:" else "(?i:");
+                // Toggles one flag relative to the pattern's flags (flag groups do not nest).
+                const on = if (n.fmod & ast.fmod_i != 0) self.flags.i else if (n.fmod & ast.fmod_s != 0) self.flags.s else self.flags.m;
+                const letter: u8 = if (n.fmod & ast.fmod_i != 0) 'i' else if (n.fmod & ast.fmod_s != 0) dialect.active.dotall_letter else 'm';
+                try self.put(if (on) "(?-" else "(?");
+                try self.putc(letter);
+                try self.putc(':');
                 try self.bareChild(t, n.a);
                 try self.putc(')');
             },
@@ -451,6 +455,11 @@ pub const Printer = struct {
                 try self.putc(']');
             },
             .char => try self.classLiteral(o.syms[0]),
+            .prop => {
+                try self.put("\\p{");
+                try self.put(@tagName(@as(atoms.Prop, @enumFromInt(o.syms[0]))));
+                try self.putc('}');
+            },
             .list, .neglist => {
                 try self.putc('[');
                 if (o.kind == .neglist) try self.putc('^');

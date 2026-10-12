@@ -1,12 +1,39 @@
 //! ICU regular expressions via NSRegularExpression (reference: macOS 27 ICU).
 //! UTS #18 classes (\w ~ Perl's \p{Word}, \d = Nd, \s = White_Space), line
-//! terminators \n \r \r\n NEL LS PS, $ also before a final terminator, simple case folding.
+//! terminators \n VT FF \r \r\n NEL LS PS, $ also before a final terminator, simple case folding.
 const ucd = @import("../ucd.zig");
 const perl = @import("perl.zig");
 const D = @import("../dialect.zig");
 
+/// Format (Cf) and Grapheme_Extend (approximated by Mn, Me) characters are transparent to \b.
+fn ignorable(c: u21) bool {
+    const k = ucd.category(c);
+    return (k[0] == 'C' and k[1] == 'f') or (k[0] == 'M' and (k[1] == 'n' or k[1] == 'e'));
+}
+
+/// ICU's \b (RegexMatcher::isWordBoundary): never before an ignorable character; otherwise
+/// compares the current character with the nearest preceding non-ignorable one.
+fn boundaryAt(w: []const u21, i: usize, flags: D.Flags) bool {
+    var cur = false;
+    if (i < w.len) {
+        if (ignorable(w[i])) return false;
+        cur = perl.word(w[i], flags);
+    }
+    var prev = false;
+    var j = i;
+    while (j > 0) {
+        j -= 1;
+        if (!ignorable(w[j])) {
+            prev = perl.word(w[j], flags);
+            break;
+        }
+    }
+    return cur != prev;
+}
+
 fn lineTerminator(c: u21) bool {
-    return c == '\n' or c == '\r' or c == 0x85 or c == 0x2028 or c == 0x2029;
+    // ICU: \n, VT, FF, \r, NEL, LS, PS.
+    return (c >= '\n' and c <= '\r') or c == 0x85 or c == 0x2028 or c == 0x2029;
 }
 
 pub const dialect: D.Dialect = .{
@@ -21,6 +48,7 @@ pub const dialect: D.Dialect = .{
     .empty_iteration = .stop,
     .name = "icu",
     .isLineTerminator = lineTerminator,
+    .boundaryAt = boundaryAt,
     .isSpace = perl.space,
     .isWord = perl.word,
     .isDigit = perl.digit,

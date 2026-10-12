@@ -77,8 +77,14 @@ pub const Dialect = struct {
     /// The empty atom may also print as nothing: `(?:|a)`, `a|`, `(?=)` (fuzz cases only;
     /// self-check keeps `(?:)`). POSIX ERE rejects empty branches.
     bare_empty: bool = true,
-    /// Inline flag groups (?i:…) / (?-i:…) are supported.
+    /// Inline flag groups (?i:…) / (?-i:…) are supported, for the flags in scoped_mods
+    /// (ast.fmod_*); dotall_letter spells s (Ruby: m).
     scoped_flags: bool = false,
+    /// Under i, \p{…} also matches the multi-character case folds of its members (Onigmo:
+    /// \p{L} matches "ss" via ß, "ff" via ﬀ): not modelled, so no \p under i.
+    props_multi_fold: bool = false,
+    scoped_mods: u8 = 1 | 2 | 4,
+    dotall_letter: u8 = 's',
     /// `\p{…}` / `\P{…}` general categories are supported (props_need_u: only with u/v, ES).
     unicode_props: bool = false,
     props_need_u: bool = false,
@@ -87,6 +93,9 @@ pub const Dialect = struct {
     /// A bare empty is also accepted inside lookarounds (nim-regex rejects `(?<=)`, `(?=)` and
     /// `(?<=|b)`, but accepts `(?=(?:))` and `(?=a|)`).
     bare_empty_in_lookaround: bool = true,
+    /// A counted repeat {m,n} (any form but * + ?) may contain a lookaround (nim-regex aborts
+    /// the compiler: NIM-1).
+    counted_lookaround: bool = true,
     /// The empty atom may also print as an empty capture `()`.
     empty_capture: bool = true,
     /// \W \D \S negate after case folding (no case variant is in the positive
@@ -150,6 +159,7 @@ pub const Dialect = struct {
 
 pub const es = @import("dialects/es.zig").dialect;
 pub const perl = @import("dialects/perl.zig").dialect;
+pub const pcre2 = @import("dialects/perl.zig").pcre2;
 pub const swift = @import("dialects/swift.zig").dialect;
 pub const rust = @import("dialects/rust.zig").dialect;
 pub const fancy = @import("dialects/rust.zig").fancy;
@@ -169,7 +179,7 @@ pub const tcl = @import("dialects/tcl.zig").dialect;
 pub const emacs = @import("dialects/emacs.zig").dialect;
 pub const vectorscan = @import("dialects/vectorscan.zig").dialect;
 pub const llvm = @import("dialects/llvm.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm };
+pub const all = [_]*const Dialect{ &es, &perl, &pcre2, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
@@ -267,6 +277,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (d.nullable_quant_opt_only and c.min == 0 and q.form != .opt) ok.* = false;
             if (!d.lookahead_in_star and c.f & (tb.aux_la | tb.aux_md) != 0 and q.max >= 2) ok.* = false;
             if (!d.quantify_assertions and c.f & tb.aux_za != 0) ok.* = false;
+            if (!d.counted_lookaround and c.f & tb.aux_lk != 0 and !(q.form == .star or q.form == .plus or q.form == .opt)) ok.* = false;
             const f = tb.quantFlags(c.f, q.min, q.max, ast.inf, q.lazy, q.min == 0 and q.max == 1, q.form == .star or q.form == .plus or q.form == .opt, false);
             return .{ .min = @min(cap, c.min * q.min), .max = if (q.max == ast.inf) cap else @min(cap, c.max * q.max), .f = f };
         },

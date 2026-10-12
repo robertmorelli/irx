@@ -5,7 +5,7 @@
 title = "PCRE2 10.49 (interpreter; IRX_PCRE2_JIT=1 for the JIT)"
 kind = "shell"   # d8 | perl | shell
 command = "{root}/hosts/bin/pcre2_host {mode}"
-dialect = "perl"   # src/dialects/
+dialect = "pcre2"   # src/dialects/
 selfcheck = true
 
 [span]
@@ -19,3 +19,4 @@ lookbehind = false  # lookbehind runs forward here; JS (and the model) match it 
 
 [offset]
 enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true
