@@ -5,7 +5,7 @@
 title = "SpiderMonkey 158.0b5 (jsvu)"
 kind = "shell"   # d8 | perl | shell
 command = "{root}/vendor/jsvu-home/.jsvu/bin/sm {driver} {mode}"
-dialect = "es"   # src/dialects/
+dialect = "irregexp"   # src/dialects/
 selfcheck = true
 
 [span]

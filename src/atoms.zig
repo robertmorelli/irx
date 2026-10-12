@@ -12,7 +12,7 @@ const Flags = alpha.Flags;
 const ucd = @import("ucd.zig");
 const dialect = @import("dialect.zig");
 
-pub const Kind = enum(u8) { lit, dot, esc, range, cls, vset, caret, dollar, wordb, nwordb, empty, prop };
+pub const Kind = enum(u8) { lit, dot, esc, range, cls, vset, caret, dollar, wordb, nwordb, empty, prop, strs };
 
 /// Unicode general categories for `\p{…}` / `\P{…}` (a selection that the character pool
 /// exercises: letters and their cases, digits, the pool's punctuation, symbols, separators,
@@ -41,8 +41,39 @@ pub const AtomSpec = struct {
     neg: bool = false,
     /// Number of used syms for .cls.
     n: u8 = 0,
-    /// lit: syms[0]; range: syms[0..2]; cls: syms[0..n]; vset: operand ids syms[0], syms[1].
+    /// lit: syms[0]; range: syms[0..2]; cls: syms[0..n]; vset: operand ids syms[0], syms[1];
+    /// strs: two strings back to back, lengths in n (low nibble, high nibble; the second may be 0).
     syms: [4]u21 = .{ 0, 0, 0, 0 },
+
+    /// strs ([\q{ab|c}], ES v mode): the string alternatives, longest first (the order ES tries
+    /// them in).
+    pub fn strings(a: *const AtomSpec, out: *[2][]const u21) usize {
+        const l1: usize = a.n & 0xF;
+        const l2: usize = a.n >> 4;
+        const s1 = a.syms[0..l1];
+        const s2 = a.syms[l1 .. l1 + l2];
+        if (l2 == 0) {
+            out[0] = s1;
+            return 1;
+        }
+        if (l2 > l1) {
+            out[0] = s2;
+            out[1] = s1;
+        } else {
+            out[0] = s1;
+            out[1] = s2;
+        }
+        return 2;
+    }
+    /// Match length bounds: 1 for single-character atoms, 0 for assertions and empty.
+    pub fn minLen(a: AtomSpec) u8 {
+        if (a.kind == .strs) return @min(a.n & 0xF, if (a.n >> 4 == 0) a.n & 0xF else a.n >> 4);
+        return if (a.isConsuming()) 1 else 0;
+    }
+    pub fn maxLen(a: AtomSpec) u8 {
+        if (a.kind == .strs) return @max(a.n & 0xF, a.n >> 4);
+        return if (a.isConsuming()) 1 else 0;
+    }
 
     pub fn isAssertion(a: AtomSpec) bool {
         return switch (a.kind) {
@@ -68,7 +99,7 @@ pub const AtomSpec = struct {
 
     pub fn isConsuming(a: AtomSpec) bool {
         return switch (a.kind) {
-            .lit, .dot, .esc, .range, .cls, .vset, .prop => true,
+            .lit, .dot, .esc, .range, .cls, .vset, .prop, .strs => true,
             else => false,
         };
     }
@@ -94,6 +125,7 @@ pub fn category(a: AtomSpec) Category {
         .nwordb => .backslash_B,
         .empty => .empty,
         .prop => .property,
+        .strs => .vset,
     };
 }
 
@@ -381,11 +413,31 @@ pub fn assertionAt(spec: *const AtomSpec, flags0: Flags, w: []const u21, i: usiz
 }
 
 /// Relation of one atom on string w.
+/// Does string `s` (a \q{…} alternative) occur at w[i..]? Case-insensitive under i (v mode:
+/// simple case folding).
+pub fn stringAt(s: []const u21, w: []const u21, i: usize, flags: Flags) bool {
+    if (i + s.len > w.len) return false;
+    for (s, 0..) |c, j| {
+        const x = w[i + j];
+        if (c != x and !(flags.i and alpha.canonicalize(c, flags) == alpha.canonicalize(x, flags))) return false;
+    }
+    return true;
+}
+
 pub fn relation(comptime R: type, spec: *const AtomSpec, flags: Flags, w: []const u21) R {
     const dim = w.len + 1;
     switch (spec.kind) {
         .empty => return R.identity(dim),
         .caret, .dollar, .wordb, .nwordb => return R.diagFromMask(assertionMask(spec, flags, w)),
+        .strs => {
+            var r: R = .{};
+            var ss: [2][]const u21 = undefined;
+            const k = spec.strings(&ss);
+            for (0..w.len + 1) |i| for (ss[0..k]) |s| {
+                if (stringAt(s, w, i, flags)) r.set(i, i + s.len);
+            };
+            return r;
+        },
         else => {
             var r: R = .{};
             for (w, 0..) |c, i| {
@@ -457,11 +509,23 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
             for (0..v_operands.len) |l| for (0..v_operands.len) |r| {
                 if (l == r) continue;
                 if (!dialect.active.unicode_props and (v_operands[l].kind == .prop or v_operands[r].kind == .prop)) continue;
+                if (flags.i and !dialect.active.qstr_ignore_case and (v_operands[l].kind == .qstr or v_operands[r].kind == .qstr)) continue;
                 for ([_]bool{ false, true }) |neg| {
                     try out.append(gpa, .{ .kind = .vset, .sub = @intFromEnum(op), .neg = neg, .syms = .{ @intCast(l), @intCast(r), 0, 0 } });
                 }
             };
         }
+    }
+    if (flags.v and (!flags.i or dialect.active.qstr_ignore_case)) {
+        // Multi-character class strings [\q{xy|x}] over the first pool symbols: one string, or a
+        // longer and a shorter one sharing a prefix or not (ES tries the longest first).
+        const nq = @min(syms.len, 4);
+        for (syms[0..nq]) |x| for (syms[0..nq]) |y| {
+            try out.append(gpa, .{ .kind = .strs, .n = 2, .syms = .{ x, y, 0, 0 } });
+            try out.append(gpa, .{ .kind = .strs, .n = 2 | (1 << 4), .syms = .{ x, y, x, 0 } });
+            try out.append(gpa, .{ .kind = .strs, .n = 2 | (1 << 4), .syms = .{ x, y, y, 0 } });
+            try out.append(gpa, .{ .kind = .strs, .n = 3 | (1 << 4), .syms = .{ x, x, y, y } });
+        };
     }
 
     for ([_]Kind{ .caret, .dollar, .wordb, .nwordb, .empty }) |kd| {

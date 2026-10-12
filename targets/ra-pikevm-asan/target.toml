@@ -1,0 +1,27 @@
+# irx target: regex-automata PikeVM (ASan)
+# Run: tools/irx_target.py ra-pikevm-asan [--duration SECONDS]
+
+[target]
+title = "regex-automata PikeVM (ASan)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/automata_host_asan {mode}"
+env = "IRX_RA_ENGINE=pikevm ASAN_OPTIONS=abort_on_error=1:halt_on_error=1:detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_stacktrace=1"
+dialect = "rust"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+lookbehind = false  # lookbehind runs forward here; JS (and the model) match it right to left
+
+[offset]
+enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true  # Input::anchored(Anchored::Yes)
+
+[harness]
+# Sanitized builds run 2-5x slower.
+batch_deadline_per512_ms = 8000

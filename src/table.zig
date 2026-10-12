@@ -1167,7 +1167,7 @@ fn Builder(comptime R: type) type {
                 if (a.isConsuming()) af |= aux_atom;
                 if (af_flags.i and a.mayFoldMulti()) af |= aux_pi;
                 if (a.kind == .caret or a.kind == .dollar or a.kind == .wordb or a.kind == .nwordb) af |= aux_za;
-                const len: u32 = if (self.g.len_cap > 0 and a.isConsuming()) (1 | (@as(u32, 1) << aux_min_shift)) else 0;
+                const len: u32 = if (self.g.len_cap > 0 and a.isConsuming()) (@as(u32, a.maxLen()) | (@as(u32, a.minLen()) << aux_min_shift)) else 0;
                 const key = keyAux(atoms.relation(R, a, af_flags, wa), atoms.relation(R, a, af_flags, wr), len | (af & self.g.flagMask()));
                 self.record(.atom, @intCast(i), none, none, &key);
                 tab.stats.atoms += 1;

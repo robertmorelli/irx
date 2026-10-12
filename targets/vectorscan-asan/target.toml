@@ -1,0 +1,16 @@
+# irx target: Vectorscan (ASan/UBSan)
+# Run: tools/irx_target.py vectorscan-asan [--duration SECONDS]
+
+[target]
+title = "Vectorscan (ASan/UBSan)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/hs_host_asan {mode}"
+env = "ASAN_OPTIONS=abort_on_error=1:halt_on_error=1:detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_stacktrace=1"
+dialect = "vectorscan"   # src/dialects/
+selfcheck = true
+
+# config overlay (merged over weights.toml): compiling a UTF8|UCP database takes ~70 ms
+# per campaign pattern, so small batches and a long deadline.
+[harness]
+batch_size = 16
+batch_deadline_per512_ms = 2000000

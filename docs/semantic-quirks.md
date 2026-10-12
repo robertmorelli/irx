@@ -44,6 +44,8 @@ boundaries, which are the modes it models.
 | Emacs | the `*scratch*` syntax table: most non-ASCII is word syntax, `_` is symbol syntax | `[0-9]` | syntax-table whitespace (`\n` is a comment ender, not whitespace) |
 | ASCII variants: Perl `/a`, PCRE2 without UCP, Java without `UNICODE_CHARACTER_CLASS`, Oniguruma `*_IS_ASCII`, regex-lite, .NET ECMAScript | `[0-9A-Za-z_]` (.NET ECMAScript adds U+0130) | `[0-9]` | `[\t\n\v\f\r ]` |
 
+nim-regex inherits Perl's classes but has no `\h`/`\v` (`\H` is a literal `H`).
+
 In the ASCII variants these escapes are fixed sets: case-insensitivity does not close them, so under `i`,
 `\w` still misses the Kelvin sign and `\W` still misses `k` (`escapes_ignore_case`).
 
@@ -94,6 +96,9 @@ which dropped U+180E when it stopped being a space separator in Unicode 6.3. In 
 * **cased letters** (Perl, PCRE2, .NET, Python `regex`): `\p{Lu}` and `\p{Ll}` both mean any cased letter (Lu, Ll,
   Lt).
 * **plain** (Oniguruma, Vectorscan, nim, PCRE1): `i` does not reach properties.
+* `v`-mode class strings: ES folds `\q{…}` strings like any other class operand, so `/[\q{k}]/vi` matches `K`.
+  Irregexp (V8, SpiderMonkey) folds the string but not the subject, so only already-folded subjects match
+  (IRX-V8-5). System JavaScriptCore on macOS 27 ignores `i` for `\p{…}` altogether (IRX-JSC-3).
 * Ruby and Oniguruma also apply multi-character folds to properties (`\p{L}` under `i` matches `"ss"` via `ß`), so
   no `\p` is generated under `i` there.
 
@@ -201,6 +206,9 @@ libc sometimes misses the leftmost start (IRX-LIBC-2).
   as something other than `a`), so that host writes `\uHHHH`.
 * **Full match wrappers**: hosts use `\A(?:…)\z`; Oniguruma's Python syntax has no `\z` (its `\Z` is the absolute
   end).
+* **Class strings** `[\q{ab|c}]` (ES `v`): inside the braces the class-set syntax characters `( ) [ ] { } / - \ |`
+  must be escaped, and the reserved punctuators may be (`\-`, `\&`). QuickJS rejects those escapes and accepts a
+  bare `-` (IRX-QJS-2); GraalJS also accepts a bare `-`.
 * **Empty branches**: POSIX ERE rejects `(|a)` and `a|`; nim rejects `(?<=)`, `(?=)`.
 * **Counted repeats**: nim and fancy-regex cap big bounds at 100 (`{0,254}` is rejected or too large to compile).
 

@@ -1,0 +1,19 @@
+# irx target: RE# (ASan)
+# Run: tools/irx_target.py resharp-asan [--duration SECONDS]
+
+[target]
+title = "RE# (ASan)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/resharp_host_asan {mode}"
+env = "ASAN_OPTIONS=abort_on_error=1:halt_on_error=1:detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_stacktrace=1"
+dialect = "resharp"   # src/dialects/
+selfcheck = true
+
+# config overlay (merged over weights.toml): UnicodeMode::Full compiles ~15 ms per pattern, so smaller batches, longer deadline.
+[harness]
+batch_size = 32
+batch_deadline_per512_ms = 400000
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans

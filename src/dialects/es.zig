@@ -16,6 +16,15 @@ pub const dialect: D.Dialect = .{
     .isDigit = alpha.isDigit,
 };
 
+/// V8 and SpiderMonkey (Irregexp): ES, except that \q{…} strings under i are compared case-
+/// sensitively against the folded string (IRX-V8-5), so no \q is generated under i.
+pub const irregexp: D.Dialect = blk: {
+    var d = dialect;
+    d.name = "irregexp";
+    d.qstr_ignore_case = false;
+    break :blk d;
+};
+
 /// C++ std::regex (libc++, ECMAScript grammar) over code points: no lookbehind, no inline
 /// modifiers, no \p; the pool stays ASCII (its classes and case folding use the C locale).
 pub const cpp: D.Dialect = blk: {

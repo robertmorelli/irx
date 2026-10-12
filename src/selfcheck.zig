@@ -151,6 +151,15 @@ pub const Checker = struct {
         for (g.atoms) |at| {
             if (!at.isConsuming()) continue;
             for (subjects.items) |s| try self.addProbe(flags, at, -1, s, empty, "atom");
+            if (at.kind == .strs) {
+                // Each string alternative, whole.
+                var ss: [2][]const u21 = undefined;
+                for (ss[0..at.strings(&ss)]) |str| {
+                    var x: finding.Subject = .{};
+                    subjectFrom(str, &x);
+                    try self.addProbe(flags, at, -1, x, empty, "strs");
+                }
+            }
             if (at.kind == .lit) {
                 // Wrapper checks: multi-symbol and multiline subjects must not fully match one literal.
                 var two: finding.Subject = .{};

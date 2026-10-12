@@ -1,0 +1,27 @@
+# irx target: Ruby 4.0 Onigmo (ASan/UBSan)
+# Run: tools/irx_target.py ruby-onigmo-asan [--duration SECONDS]
+
+[target]
+title = "Ruby 4.0 Onigmo (ASan/UBSan)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/vendor/asan/ruby/bin/ruby {root}/hosts/script/rb_host.rb {mode}"
+env = "ASAN_OPTIONS=abort_on_error=1:halt_on_error=1:detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_stacktrace=1:suppressions={root}/tools/sanitizer/ruby.supp"
+dialect = "ruby"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "cp"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+lookbehind = false  # lookbehind runs forward here; JS (and the model) match it right to left
+
+[offset]
+enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true
+
+[harness]
+# Sanitized builds run 2-5x slower.
+batch_deadline_per512_ms = 8000

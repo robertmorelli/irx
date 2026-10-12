@@ -96,6 +96,9 @@ pub const Dialect = struct {
     reset_loop_captures_hint: bool = false,
     /// \h \H \v \V (horizontal / vertical whitespace) are generated, with these sets.
     hv_escapes: bool = false,
+    /// v-mode class strings (\q{…}) are compared case-insensitively under i. Irregexp compares
+    /// the folded string against the raw subject (IRX-V8-5), so its targets keep \q out of i.
+    qstr_ignore_case: bool = true,
     /// Scoped extended mode (?x:…) is supported: whitespace and # comments are ignored.
     extended_mode: bool = false,
     isHSpace: *const fn (u21) bool = defaultHSpace,
@@ -183,6 +186,7 @@ pub const Dialect = struct {
 
 pub const es = @import("dialects/es.zig").dialect;
 pub const cpp = @import("dialects/es.zig").cpp;
+pub const irregexp = @import("dialects/es.zig").irregexp;
 pub const perl = @import("dialects/perl.zig").dialect;
 pub const pcre2 = @import("dialects/perl.zig").pcre2;
 pub const perl_a = @import("dialects/perl.zig").perl_a;
@@ -223,7 +227,7 @@ pub const vectorscan = @import("dialects/vectorscan.zig").dialect;
 pub const llvm = @import("dialects/llvm.zig").dialect;
 pub const libc = @import("dialects/llvm.zig").libc;
 pub const gnu = @import("dialects/llvm.zig").gnu;
-pub const all = [_]*const Dialect{ &es, &perl, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm, &libc, &cpp, &boost, &re2j, &onig_perl, &onig_java, &onig_python, &onig_ascii, &dotnet_ecma, &pcre1, &gnu };
+pub const all = [_]*const Dialect{ &es, &irregexp, &perl, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm, &libc, &cpp, &boost, &re2j, &onig_perl, &onig_java, &onig_python, &onig_ascii, &dotnet_ecma, &pcre1, &gnu };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
@@ -300,7 +304,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             var f: u32 = 0;
             if (k == .dollar) f |= tb.aux_md;
             if (k == .caret or k == .dollar or k == .wordb or k == .nwordb) f |= tb.aux_za;
-            if (n.atom.isConsuming()) return .{ .min = 1, .max = 1, .f = tb.aux_atom };
+            if (n.atom.isConsuming()) return .{ .min = n.atom.minLen(), .max = n.atom.maxLen(), .f = tb.aux_atom };
             return .{ .min = 0, .max = 0, .f = f };
         },
         .concat => {

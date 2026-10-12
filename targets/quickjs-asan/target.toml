@@ -1,0 +1,31 @@
+# irx target: QuickJS upstream (ASan)
+# Run: tools/irx_target.py quickjs-asan [--duration SECONDS]
+
+[target]
+title = "QuickJS upstream (ASan)"
+kind = "shell"   # d8 | perl | shell
+# Upstream source build (vendor/quickjs, bellard/quickjs 9d01a96): the Homebrew 2026-06-04 release
+# still has IRX-QJS-1 (fixed upstream), which rejects every `v` pattern containing `-`.
+command = "{root}/vendor/quickjs-asan/bin/qjs --std {driver} {mode}"
+env = "ASAN_OPTIONS=abort_on_error=1:halt_on_error=1:detect_leaks=0"
+dialect = "es"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf16"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "reset"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+
+[offset]
+enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
+sticky = true
+
+[global]
+enabled = true  # first 4 matches of matchAll (JS empty-match advance)
+
+[harness]
+# Sanitized builds run 2-5x slower.
+batch_deadline_per512_ms = 8000

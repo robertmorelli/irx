@@ -361,6 +361,18 @@ pub const Matcher = struct {
                     if (!atoms.assertionAt(a, fl, self.w, pos)) return false;
                     return self.run(c, pos);
                 }
+                if (a.kind == .strs) {
+                    // Class strings: alternatives longest first, with backtracking.
+                    var ss: [2][]const u21 = undefined;
+                    for (ss[0..a.strings(&ss)]) |s| {
+                        if (dir == .fwd) {
+                            if (atoms.stringAt(s, self.w, pos, fl) and self.run(c, pos + s.len)) return true;
+                        } else {
+                            if (pos >= s.len and atoms.stringAt(s, self.w, pos - s.len, fl) and self.run(c, pos - s.len)) return true;
+                        }
+                    }
+                    return false;
+                }
                 if (dir == .fwd) {
                     if (pos >= self.w.len or !atoms.matches(a, fl, self.w[pos])) return false;
                     return self.run(c, pos + 1);

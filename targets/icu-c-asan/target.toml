@@ -1,0 +1,28 @@
+# irx target: ICU4C 78 regex (ASan/UBSan)
+# Run: tools/irx_target.py icu-c-asan [--duration SECONDS]
+
+[target]
+title = "ICU4C 78 regex (ASan/UBSan)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/icu_host_asan {mode}"
+env = "ASAN_OPTIONS=abort_on_error=1:halt_on_error=1:detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1:print_stacktrace=1"
+dialect = "icu"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf16"  # index unit of the host's reported spans
+
+[capture]
+enabled = true
+loop = "keep"  # loop bodies' captures per iteration (docs/phase2-captures.md)
+lookbehind = false  # lookbehind runs forward here; JS (and the model) match it right to left
+
+[harness]
+# uregex_setTimeLimit stops a runaway match (IRX-ICU-1) and reports it as unsupported.
+batch_size = 128
+batch_deadline_base_ms = 30000
+
+[offset]
+enabled = true  # uregex_find(start): the region stays the whole text
+sticky = true   # uregex_lookingAt with transparent, non-anchoring bounds

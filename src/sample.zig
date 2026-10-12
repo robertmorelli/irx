@@ -595,6 +595,18 @@ pub const Printer = struct {
                 try self.operand(&atoms.v_operands[a.syms[1]]);
                 try self.putc(']');
             },
+            .strs => {
+                // [\q{ab|c}]: a class whose alternatives are strings (ES v mode).
+                try self.put("[\\q{");
+                const l1: usize = a.n & 0xF;
+                const l2: usize = a.n >> 4;
+                for (a.syms[0..l1]) |c| try self.classLiteral(c);
+                if (l2 > 0) {
+                    try self.putc('|');
+                    for (a.syms[l1 .. l1 + l2]) |c| try self.classLiteral(c);
+                }
+                try self.put("}]");
+            },
             .caret => try self.putc('^'),
             .dollar => try self.putc('$'),
             .wordb => try self.put(dialect.active.word_boundary),

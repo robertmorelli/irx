@@ -219,7 +219,7 @@ pub const Check = struct {
 pub fn minLen(t: *const ast.Ast, idx: u8) u32 {
     const n = t.nodes[idx];
     return switch (n.op) {
-        .atom => if (n.atom.isConsuming()) 1 else 0,
+        .atom => n.atom.minLen(),
         .concat => minLen(t, n.a) + minLen(t, n.b),
         .alt => @min(minLen(t, n.a), minLen(t, n.b)),
         .quant => minLen(t, n.a) * n.quant.min,

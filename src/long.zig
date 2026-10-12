@@ -114,6 +114,7 @@ pub const Eval = struct {
                 .caret, .dollar, .wordb, .nwordb => {
                     for (0..self.w.len + 1) |i| if (atoms.assertionAt(&n.atom, self.nflags[idx], self.w, i)) setBit(m, i);
                 },
+                .strs => unreachable,
                 else => for (self.w, 0..) |c, i| if (atoms.matches(&n.atom, self.nflags[idx], c)) setBit(m, i),
             },
             .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => {
@@ -160,6 +161,20 @@ pub const Eval = struct {
         if (n.op == .atomic or n.op == .backref) return error.Unsupported;
         switch (n.op) {
             .atom => switch (n.atom.kind) {
+                .strs => {
+                    // Class strings: each alternative moves a position by its length.
+                    const out = try self.alloc();
+                    @memset(out, 0);
+                    var ss: [2][]const u21 = undefined;
+                    const fl = self.nflags[idx];
+                    for (ss[0..n.atom.strings(&ss)]) |str| for (0..self.w.len + 1) |i| {
+                        if (!getBit(s, i)) continue;
+                        if (forward) {
+                            if (atoms.stringAt(str, self.w, i, fl)) setBit(out, i + str.len);
+                        } else if (i >= str.len and atoms.stringAt(str, self.w, i - str.len, fl)) setBit(out, i - str.len);
+                    };
+                    return out;
+                },
                 .empty => {
                     const out = try self.alloc();
                     @memcpy(out, s);
