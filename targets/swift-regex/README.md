@@ -59,3 +59,12 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END swift-regex 5m results -->
+
+<!-- BEGIN swift-regex long-10m results -->
+### Swift Regex 6.4 (unicodeScalar semantics, simple word boundaries): long-10m campaign
+
+* 17,408 patterns, 2 tables, 102 distinct findings; self-check 339,984 probes, 1,664 mismatches, 0 engine failures
+* findings by kind: 102 timeout (batch), 80 selfcheck_mismatch (selfcheck)
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END swift-regex long-10m results -->

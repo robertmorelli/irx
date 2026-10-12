@@ -93,3 +93,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-nonbacktracking 30m results -->
+
+<!-- BEGIN dotnet-nonbacktracking long-10m results -->
+### .NET 9 Regex (NonBacktracking): long-10m campaign
+
+* 192,160 patterns, 3 tables, 216 distinct findings; self-check 336,272 probes, 0 mismatches, 0 engine failures
+* findings by kind: 108 wrong_capture, 108 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 7 | wrong_span | `` | `"- kß "` | `"-K0ß"` | `(?:a\|.*?)\W` | 02 |
+| 7 | wrong_capture | `` | `"- kß "` | `"-K0ß"` | `(?:a\|.*?)\W` | 02 |
+| 4 | wrong_span | `` | `"- kß "` | `"-K0ß"` | `(?:a\|\D*?).` | 02 |
+| 4 | wrong_capture | `` | `"- kß "` | `"-K0ß"` | `(?:a\|\D*?).` | 02 |
+| 3 | wrong_span | `` | `"- kß "` | `"-K0ß"` | `(?:a\|(?:..)*?)\D` | 02 |
+| 3 | wrong_capture | `` | `"- kß "` | `"-K0ß"` | `(?:a\|(?:..)*?)\D` | 02 |
+| 2 | wrong_capture | `` | `"- kß "` | `"-K0ß"` | `(?:a\|\D{0,}?).` | 02 |
+| 2 | wrong_span | `` | `"- kß "` | `"-K0ß"` | `(?:a\|\D{0,}?).` | 02 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END dotnet-nonbacktracking long-10m results -->

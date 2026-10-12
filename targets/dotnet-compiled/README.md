@@ -97,3 +97,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-compiled 30m results -->
+
+<!-- BEGIN dotnet-compiled long-10m results -->
+### .NET 9 Regex (Compiled): long-10m campaign
+
+* 168,096 patterns, 3 tables, 586 distinct findings; self-check 336,272 probes, 0 mismatches, 0 engine failures
+* findings by kind: 474 exception, 47 wrong_span, 46 wrong_capture, 19 long_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 19 | wrong_span | `` | `"- kß "` | `"-K0ß"` | `\D+\B` | 03 |
+| 19 | wrong_capture | `` | `"- kß "` | `"-K0ß"` | `\D+\B` | 03 |
+| 12 | exception | `` | `"- kß "` | `"-K0ß"` | `\D\|(?<!(?:)*?)` | 08 |
+| 8 | exception | `` | `"- kß "` | `"-K0ß"` | `(?<=(?:)??)\D` | 08 |
+| 6 | exception | `` | `"àKſékΣk"` | `"àKéàkΣk"` | `(?<=()??)[^b\x{E0}]` | 08 |
+| 6 | exception | `` | `"- kß "` | `"-K0ß"` | `(?<=(?:)*?)\D` | 08 |
+| 6 | exception | `` | `"- kß "` | `"-K0ß"` | `(?<=(?:)*?).\B` | 08 |
+| 5 | exception | `` | `"- kß "` | `"-K0ß"` | `()\|(?<!(?:)*?)` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END dotnet-compiled long-10m results -->

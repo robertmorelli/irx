@@ -101,3 +101,18 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END hermes 30m results -->
+
+<!-- BEGIN hermes long-10m results -->
+### Hermes (jsvu): long-10m campaign
+
+* 5,056 patterns, 2 tables, 6 distinct findings
+* findings by kind: 6 exception
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 3 | exception | `` | `"- kß "` | `"-K0ß"` | `(?:[^ ]\|())*? ` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END hermes long-10m results -->

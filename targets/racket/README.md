@@ -78,3 +78,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END racket 5m results -->
+
+<!-- BEGIN racket long-10m results -->
+### Racket #px: long-10m campaign
+
+* 56,320 patterns, 2 tables, 1,056 distinct findings; self-check 339,984 probes, 1,344 mismatches, 0 engine failures
+* findings by kind: 347 long_result, 339 wrong_capture, 339 wrong_span, 23 timeout (batch), 20 selfcheck_mismatch (selfcheck), 8 syntax_error
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 47 | long_result | `u` | `"- kß "` | `"-K0ß"` | `[^\x{17F}\x{212A}]` | 00 |
+| 34 | long_result | `u` | `"- kß "` | `"-K0ß"` | `[^0\x{17F}]*` | 00 |
+| 34 | long_result | `u` | `"- kß "` | `"-K0ß"` | `[^\x{17F}\x{212A}]*` | 00 |
+| 34 | long_result | `u` | `"- kß "` | `"-K0ß"` | `[^0\x{17F}]` | 00 |
+| 28 | long_result | `u` | `"- kß "` | `"-K0ß"` | `[^0\x{17F}]+` | 00 |
+| 25 | long_result | `u` | `"- kß "` | `"-K0ß"` | `[^\x{17F}\x{212A}]+` | 00 |
+| 20 | wrong_capture | `u` | `"- kß "` | `"-K0ß"` | `\B\D*` | 03 |
+| 20 | wrong_span | `u` | `"- kß "` | `"-K0ß"` | `\B\D*` | 03 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END racket long-10m results -->

@@ -64,3 +64,25 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END resharp 5m results -->
+
+<!-- BEGIN resharp long-10m results -->
+### RE# (resharp): long-10m campaign
+
+* 72,192 patterns, 2 tables, 99 distinct findings; self-check 289,392 probes, 0 mismatches, 0 engine failures
+* findings by kind: 84 syntax_error, 15 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 4 | wrong_span | `u` | `"- kß "` | `"-K0ß"` | `\D*(?!.)` | 03 |
+| 2 | wrong_span | `u` | `"- kß "` | `"-K0ß"` | `(?!\w)\D*` | 03 |
+| 2 | syntax_error | `mu` | `"- kß "` | `"-K0ß"` | `(?:\|$\S)(?:(?:)\|a)` | 04 |
+| 2 | syntax_error | `mu` | `"- kß "` | `"-K0ß"` | `(?:()\|$\s)[^0\x{3A3}]*` | 04 |
+| 2 | syntax_error | `mu` | `"- kß "` | `"-K0ß"` | `(?:a$)?(?:\D\|())` | 04 |
+| 2 | syntax_error | `u` | `"- kß "` | `"-K0ß"` | `(?!a\|[\x{E9}\x{3C3}](?=a))\D` | 04 |
+| 2 | syntax_error | `mu` | `"- kß "` | `"-K0ß"` | `(?:$[^ks]\|)(?:\D\|)` | 04 |
+| 2 | syntax_error | `u` | `"- kß "` | `"-K0ß"` | `(?!a\|(?=a)(?:()\|a))[^\x{17F}\x{212A}]` | 04 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END resharp long-10m results -->

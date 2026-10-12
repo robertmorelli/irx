@@ -110,3 +110,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END quickjs 30m results -->
+
+<!-- BEGIN quickjs long-10m results -->
+### QuickJS: long-10m campaign
+
+* 269,120 patterns, 4 tables, 3,047 distinct findings; self-check 1,628,352 probes, 392 mismatches, 0 engine failures
+* findings by kind: 3,043 syntax_error, 20 syntax_error (selfcheck), 4 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 15 | syntax_error | `v` | `"àKſékΣk"` | `"àKéàkΣk"` | `-\|[^ \u{E0}]` | 04 |
+| 12 | syntax_error | `v` | `"àKſékΣk"` | `"àKéàkΣk"` | `(?:)\|-` | 04 |
+| 9 | syntax_error | `v` | `"àKſékΣk"` | `"àKéàkΣk"` | `-\|[^\u{E0}\u{130}]` | 04 |
+| 9 | syntax_error | `v` | `"àKſékΣk"` | `"àKéàkΣk"` | `-\|[^b\u{E0}]` | 04 |
+| 9 | syntax_error | `v` | `"àKſékΣk"` | `"àKéàkΣk"` | `-\|[^\u{E0}\u{DF}]` | 04 |
+| 8 | syntax_error | `v` | `"àKſékΣk"` | `"àKéàkΣk"` | `-\|[^S\u{E0}]` | 04 |
+| 6 | syntax_error | `v` | `"àKſékΣk"` | `"àKéàkΣk"` | `(?:(?:)\|-)[^\u{E0}\u{130}]` | 04 |
+| 6 | syntax_error | `v` | `"àKſékΣk"` | `"àKéàkΣk"` | `-\|[^\u{212A}\u{E0}]` | 04 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END quickjs long-10m results -->

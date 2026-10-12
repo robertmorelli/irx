@@ -99,3 +99,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END llvm-regex 30m results -->
+
+<!-- BEGIN llvm-regex long-10m results -->
+### LLVM Regex (POSIX ERE, translated): long-10m campaign
+
+* 296,256 patterns, 4 tables, 1,283 distinct findings; self-check 46,080 probes, 0 mismatches, 0 engine failures
+* findings by kind: 653 wrong_span, 630 long_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 31 | long_result | `imu` | `"_kS b-b"` | `"_k _b-b"` | `(?:(?:)\|.)[A-Z]` | 00 |
+| 30 | long_result | `mu` | `"_kS b-b"` | `"_k _b-b"` | `(?:(?:)\|.)[a-z]` | 00 |
+| 17 | wrong_span | `iu` | `"_kS b-b"` | `"_k _b-b"` | `(?:(?:(?:)\|.)[A-Z])+` | 02 |
+| 14 | long_result | `mu` | `".0b K"` | `".SA "` | `(?:(?:)\|.)\w` | 00 |
+| 12 | long_result | `mu` | `".0b K"` | `".SA "` | `(?:(?:)\|.)[A-Z]` | 00 |
+| 11 | wrong_span | `u` | `"_kS b-b"` | `"_k _b-b"` | `(?:(?:(?:)\|.)[a-z])+` | 02 |
+| 10 | long_result | `imu` | `"_kS b-b"` | `"_k _b-b"` | `(?:()\|.)[A-Z]` | 00 |
+| 8 | long_result | `mu` | `"_kS b-b"` | `"_k _b-b"` | `(?:()\|.)[a-z]` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END llvm-regex long-10m results -->

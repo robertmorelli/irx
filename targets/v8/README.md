@@ -50,3 +50,12 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END v8 5m results -->
+
+<!-- BEGIN v8 long-10m results -->
+### V8 15.5 (d8): long-10m campaign
+
+* 301,536 patterns, 5 tables, 4 distinct findings; self-check 1,628,352 probes, 0 mismatches, 0 engine failures
+* findings by kind: 4 timeout (batch)
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END v8 long-10m results -->

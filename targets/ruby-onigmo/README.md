@@ -79,3 +79,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END ruby-onigmo 5m results -->
+
+<!-- BEGIN ruby-onigmo long-10m results -->
+### Ruby Onigmo: long-10m campaign
+
+* 301,024 patterns, 5 tables, 69 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 23 wrong_span, 21 wrong_capture, 21 long_result, 4 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 3 | long_result | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:^\D*){2,2}` | 00 |
+| 2 | wrong_span | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:^[^b\x{17F}]*){2,2}` | 02 |
+| 2 | wrong_capture | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:^[^b\x{17F}]*){2,2}` | 02 |
+| 2 | long_result | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:^[^b\x{17F}]*){2,2}` | 00 |
+| 1 | wrong_capture | `u` | `"😀A\nàk\rk"` | `"😀Aà😀k\rk"` | `(?:(?:)[^A\x{2028}](){1,2}?)*` | 02 |
+| 1 | wrong_span | `u` | `"😀A\nàk\rk"` | `"😀Aà😀k\rk"` | `(?:(?:)[^A\x{2028}](){1,2}?)*` | 02 |
+| 1 | long_result | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:^(?:[^K0]\|(?:))){2}` | 00 |
+| 1 | wrong_span | `u` | `"ba"` | `".a_"` | `(?:a\|a\|^){3,}` | 03 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END ruby-onigmo long-10m results -->

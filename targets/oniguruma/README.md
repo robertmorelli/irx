@@ -104,3 +104,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END oniguruma 30m results -->
+
+<!-- BEGIN oniguruma long-10m results -->
+### Oniguruma 6.9 (C library): long-10m campaign
+
+* 210,240 patterns, 4 tables, 29 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 11 wrong_span, 11 wrong_capture, 7 long_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 1 | wrong_span | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:^\D*){2,3}` | 02 |
+| 1 | wrong_span | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:^[^b\x{17F}]*){2,3}` | 02 |
+| 1 | wrong_capture | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:^[^b\x{17F}]*){2,3}` | 02 |
+| 1 | long_result | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:^\D*){2,3}` | 00 |
+| 1 | wrong_span | `u` | `"ba"` | `".a_"` | `(?:^[a-c]*){3,}` | 02 |
+| 1 | wrong_capture | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:\B[^0.]*){2,3}` | 02 |
+| 1 | wrong_capture | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:\B(?:[^\x{A}\x{17F}]())*){2,}` | 03 |
+| 1 | wrong_span | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:^(?:a\|[^\x{17F}\x{2028}]{0,})){2,2}` | 02 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END oniguruma long-10m results -->

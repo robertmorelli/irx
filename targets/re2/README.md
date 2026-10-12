@@ -75,3 +75,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END re2 5m results -->
+
+<!-- BEGIN re2 long-10m results -->
+### RE2: long-10m campaign
+
+* 339,424 patterns, 5 tables, 78 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 39 wrong_capture, 39 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 22 | wrong_capture | `u` | `"- kß "` | `"-K0ß"` | `\B\D*` | 03 |
+| 22 | wrong_span | `u` | `"- kß "` | `"-K0ß"` | `\B\D*` | 03 |
+| 2 | wrong_span | `u` | `"- kß "` | `"-K0ß"` | `\B[^\x{212A}]*` | 03 |
+| 2 | wrong_span | `u` | `"- kß "` | `"-K0ß"` | `\B\W*` | 03 |
+| 2 | wrong_capture | `u` | `"- kß "` | `"-K0ß"` | `\B\W*` | 03 |
+| 2 | wrong_capture | `u` | `"- kß "` | `"-K0ß"` | `\B[^\x{212A}]*` | 03 |
+| 1 | wrong_span | `u` | `"- kß "` | `"-K0ß"` | `\B[^0\x{130}]*` | 03 |
+| 1 | wrong_span | `u` | `"- kß "` | `"-K0ß"` | `\B[^\x{212A}\x{E9}]*` | 03 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END re2 long-10m results -->

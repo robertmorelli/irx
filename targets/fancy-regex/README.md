@@ -99,3 +99,18 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END fancy-regex 30m results -->
+
+<!-- BEGIN fancy-regex long-10m results -->
+### fancy-regex: long-10m campaign
+
+* 273,216 patterns, 4 tables, 1 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 1 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 1 | wrong_capture | `u` | `"ba"` | `".a "` | `(?:(?:^(?<g1>[a-c])\|\D)\Ba)*` | 02 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END fancy-regex long-10m results -->

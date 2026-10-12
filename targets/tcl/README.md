@@ -51,3 +51,12 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END tcl 5m results -->
+
+<!-- BEGIN tcl long-10m results -->
+### Tcl ARE: long-10m campaign
+
+* 339,424 patterns, 5 tables, 3 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 3 timeout (batch)
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END tcl long-10m results -->

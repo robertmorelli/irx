@@ -102,3 +102,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END java 30m results -->
+
+<!-- BEGIN java long-10m results -->
+### java.util.regex: long-10m campaign
+
+* 177,824 patterns, 3 tables, 4,102 distinct findings; self-check 339,984 probes, 212 mismatches, 0 engine failures
+* findings by kind: 4,046 exception, 32 wrong_capture, 24 selfcheck_mismatch (selfcheck), 9 timeout (batch), 8 long_result, 7 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 3 | exception | `mu` | `"- kß "` | `"-K0ß"` | `(?:(?:[^0\x{17F}]\|(?:)\B^^\B(?<g1>[a-z]{2}?\|.))?)*` | 08 |
+| 3 | exception | `mu` | `"- kß "` | `"-K0ß"` | `(?:(?:\D\|(?:(?:)\b[^\x{E0}\x{130}]\B)?)())*` | 08 |
+| 3 | exception | `mu` | `"- kß "` | `"-K0ß"` | `(?:[^0\x{17F}](?:(?:)\|\|(?![^\x{212A}\x{3C3}])))*` | 08 |
+| 3 | exception | `mu` | `"- kß "` | `"-K0ß"` | `(?:(?:(?![a-z])\|^)\D)*(?:)+?` | 08 |
+| 3 | exception | `mu` | `"- kß "` | `"-K0ß"` | `(?:(?:(?:(?!(?:(?:)*)+?)\d\x{A}\x{3C2}S)??\D){1})+\|[a-c]` | 08 |
+| 3 | exception | `mu` | `"- kß "` | `"-K0ß"` | `(?:(?:()\|\B){0,3}[^0\x{D}])*\|$` | 08 |
+| 3 | exception | `mu` | `"- kß "` | `"-K0ß"` | `(?:[^\x{212A}\x{D}](?:\S\b(?:\B)+?)*)+\|(?<![^a\x{3C3}])$` | 08 |
+| 3 | exception | `mu` | `"- kß "` | `"-K0ß"` | `(?:(?:(?:(?:)(?:[^bS]\|\x{3C2})[a-c][^s\x{E9}][a-z][a-c]$\|\D)?)?){1,}` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END java long-10m results -->

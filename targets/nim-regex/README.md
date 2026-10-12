@@ -101,3 +101,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END nim-regex 30m results -->
+
+<!-- BEGIN nim-regex long-10m results -->
+### nim-regex: long-10m campaign
+
+* 60,416 patterns, 2 tables, 1,747 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 1,227 exception, 212 long_result, 124 wrong_capture, 123 wrong_span, 61 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 12 | exception | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:(?!(?:))\|\D){0,}` | 08 |
+| 11 | exception | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:(?<=(?:))){0,}` | 08 |
+| 10 | exception | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:(?=(?:))\|\D){0,}` | 08 |
+| 10 | exception | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:(?<!())){0,1}` | 08 |
+| 10 | exception | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:(?=(?:))){0,}` | 08 |
+| 8 | exception | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:(?!(?:))){0,}` | 08 |
+| 8 | exception | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:(?<!(?:))){0,}` | 08 |
+| 8 | exception | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:(?<=(?:))){0,1}\D` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END nim-regex long-10m results -->

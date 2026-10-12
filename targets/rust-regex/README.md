@@ -42,3 +42,11 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END rust-regex 5m results -->
+
+<!-- BEGIN rust-regex long-10m results -->
+### Rust regex: long-10m campaign
+
+* 297,792 patterns, 4 tables, 0 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END rust-regex long-10m results -->

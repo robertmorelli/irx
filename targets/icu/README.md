@@ -61,3 +61,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END icu 30m results -->
+
+<!-- BEGIN icu long-10m results -->
+### ICU NSRegularExpression: long-10m campaign
+
+* 127,648 patterns, 3 tables, 2,141 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 1,439 long_result, 343 wrong_span, 329 wrong_capture, 30 syntax_error
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 57 | long_result | `u` | `"- kß "` | `"-K0ß"` | `(?:\|\D)*?` | 00 |
+| 49 | long_result | `u` | `"- kß "` | `"-K0ß"` | `(?:()\|\D)*?` | 00 |
+| 48 | long_result | `u` | `"- kß "` | `"-K0ß"` | `(?:(?:)\|\D)*?` | 00 |
+| 28 | long_result | `u` | `"- kß "` | `"-K0ß"` | `(?:(?:)\|\D)+?` | 00 |
+| 25 | long_result | `u` | `"- kß "` | `"-K0ß"` | `(?:()\|\D)+?` | 00 |
+| 24 | long_result | `u` | `"- kß "` | `"-K0ß"` | `(?:\|\D)+?` | 00 |
+| 19 | long_result | `u` | `"- kß "` | `"-K0ß"` | `(?:\D??)*?` | 00 |
+| 18 | long_result | `u` | `"- kß "` | `"-K0ß"` | `(?:\D??)+?` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END icu long-10m results -->

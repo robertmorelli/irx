@@ -34,3 +34,25 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END vectorscan 5m results -->
+
+<!-- BEGIN vectorscan long-10m results -->
+### Vectorscan (Hyperscan): long-10m campaign
+
+* 57,216 patterns, 2 tables, 211 distinct findings; self-check 272,528 probes, 0 mismatches, 0 engine failures
+* findings by kind: 211 long_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 57 | long_result | `u` | `"- kß "` | `"-K0ß"` | `.*\s` | 00 |
+| 18 | long_result | `u` | `"- kß "` | `"-K0ß"` | `.{0,}\s` | 00 |
+| 17 | long_result | `u` | `"- kß "` | `"-K0ß"` | `.+\s` | 00 |
+| 4 | long_result | `u` | `"- kß "` | `"-K0ß"` | `(?:.+\|())\s` | 00 |
+| 2 | long_result | `u` | `"- kß "` | `"-K0ß"` | `..+\s` | 00 |
+| 2 | long_result | `u` | `"- kß "` | `"-K0ß"` | `(?:.\|)+\s` | 00 |
+| 2 | long_result | `u` | `"- kß "` | `"-K0ß"` | `(?:()\|.+)\s` | 00 |
+| 2 | long_result | `u` | `"- kß "` | `"-K0ß"` | `(?:(?:)\|.+)\s` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END vectorscan long-10m results -->

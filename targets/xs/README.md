@@ -93,3 +93,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END xs 5m results -->
+
+<!-- BEGIN xs long-10m results -->
+### XS (Moddable, jsvu): long-10m campaign
+
+* 89,664 patterns, 2 tables, 4,194 distinct findings; self-check 1,628,352 probes, 76,472 mismatches, 0 engine failures
+* findings by kind: 4,152 crash (batch), 40 syntax_error (selfcheck), 26 wrong_capture, 15 wrong_span, 1 long_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 3 | wrong_capture | `` | `"- kß "` | `"-K0ß"` | `\D*$` | 03 |
+| 2 | wrong_span | `` | `"- kß "` | `"-K0ß"` | `(?:()\|\D)*` | 02 |
+| 2 | wrong_capture | `` | `"- kß "` | `"-K0ß"` | `(?:(?:)\|\D)*` | 02 |
+| 2 | wrong_span | `` | `"- kß "` | `"-K0ß"` | `(?:(?:)\|\D)*` | 02 |
+| 2 | wrong_span | `` | `"- kß "` | `"-K0ß"` | `(?:()\|\D)+` | 02 |
+| 2 | wrong_capture | `` | `"- kß "` | `"-K0ß"` | `(?:()\|\D)+` | 02 |
+| 2 | wrong_capture | `` | `"- kß "` | `"-K0ß"` | `(?:()\|\D)*` | 02 |
+| 1 | wrong_span | `` | `"- kß "` | `"-K0ß"` | `(?:\D??)+` | 02 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END xs long-10m results -->

@@ -101,3 +101,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END php-pcre2 30m results -->
+
+<!-- BEGIN php-pcre2 long-10m results -->
+### PHP 8.5 preg_* (PCRE2 + JIT): long-10m campaign
+
+* 307,168 patterns, 5 tables, 1,166 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 918 exception, 96 long_result, 78 wrong_span, 74 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 3 | exception | `mu` | `"-Kké_"` | `"-ſ0é"` | `(?:(?:(?:a\|(?:(?:^(?:)\b\s)*)?)(?:A\|[^K0]))*)+` | 08 |
+| 3 | exception | `mu` | `"-Kké_"` | `"-ſ0é"` | `(?<g1>()?)(?:$)*(?:(?:[^\x{17F}.]\|)(?:^(?:\b){0,2})*?)*` | 08 |
+| 3 | exception | `mu` | `"-Kké_"` | `"-ſ0é"` | `()(?:(?:^\|(?:^){0,2}(?:(?:\B)??\|\b))\D)+` | 08 |
+| 3 | exception | `mu` | `"-Kké_"` | `"-ſ0é"` | `(?:(?:(?:a*\|[a-c])\x{2028}\|())(?:$(_))*[^K\x{17F}])*` | 08 |
+| 3 | exception | `imsu` | `"😀A\nàk\rk"` | `"😀Aà😀k\rk"` | `(?:(?:(?:[A-Z]\|(?:(?!\S\|a)\|(?:\b)+[ \x{E9}]\x{D}){1,3}[^\x{17F}\-])*){1,}(?:[a-z]\|.)){3,3}` | 08 |
+| 3 | exception | `mu` | `"-Kké_"` | `"-ſ0é"` | `(?:(?:(?:)[\x{3C2}.]\|(?=.)\|\b\|.)\x{17F}*)*?[_\x{1F600}]` | 08 |
+| 3 | exception | `mu` | `"-Kké_"` | `"-ſ0é"` | `(?:)?(?:(?:(?:(?:\B)*?){3}\D)+\|(?:))` | 08 |
+| 3 | exception | `mu` | `"-Kké_"` | `"-ſ0é"` | `(?:(?:[^S\x{17F}]\|(?:)(?!\B([a-z]\|.))\|(?:\B)*)?)*` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END php-pcre2 long-10m results -->

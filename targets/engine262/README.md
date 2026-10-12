@@ -99,3 +99,19 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END engine262 30m results -->
+
+<!-- BEGIN engine262 long-10m results -->
+### engine262: long-10m campaign
+
+* 28,800 patterns, 2 tables, 2 distinct findings
+* findings by kind: 1 wrong_capture, 1 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 1 | wrong_capture | `iu` | `"- kß "` | `"-K0ß"` | `(?:\W\B\|[A-Z])*` | 03 |
+| 1 | wrong_span | `iu` | `"- kß "` | `"-K0ß"` | `(?:\W\B\|[A-Z])*` | 03 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END engine262 long-10m results -->

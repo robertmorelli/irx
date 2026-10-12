@@ -94,3 +94,21 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END pcre2 30m results -->
+
+<!-- BEGIN pcre2 long-10m results -->
+### PCRE2 10.49 (interpreter; IRX_PCRE2_JIT=1 for the JIT): long-10m campaign
+
+* 249,152 patterns, 4 tables, 7 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 7 exception
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 2 | exception | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:(?:(?:)?\|)[k-s]*)*_` | 08 |
+| 2 | exception | `iu` | `"😀A\nàk\rk"` | `"😀Aà😀k\rk"` | `(?:^(?:(?:()?){0,3}[^\x{3C3}.]){0,}){2,2}` | 08 |
+| 1 | exception | `u` | `"ba"` | `".a_"` | `(?:[a-c](?:(?:(?:)\|(?:)?)?){0,3})+` | 08 |
+| 1 | exception | `u` | `"ba"` | `".a_"` | `(?:(?:\w\|a)[a-c]){0,}(?:\d\|$)` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END pcre2 long-10m results -->

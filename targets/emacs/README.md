@@ -73,3 +73,19 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END emacs 30m results -->
+
+<!-- BEGIN emacs long-10m results -->
+### Emacs Lisp regexps (translated): long-10m campaign
+
+* 117,408 patterns, 3 tables, 17 distinct findings; self-check 339,984 probes, 0 mismatches, 0 engine failures
+* findings by kind: 15 timeout (batch), 1 wrong_capture, 1 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 1 | wrong_capture | `u` | `"- kß "` | `"-K0ß"` | `(?:^(?:\D\|){0,}){2,}` | 02 |
+| 1 | wrong_span | `u` | `"- kß "` | `"-K0ß"` | `(?:^(?:\D\|){0,}){2,}` | 02 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END emacs long-10m results -->

@@ -98,3 +98,25 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END perl 30m results -->
+
+<!-- BEGIN perl long-10m results -->
+### Perl 5.44 (also blead via vendor/perl5): long-10m campaign
+
+* 178,336 patterns, 3 tables, 19 distinct findings; self-check 281,792 probes, 0 mismatches, 0 engine failures
+* findings by kind: 9 wrong_span, 8 wrong_capture, 1 long_result, 1 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 2 | wrong_span | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:(?=a?)\D){1,}` | 02 |
+| 2 | wrong_capture | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:(?=a?)\D){1,}` | 02 |
+| 1 | long_result | `u` | `"-Kké_"` | `"-ſ0é"` | `(?:(?=a?)\D){1,}` | 00 |
+| 1 | wrong_capture | `u` | `"-Kké_"` | `"-ſ0é"` | `(?=a?)\D+` | 02 |
+| 1 | wrong_span | `u` | `"😀A\nàk\rk"` | `"😀Aà😀k\rk"` | `(?=a?)[^\x{E0}\x{D}](?:()\|[^\x{2028}\x{1F600}])` | 02 |
+| 1 | wrong_span | `u` | `"😀A\nàk\rk"` | `"😀Aà😀k\rk"` | `(?=a{0,1}).(?:\|[^b\x{1F600}])` | 02 |
+| 1 | wrong_capture | `u` | `"😀A\nàk\rk"` | `"😀Aà😀k\rk"` | `(?=a?)[^\x{E0}\x{D}](?:()\|[^\x{2028}\x{1F600}])` | 02 |
+| 1 | wrong_capture | `u` | `"😀A\nàk\rk"` | `"😀Aà😀k\rk"` | `(?=a{0,1}).(?:\|[^b\x{1F600}])` | 02 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END perl long-10m results -->
