@@ -11,7 +11,7 @@ step vectorscan cc -O2 -o "$H/bin/hs_host" "$H/c/hs_host.c" -I$B/vectorscan/incl
 L=$B/llvm/bin/llvm-config
 step llvm-regex sh -c "c++ -O2 -std=c++17 -Wno-everything -o '$H/bin/llvm_host' '$H/c/llvm_host.cc' \$($L --cxxflags) \$($L --ldflags) -lLLVMSupport -lLLVMDemangle \$($L --system-libs)"
 step go sh -c "cd '$H/go' && go build -o '$H/bin/go_host' ."
-step rust sh -c "cd '$H/rust' && cargo build --release -q && cp target/release/regex_host target/release/fancy_host target/release/resharp_host '$H/bin/'"
+step rust sh -c "cd '$H/rust' && cargo build --release -q && cp target/release/regex_host target/release/regex_lite_host target/release/fancy_host target/release/resharp_host '$H/bin/'"
 step java sh -c "javac -d '$H/bin/java' '$H/java/Host.java'"
 step dotnet sh -c "cd '$H/dotnet' && dotnet build -c Release -o '$H/bin/dotnet' -v q"
 step swift swiftc -O -o "$H/bin/swift_host" "$H/swift/host.swift"

@@ -41,3 +41,29 @@ pub const fancy: D.Dialect = blk: {
     d.lookbehind_fixed = true;
     break :blk d;
 };
+
+/// regex-lite: the same syntax and matching rules with only basic Unicode support: \d, \s, \w
+/// and \b are ASCII ([0-9], [\t\n\v\f\r ], [0-9A-Za-z_]), (?i) is ASCII-only, no \p{…}.
+fn liteDigit(c: u21) bool {
+    return c >= '0' and c <= '9';
+}
+fn liteWord(c: u21, _: D.Flags) bool {
+    return (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z') or liteDigit(c) or c == '_';
+}
+fn liteSpace(c: u21) bool {
+    return c == ' ' or (c >= 0x09 and c <= 0x0D);
+}
+fn asciiFold(c: u21) u21 {
+    return if (c >= 'A' and c <= 'Z') c + 32 else c;
+}
+
+pub const lite: D.Dialect = blk: {
+    var d = base;
+    d.name = "rust-lite";
+    d.unicode_props = false;
+    d.isWord = liteWord;
+    d.isDigit = liteDigit;
+    d.isSpace = liteSpace;
+    d.fold = asciiFold;
+    break :blk d;
+};

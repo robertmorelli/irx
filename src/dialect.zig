@@ -163,9 +163,13 @@ pub const pcre2 = @import("dialects/perl.zig").pcre2;
 pub const swift = @import("dialects/swift.zig").dialect;
 pub const rust = @import("dialects/rust.zig").dialect;
 pub const fancy = @import("dialects/rust.zig").fancy;
+pub const rust_lite = @import("dialects/rust.zig").lite;
 pub const re2 = @import("dialects/re2.zig").dialect;
 pub const go = @import("dialects/re2.zig").go;
+pub const re2_longest = @import("dialects/re2.zig").re2_longest;
+pub const go_longest = @import("dialects/re2.zig").go_longest;
 pub const python = @import("dialects/python.zig").dialect;
+pub const python_regex = @import("dialects/python.zig").regex_module;
 pub const java = @import("dialects/java.zig").dialect;
 pub const ruby = @import("dialects/ruby.zig").dialect;
 pub const oniguruma = @import("dialects/ruby.zig").oniguruma;
@@ -179,7 +183,7 @@ pub const tcl = @import("dialects/tcl.zig").dialect;
 pub const emacs = @import("dialects/emacs.zig").dialect;
 pub const vectorscan = @import("dialects/vectorscan.zig").dialect;
 pub const llvm = @import("dialects/llvm.zig").dialect;
-pub const all = [_]*const Dialect{ &es, &perl, &pcre2, &swift, &rust, &fancy, &re2, &go, &python, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm };
+pub const all = [_]*const Dialect{ &es, &perl, &pcre2, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &ruby, &oniguruma, &dotnet, &dotnet_nb, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;

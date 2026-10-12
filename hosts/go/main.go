@@ -46,6 +46,17 @@ func loneSurrogate(raw string) bool {
 	return false
 }
 
+// IRX_GO_LONGEST=1: leftmost-longest matching (Regexp.Longest).
+var longest = os.Getenv("IRX_GO_LONGEST") != ""
+
+func compile(src string) (*regexp.Regexp, error) {
+	re, err := regexp.Compile(src)
+	if err == nil && longest {
+		re.Longest()
+	}
+	return re, err
+}
+
 func main() {
 	mode := "default"
 	if len(os.Args) > 1 {
@@ -54,7 +65,11 @@ func main() {
 	repeat := mode == "repeat" || mode == "tierup"
 	wide = mode == "lspan" || mode == "lcapture"
 	out := bufio.NewWriter(os.Stdout)
-	fmt.Fprintf(out, "ready go-regexp-%s mode=%s\n", runtime.Version(), mode)
+	name := "go-regexp"
+	if longest {
+		name = "go-regexp-longest"
+	}
+	fmt.Fprintf(out, "ready %s-%s mode=%s\n", name, runtime.Version(), mode)
 	out.Flush()
 	in := bufio.NewReaderSize(os.Stdin, 1<<20)
 	for {
@@ -125,7 +140,7 @@ func run(flags, a, r, pat string, repeat bool) (bits int) {
 	if pre != "" {
 		pre = "(?" + pre + ")"
 	}
-	re, err := regexp.Compile(pre + `\A(?:` + pat + `)\z`)
+	re, err := compile(pre + `\A(?:` + pat + `)\z`)
 	if err != nil {
 		return 0x04
 	}
@@ -184,7 +199,7 @@ func span(flags, a, r, pat string) (res string) {
 	if pre != "" {
 		pre = "(?" + pre + ")"
 	}
-	re, err := regexp.Compile(pre + pat)
+	re, err := compile(pre + pat)
 	if err != nil {
 		return failHex(4, 2)
 	}
@@ -214,7 +229,7 @@ func capture(flags, a, r, pat string) (res string) {
 	if pre != "" {
 		pre = "(?" + pre + ")"
 	}
-	re, err := regexp.Compile(pre + pat)
+	re, err := compile(pre + pat)
 	if err != nil {
 		return failHex(4, 26)
 	}

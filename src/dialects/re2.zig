@@ -42,3 +42,15 @@ pub const go: D.Dialect = blk: {
     d.name = "go";
     break :blk d;
 };
+
+/// RE2 with Options::set_longest_match and Go with Regexp.Longest: leftmost-longest spans (loop
+/// handling no longer affects the overall match, so empty iterations need no special rule).
+fn longest(d0: D.Dialect, name: []const u8) D.Dialect {
+    var d = d0;
+    d.name = name;
+    d.span_semantics = .longest;
+    d.empty_iteration = .stop;
+    return d;
+}
+pub const re2_longest: D.Dialect = longest(dialect, "re2-longest");
+pub const go_longest: D.Dialect = longest(go, "go-longest");

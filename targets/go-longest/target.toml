@@ -1,0 +1,16 @@
+# irx target: Go regexp (Longest)
+# Run: tools/irx_target.py go-longest [--duration SECONDS]
+
+[target]
+title = "Go regexp (Longest)"
+kind = "shell"   # d8 | perl | shell
+command = "/usr/bin/env IRX_GO_LONGEST=1 {root}/hosts/bin/go_host {mode}"
+dialect = "go-longest"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf8"  # index unit of the host's reported spans
+
+[capture]
+enabled = false  # submatches under leftmost-longest are not modelled

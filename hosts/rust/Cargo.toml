@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 regex = "1"
+regex-lite = "0.1"
 fancy-regex = "0.14"
 resharp = "0.7.5"
 

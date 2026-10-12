@@ -520,19 +520,24 @@ target has its own. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are 
 | JavaScriptCore (Bun 1.4.2) | [`bun`](targets/bun) | `driver.js` (node adapter) | ES2024 | clean (0 self-check mismatches) |
 | V8 14.1 / 15.0 (Node, Deno) | [`node`](targets/node), [`deno`](targets/deno) | `driver.js` | ES2024 | older V8; excluded from the ledger and from `--all` campaigns (`campaign = false`) |
 | Perl 5.44 / blead | [`perl`](targets/perl) | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1…7 |
-| PCRE2 10.49 | [`pcre2`](targets/pcre2) | `hosts/c/pcre2_host` | Perl (exact) | IRX-PCRE2-1, 3 (JIT), IRX-PCRE2-2, 4 |
+| PCRE2 10.49 | [`pcre2`](targets/pcre2) | `hosts/c/pcre2_host` | `pcre2`: Perl with UCP `\w`/`\s` (exact) | IRX-PCRE2-1, 3 (JIT), IRX-PCRE2-2, 4 |
+| PCRE2 10.49 JIT | [`pcre2-jit`](targets/pcre2-jit) | `hosts/c/pcre2_host` (`IRX_PCRE2_JIT=1`) | `pcre2` (exact) | 0 self-check mismatches; IRX-PCRE2-4 in the sweep |
 | PHP 8.5 `preg_*` | [`php-pcre2`](targets/php-pcre2) | `hosts/script/php_host.php` | Perl (exact) | IRX-PCRE2-1…3 |
 | Swift Regex 6.4 | [`swift-regex`](targets/swift-regex) | `hosts/swift` (scalar semantics) | Swift (exact) | IRX-SWIFT-1…5 |
 | .NET 9 interpreter / Compiled / NonBacktracking | [`dotnet-interp`](targets/dotnet-interp), [`dotnet-compiled`](targets/dotnet-compiled), [`dotnet-nonbacktracking`](targets/dotnet-nonbacktracking) | `hosts/dotnet` | `dotnet` / `dotnet-nonbacktracking`: UTF-16 units, `\w` = L\|Mn\|Nd\|Pc (exact) | IRX-DOTNET-1…8 |
 | ICU (`NSRegularExpression`) | [`icu`](targets/icu) | `hosts/swift` | `icu`: UTS #18 classes, Unicode line ends, CRLF `$` (exact) | IRX-ICU-1…5 |
 | Rust `regex` | [`rust-regex`](targets/rust-regex) | `hosts/rust` | `rust` (exact) | 0 self-check mismatches; 1.2M patterns, 0 findings |
+| Rust `regex-lite` 0.1 | [`regex-lite`](targets/regex-lite) | `hosts/rust` | `rust-lite`: ASCII classes and `(?i)`, no `\p` (exact) | 0 self-check mismatches; 700k-case sweep clean |
 | fancy-regex | [`fancy-regex`](targets/fancy-regex) | `hosts/rust` | `fancy`: fixed-length lookbehind, no empty-body quantifiers (exact) | IRX-FANCY-1 |
 | RE# (`resharp`) | [`resharp`](targets/resharp) | `hosts/rust` | `resharp`: UnicodeMode::Full; no lazy, lookbehind, mid-pattern `^`/`\b`, lookahead under `*` (exact) | 0 self-check mismatches; named groups under quantifiers rejected; IRX-RESHARP-1 |
 | RE2 | [`re2`](targets/re2) | `hosts/c/re2_host` | `re2`: ASCII classes (exact) | IRX-RE2-1, 2 |
+| RE2 `longest_match` | [`re2-longest`](targets/re2-longest) | `hosts/c/re2_host` (`IRX_RE2_LONGEST=1`) | `re2-longest`: leftmost-longest spans (exact; no captures) | 0 self-check mismatches |
 | Go `regexp` | [`go-regexp`](targets/go-regexp) | `hosts/go` | `go`: ASCII classes (exact) | 0 self-check mismatches |
+| Go `regexp` `Longest` | [`go-longest`](targets/go-longest) | `hosts/go` (`IRX_GO_LONGEST=1`) | `go-longest`: leftmost-longest spans (exact; no captures) | 0 self-check mismatches |
 | Oniguruma 6.9 | [`oniguruma`](targets/oniguruma) | `hosts/c/onig_host` | `oniguruma`: Unicode classes, Ruby anchors (exact) | IRX-ONIG-1 |
 | Ruby Onigmo | [`ruby-onigmo`](targets/ruby-onigmo) | `hosts/script/rb_host.rb` | `ruby`: ASCII `\w`, Unicode `\b`, always-on line anchors (exact) | IRX-ONIG-1, IRX-RUBY-1 |
 | Python `re` | [`python-re`](targets/python-re) | `hosts/script/py_host.py` | `python`: isalnum `\w`, sre case groups, `(?P<…>)` (exact) | 0 self-check mismatches |
+| Python `regex` module | [`python-regex`](targets/python-regex) | `hosts/script/py_host.py` (`IRX_PY_ENGINE=regex`, `vendor/pyregex`) | `python-regex`: `\p{Word}` `\w`, `re` case groups, `\p`, variable lookbehind; ı and İ outside the pool (non-transitive case relation) | self-check: only ı/İ probes |
 | Java `java.util.regex` | [`java`](targets/java) | `hosts/java` | `java`: Java line ends, `lower(upper())` fold, range rule (exact) | IRX-JAVA-1…6 |
 | nim-regex | [`nim-regex`](targets/nim-regex) | `hosts/nim` | `nim`: `(?P<…>)`, end-only `$`, case-mapped range endpoints (exact) | IRX-NIM-1, NIM-1, NIM-3, NIM-6 rediscovered |
 | Tcl ARE | [`tcl`](targets/tcl) | `hosts/script/tcl_host.tcl` | `tcl`: `\y`, L\|Nd\|Pc words, `-linestop` negations, {p, upper, lower} nocase (exact) | IRX-TCL-1 |
