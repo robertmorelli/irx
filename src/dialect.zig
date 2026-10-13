@@ -82,6 +82,15 @@ pub const Dialect = struct {
     /// Rust's class set operations [A&&B] [A--B] [A~~B] and nested classes [a[bc]] without a v
     /// flag; each operand is closed under case equivalence before the operation.
     class_set_ops: bool = false,
+    /// \\A and \\z besides ^ and $ (absolute ends, unaffected by m).
+    abs_anchors: bool = false,
+    /// POSIX classes [[:alpha:]] [[:^alpha:]] (ASCII).
+    posix_classes: bool = false,
+    /// Negated POSIX classes [[:^name:]] under i (regex-lite folds after negating: IRX-RLITE-1).
+    posix_neg_ignore_case: bool = true,
+    /// Printing varies per pattern among Rust's equivalent spellings: \\x{H} \\xHH \\u{H} \\uHHHH
+    /// \\UHHHHHHHH or the raw character; \\pL \\p{Letter} \\p{gc=L} \\p{gc!=L}…; (?<n>) or (?P<n>).
+    rust_spellings: bool = false,
     /// Global search may report an empty match where the previous match ended (JS matchAll);
     /// false: such a match is skipped and the search goes on one character later (Rust find_iter).
     global_empty_after_match: bool = true,

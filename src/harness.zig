@@ -921,13 +921,31 @@ pub fn jsonString(out: *std.ArrayList(u8), gpa: Allocator, units: []const u16) !
     try out.append(gpa, '"');
 }
 
+/// JSON string in ASCII: UTF-8 sequences become \\u escapes (surrogate pairs past U+FFFF);
+/// a byte that starts no valid sequence is escaped as U+00XX.
 pub fn jsonAscii(out: *std.ArrayList(u8), gpa: Allocator, s: []const u8) !void {
     try out.append(gpa, '"');
-    for (s) |c| {
+    var i: usize = 0;
+    while (i < s.len) {
+        const c = s[i];
+        if (c >= 0x80) {
+            const n = std.unicode.utf8ByteSequenceLength(c) catch 0;
+            if (n > 1 and i + n <= s.len) {
+                if (std.unicode.utf8Decode(s[i .. i + n])) |cp| {
+                    if (cp > 0xFFFF) {
+                        const v = cp - 0x10000;
+                        try out.print(gpa, "\\u{x:0>4}\\u{x:0>4}", .{ 0xD800 + (v >> 10), 0xDC00 + (v & 0x3FF) });
+                    } else try out.print(gpa, "\\u{x:0>4}", .{cp});
+                    i += n;
+                    continue;
+                } else |_| {}
+            }
+        }
         if (c == '"' or c == '\\') {
             try out.append(gpa, '\\');
             try out.append(gpa, c);
         } else if (c >= 0x20 and c < 0x7f) try out.append(gpa, c) else try out.print(gpa, "\\u{x:0>4}", .{c});
+        i += 1;
     }
     try out.append(gpa, '"');
 }

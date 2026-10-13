@@ -219,6 +219,8 @@ pub const Printer = struct {
     /// picks `(?:)`, nothing (where the syntax allows) or `()` from (spell, ordinal).
     spell: u64 = 0,
     empty_ordinal: u32 = 0,
+    /// Ordinal of the next spelling choice (rust_spellings).
+    pick_ordinal: u32 = 0,
     /// Duplicate named groups (ES2025): alias[i] = the named-group node whose name node i
     /// reuses (none = 255); name_num[i] = the printed number naming node i.
     alias: [ast.max_nodes]u8 = undefined,
@@ -237,6 +239,17 @@ pub const Printer = struct {
     /// Lookbehind nesting depth (Oniguruma/Onigmo reject captures there, so no `()` spelling).
     lb_depth: u8 = 0,
 
+    /// One of `n` equivalent spellings, from (spell, ordinal); 0 when spell is 0.
+    fn pick(self: *Printer, n: u64) u64 {
+        if (self.spell == 0 or n <= 1) return 0;
+        self.pick_ordinal += 1;
+        var x = self.spell +% @as(u64, self.pick_ordinal) *% 0x9E3779B97F4A7C15;
+        x ^= x >> 31;
+        x *%= 0xBF58476D1CE4E5B9;
+        x ^= x >> 29;
+        return x % n;
+    }
+
     fn put(self: *Printer, s: []const u8) PrintError!void {
         if (self.out.items.len + s.len > self.limit) return error.PatternTooLong;
         try self.out.appendSlice(self.gpa, s);
@@ -246,7 +259,7 @@ pub const Printer = struct {
         try self.out.append(self.gpa, c);
     }
     fn fmt(self: *Printer, comptime f: []const u8, args: anytype) PrintError!void {
-        var buf: [32]u8 = undefined;
+        var buf: [64]u8 = undefined;
         const s = std.fmt.bufPrint(&buf, f, args) catch unreachable;
         try self.put(s);
     }
@@ -436,7 +449,8 @@ pub const Printer = struct {
                 self.noteTreeGroup();
                 self.name_num[idx] = if (self.alias[idx] != 255) self.name_num[self.alias[idx]] else self.printed_groups;
                 if (self.n_tree_groups > 0) self.named_target[self.n_tree_groups - 1] = self.name_num[idx];
-                switch (dialect.active.named_group) {
+                const ng = if (dialect.active.rust_spellings and self.pick(2) == 1) dialect.NamedGroup.p_angle else dialect.active.named_group;
+                switch (ng) {
                     .angle => try self.fmt("(?<g{d}>", .{self.name_num[idx]}),
                     .p_angle => try self.fmt("(?P<g{d}>", .{self.name_num[idx]}),
                     .plain_capture => try self.putc('('),
@@ -476,6 +490,31 @@ pub const Printer = struct {
     }
 
     fn escapedCodePoint(self: *Printer, c: u21) PrintError!void {
+        if (dialect.active.rust_spellings) {
+            // Raw characters: x mode ignores whitespace, and a control character stays escaped.
+            const ws = c == 0xA0 or c == 0x1680 or (c >= 0x2000 and c <= 0x200A) or c == 0x2028 or c == 0x2029 or c == 0x202F or c == 0x205F or c == 0x3000;
+            const raw_ok = c > 0x9F and !(self.xmode and ws);
+            const forms = [_]bool{ true, c <= 0xFF, true, c <= 0xFFFF, true, raw_ok };
+            var ok: [forms.len]u8 = undefined;
+            var k: usize = 0;
+            for (forms, 0..) |f, j| if (f) {
+                ok[k] = @intCast(j);
+                k += 1;
+            };
+            switch (ok[self.pick(k)]) {
+                0 => try self.fmt("\\x{{{X}}}", .{c}),
+                1 => try self.fmt("\\x{X:0>2}", .{c}),
+                2 => try self.fmt("\\u{{{X}}}", .{c}),
+                3 => try self.fmt("\\u{X:0>4}", .{c}),
+                4 => try self.fmt("\\U{X:0>8}", .{c}),
+                else => {
+                    var buf: [4]u8 = undefined;
+                    const len = std.unicode.utf8Encode(c, &buf) catch unreachable;
+                    try self.put(buf[0..len]);
+                },
+            }
+            return;
+        }
         if (dialect.active.escape == .x_brace) {
             try self.fmt("\\x{{{X}}}", .{c});
         } else if (self.flags.unicode()) {
@@ -567,6 +606,51 @@ pub const Printer = struct {
         }
     }
 
+    fn propLong(p: atoms.Prop) []const u8 {
+        return switch (p) {
+            .L => "Letter",
+            .Lu => "Uppercase_Letter",
+            .Ll => "Lowercase_Letter",
+            .N => "Number",
+            .Nd => "Decimal_Number",
+            .P => "Punctuation",
+            .Pc => "Connector_Punctuation",
+            .Pd => "Dash_Punctuation",
+            .Po => "Other_Punctuation",
+            .S => "Symbol",
+            .So => "Other_Symbol",
+            .Z => "Separator",
+            .Zs => "Space_Separator",
+            .Zl => "Line_Separator",
+            .C => "Other",
+            .Cc => "Control",
+        };
+    }
+
+    /// \p{X} / \P{X}, or (rust_spellings) one of Rust's equivalent forms.
+    fn property(self: *Printer, p: atoms.Prop, neg: bool) PrintError!void {
+        const short = @tagName(p);
+        const form = if (dialect.active.rust_spellings) self.pick(8) else 0;
+        if (form == 7 and neg) return self.fmt("\\p{{gc!={s}}}", .{short});
+        const pre = if (neg) "\\P" else "\\p";
+        switch (form) {
+            1 => if (short.len == 1) return self.fmt("{s}{s}", .{ pre, short }),
+            2 => return self.fmt("{s}{{{s}}}", .{ pre, propLong(p) }),
+            3 => return self.fmt("{s}{{gc={s}}}", .{ pre, short }),
+            4 => return self.fmt("{s}{{gc:{s}}}", .{ pre, short }),
+            5 => return self.fmt("{s}{{General_Category={s}}}", .{ pre, propLong(p) }),
+            6 => {
+                // Loose matching: case, spaces and underscores are ignored.
+                try self.put(pre);
+                try self.putc('{');
+                for (propLong(p)) |ch| try self.putc(if (ch == '_') ' ' else std.ascii.toLower(ch));
+                return self.putc('}');
+            },
+            else => {},
+        }
+        return self.fmt("{s}{{{s}}}", .{ pre, short });
+    }
+
     pub fn atom(self: *Printer, a: *const AtomSpec) PrintError!void {
         switch (a.kind) {
             .lit => try self.literal(a.syms[0]),
@@ -612,8 +696,13 @@ pub const Printer = struct {
                 }
                 try self.put("}]");
             },
-            .caret => try self.putc('^'),
-            .dollar => try self.putc('$'),
+            .caret => try self.put(if (a.sub == 1) "\\A" else "^"),
+            .dollar => try self.put(if (a.sub == 1) "\\z" else "$"),
+            .posix => {
+                try self.put(if (a.neg) "[[:^" else "[[:");
+                try self.put(@tagName(@as(atoms.Posix, @enumFromInt(a.sub))));
+                try self.put(":]]");
+            },
             .wordb => try self.put(switch (@as(atoms.WordbVariant, @enumFromInt(a.sub))) {
                 .plain => dialect.active.word_boundary,
                 .start => "\\b{start}",
@@ -625,11 +714,7 @@ pub const Printer = struct {
             }),
             .nwordb => try self.put(dialect.active.nonword_boundary),
             .empty => try self.put("(?:)"),
-            .prop => {
-                try self.put(if (a.neg) "\\P{" else "\\p{");
-                try self.put(@tagName(@as(atoms.Prop, @enumFromInt(a.sub))));
-                try self.putc('}');
-            },
+            .prop => try self.property(@enumFromInt(a.sub), a.neg),
         }
     }
 };

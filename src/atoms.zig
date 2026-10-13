@@ -16,7 +16,33 @@ const dialect = @import("dialect.zig");
 /// wordb atom `sub`: the plain boundary or one of Rust's half/whole boundary assertions.
 pub const WordbVariant = enum(u8) { plain, start, end, start_half, end_half, lt, gt };
 
-pub const Kind = enum(u8) { lit, dot, esc, range, cls, vset, caret, dollar, wordb, nwordb, empty, prop, strs, grapheme };
+pub const Kind = enum(u8) { lit, dot, esc, range, cls, vset, caret, dollar, wordb, nwordb, empty, prop, strs, grapheme, posix };
+
+/// posix atom `sub`: the ASCII class of [[:name:]] (neg: [[:^name:]]).
+pub const Posix = enum(u8) {
+    alnum, alpha, ascii, blank, cntrl, digit, graph, lower, print, punct, space, upper, word, xdigit,
+
+    pub fn has(p: Posix, x: u21) bool {
+        if (x > 0x7F) return false;
+        const c: u8 = @intCast(x);
+        return switch (p) {
+            .alnum => std.ascii.isAlphanumeric(c),
+            .alpha => std.ascii.isAlphabetic(c),
+            .ascii => true,
+            .blank => c == ' ' or c == '\t',
+            .cntrl => c < 0x20 or c == 0x7F,
+            .digit => std.ascii.isDigit(c),
+            .graph => c > 0x20 and c < 0x7F,
+            .lower => std.ascii.isLower(c),
+            .print => c >= 0x20 and c < 0x7F,
+            .punct => c > 0x20 and c < 0x7F and !std.ascii.isAlphanumeric(c),
+            .space => c == ' ' or (c >= 0x09 and c <= 0x0D),
+            .upper => std.ascii.isUpper(c),
+            .word => std.ascii.isAlphanumeric(c) or c == '_',
+            .xdigit => std.ascii.isHex(c),
+        };
+    }
+};
 
 /// Unicode general categories for `\p{…}` / `\P{…}` (a selection that the character pool
 /// exercises: letters and their cases, digits, the pool's punctuation, symbols, separators,
@@ -104,7 +130,7 @@ pub const AtomSpec = struct {
 
     pub fn isConsuming(a: AtomSpec) bool {
         return switch (a.kind) {
-            .lit, .dot, .esc, .range, .cls, .vset, .prop, .strs, .grapheme => true,
+            .lit, .dot, .esc, .range, .cls, .vset, .prop, .strs, .grapheme, .posix => true,
             else => false,
         };
     }
@@ -132,6 +158,7 @@ pub fn category(a: AtomSpec) Category {
         .prop => .property,
         .strs => .vset,
         .grapheme => .escape,
+        .posix => .class,
     };
 }
 
@@ -186,7 +213,7 @@ pub const explicit_ranges = [_][2]u21{
 // ---------------------------------------------------------------------------
 // CharSet expressions
 
-const SetKind = enum { list, range, digit, space, word, dotset, all, comp, fold, closure, uni, inter, diff, symdiff, prop, hspace, vspace };
+const SetKind = enum { list, range, digit, space, word, dotset, all, comp, fold, closure, uni, inter, diff, symdiff, prop, posix, hspace, vspace };
 const SetNode = struct {
     kind: SetKind,
     lo: u21 = 0,
@@ -228,6 +255,7 @@ fn has(n: *const SetNode, flags: Flags, x: u21) bool {
         .inter => has(n.a.?, flags, x) and has(n.b.?, flags, x),
         .diff => has(n.a.?, flags, x) and !has(n.b.?, flags, x),
         .symdiff => has(n.a.?, flags, x) != has(n.b.?, flags, x),
+        .posix => @as(Posix, @enumFromInt(n.lo)).has(x),
         // General category (lo = Prop). Perl-style /i: Lu and Ll stand for any cased letter.
         .prop => blk: {
             const p: Prop = @enumFromInt(n.lo);
@@ -326,6 +354,8 @@ fn compile(spec: *const AtomSpec, flags: Flags, ar: *SetArena) Compiled {
             if (spec.neg) set = ar.add(.{ .kind = .comp, .a = set });
             return .{ .root = set, .invert = false };
         },
+        // [[:name:]]: an ASCII class; [[:^name:]] negates after case equivalence, like [^…].
+        .posix => return .{ .root = ar.add(.{ .kind = .posix, .lo = spec.sub }), .invert = spec.neg },
         .vset => {
             std.debug.assert(flags.v or dialect.active.class_set_ops);
             const l = operandSet(ar, &v_operands[spec.syms[0]], flags);
@@ -408,6 +438,9 @@ pub fn assertionAt(spec: *const AtomSpec, flags0: Flags, w: []const u21, i: usiz
     var flags = flags0;
     if (dl.anchors_always_multiline) flags.m = true;
     const n = w.len;
+    // \A and \z (sub 1): the absolute ends, whatever the flags.
+    if (spec.sub == 1 and spec.kind == .caret) return i == 0;
+    if (spec.sub == 1 and spec.kind == .dollar) return i == n;
     if (flags.crlf and flags.m and (spec.kind == .caret or spec.kind == .dollar)) {
         // Rust (?mR): \r and \n both end lines, never between the two of a \r\n.
         const crlfAt = struct {
@@ -632,6 +665,16 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
     for ([_]Kind{ .caret, .dollar, .wordb, .nwordb, .empty }) |kd| {
         if (!dialect.active.assertions.allows(kd)) continue;
         try out.append(gpa, .{ .kind = kd });
+    }
+    if (dialect.active.abs_anchors) {
+        if (dialect.active.assertions.allows(.caret)) try out.append(gpa, .{ .kind = .caret, .sub = 1 });
+        if (dialect.active.assertions.allows(.dollar)) try out.append(gpa, .{ .kind = .dollar, .sub = 1 });
+    }
+    if (dialect.active.posix_classes) {
+        for (0..std.enums.values(Posix).len) |p| for ([_]bool{ false, true }) |neg| {
+            if (neg and flags.i and !dialect.active.posix_neg_ignore_case) continue;
+            try out.append(gpa, .{ .kind = .posix, .sub = @intCast(p), .neg = neg });
+        };
     }
     if (dialect.active.word_boundary_variants and dialect.active.assertions.allows(.wordb)) {
         for (1..std.enums.values(WordbVariant).len) |v| try out.append(gpa, .{ .kind = .wordb, .sub = @intCast(v) });

@@ -16,6 +16,9 @@ const base: D.Dialect = .{
     .prop_case = .equivalence_invert,
     .word_boundary_variants = true,
     .class_set_ops = true,
+    .abs_anchors = true,
+    .posix_classes = true,
+    .rust_spellings = true,
     // find_iter: a*  on "baa" is [0,0) [1,3), with no empty match at 3.
     .global_empty_after_match = false,
     // (?R:…) CRLF mode and (?U:…) swap-greed mode besides i, s, m.
@@ -79,6 +82,8 @@ pub const lite: D.Dialect = blk: {
     d.name = "rust-lite";
     d.unicode_props = false;
     d.class_set_ops = false;
+    // (?i)[[:^upper:]] matches "a" and "A" (IRX-RLITE-1): no negated POSIX classes under i.
+    d.posix_neg_ignore_case = false;
     d.isWord = liteWord;
     d.isDigit = liteDigit;
     d.isSpace = liteSpace;
