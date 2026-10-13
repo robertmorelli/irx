@@ -15,6 +15,7 @@ const base: D.Dialect = .{
     .unicode_props = true,
     .prop_case = .equivalence_invert,
     .word_boundary_variants = true,
+    .class_set_ops = true,
     // (?R:…) CRLF mode and (?U:…) swap-greed mode besides i, s, m.
     .scoped_mods = 1 | 2 | 4 | 8 | 16,
     .name = "rust",
@@ -75,6 +76,7 @@ pub const lite: D.Dialect = blk: {
     var d = base;
     d.name = "rust-lite";
     d.unicode_props = false;
+    d.class_set_ops = false;
     d.isWord = liteWord;
     d.isDigit = liteDigit;
     d.isSpace = liteSpace;

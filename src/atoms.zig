@@ -33,7 +33,7 @@ pub const Prop = enum(u8) {
     }
 };
 pub const Esc = enum(u8) { d, D, w, W, s, S, h, H, v, V };
-pub const VOp = enum(u8) { sub, inter, uni };
+pub const VOp = enum(u8) { sub, inter, uni, sym };
 
 /// Value-typed atom description. Owned ASTs embed these, so a finding never
 /// refers back to a table's inventory.
@@ -186,7 +186,7 @@ pub const explicit_ranges = [_][2]u21{
 // ---------------------------------------------------------------------------
 // CharSet expressions
 
-const SetKind = enum { list, range, digit, space, word, dotset, all, comp, fold, uni, inter, diff, prop, hspace, vspace };
+const SetKind = enum { list, range, digit, space, word, dotset, all, comp, fold, closure, uni, inter, diff, symdiff, prop, hspace, vspace };
 const SetNode = struct {
     kind: SetKind,
     lo: u21 = 0,
@@ -222,9 +222,12 @@ fn has(n: *const SetNode, flags: Flags, x: u21) bool {
         .comp => alpha.inAllCharacters(x, flags) and !has(n.a.?, flags, x),
         // MaybeSimpleCaseFolding: {scf(s) : s ∈ S} under v+i, else S.
         .fold => if (flags.v and flags.i) foldHas(n.a.?, flags, x) else has(n.a.?, flags, x),
+        // Rust class set operands: each closed under case equivalence before the operation.
+        .closure => if (flags.i) alpha.existsEquivalent(x, flags, HasCtx{ .n = n.a.?, .flags = flags }, hasCtx) else has(n.a.?, flags, x),
         .uni => has(n.a.?, flags, x) or has(n.b.?, flags, x),
         .inter => has(n.a.?, flags, x) and has(n.b.?, flags, x),
         .diff => has(n.a.?, flags, x) and !has(n.b.?, flags, x),
+        .symdiff => has(n.a.?, flags, x) != has(n.b.?, flags, x),
         // General category (lo = Prop). Perl-style /i: Lu and Ll stand for any cased letter.
         .prop => blk: {
             const p: Prop = @enumFromInt(n.lo);
@@ -265,14 +268,17 @@ fn escSet(ar: *SetArena, e: Esc, flags: Flags) *const SetNode {
 }
 
 fn operandSet(ar: *SetArena, op: *const Operand, flags: Flags) *const SetNode {
+    // ES v mode folds each operand (MaybeSimpleCaseFolding); Rust closes it under case
+    // equivalence, so (?i)[a&&A] matches "a".
+    const fk: SetKind = if (flags.v) .fold else .closure;
     return switch (op.kind) {
         .esc => escSet(ar, op.esc, flags),
-        .range => ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .range, .lo = op.syms[0], .hi = op.syms[1] }) }),
-        .char => ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..1] }) }),
-        .list => ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..op.n] }) }),
-        .neglist => ar.add(.{ .kind = .comp, .a = ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..op.n] }) }) }),
-        .prop => ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .prop, .lo = @intCast(op.syms[0]) }) }),
-        .qstr => ar.add(.{ .kind = .fold, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..op.n] }) }),
+        .range => ar.add(.{ .kind = fk, .a = ar.add(.{ .kind = .range, .lo = op.syms[0], .hi = op.syms[1] }) }),
+        .char => ar.add(.{ .kind = fk, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..1] }) }),
+        .list => ar.add(.{ .kind = fk, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..op.n] }) }),
+        .neglist => ar.add(.{ .kind = .comp, .a = ar.add(.{ .kind = fk, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..op.n] }) }) }),
+        .prop => ar.add(.{ .kind = fk, .a = ar.add(.{ .kind = .prop, .lo = @intCast(op.syms[0]) }) }),
+        .qstr => ar.add(.{ .kind = fk, .a = ar.add(.{ .kind = .list, .syms = op.syms[0..op.n] }) }),
     };
 }
 
@@ -321,13 +327,14 @@ fn compile(spec: *const AtomSpec, flags: Flags, ar: *SetArena) Compiled {
             return .{ .root = set, .invert = false };
         },
         .vset => {
-            std.debug.assert(flags.v);
+            std.debug.assert(flags.v or dialect.active.class_set_ops);
             const l = operandSet(ar, &v_operands[spec.syms[0]], flags);
             const r = operandSet(ar, &v_operands[spec.syms[1]], flags);
             const k: SetKind = switch (@as(VOp, @enumFromInt(spec.sub))) {
                 .sub => .diff,
                 .inter => .inter,
                 .uni => .uni,
+                .sym => .symdiff,
             };
             var root = ar.add(.{ .kind = k, .a = l, .b = r });
             if (spec.neg) root = ar.add(.{ .kind = .comp, .a = root });
@@ -594,10 +601,13 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
         }
     }
 
-    if (flags.v) {
+    if (flags.v or dialect.active.class_set_ops) {
         for (std.enums.values(VOp)) |op| {
+            // ~~ (symmetric difference) is Rust's; \q{} is ES v mode's.
+            if (op == .sym and flags.v) continue;
             for (0..v_operands.len) |l| for (0..v_operands.len) |r| {
                 if (l == r) continue;
+                if (!flags.v and (v_operands[l].kind == .qstr or v_operands[r].kind == .qstr)) continue;
                 if (!dialect.active.unicode_props and (v_operands[l].kind == .prop or v_operands[r].kind == .prop)) continue;
                 if (flags.i and !dialect.active.qstr_ignore_case and (v_operands[l].kind == .qstr or v_operands[r].kind == .qstr)) continue;
                 for ([_]bool{ false, true }) |neg| {

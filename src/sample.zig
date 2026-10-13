@@ -510,6 +510,9 @@ pub const Printer = struct {
             // ClassSetSyntaxCharacter, ClassSetReservedPunctuator, and the remaining
             // SyntaxCharacters: escaping all of them is valid and avoids doubled punctuators.
             std.mem.indexOfScalar(u8, "()[]{}/-\\|&!#%,:;<=>@`~^$.*+?", b) != null
+        else if (dialect.active.class_set_ops)
+            // Rust: [ opens a nested class, && and ~~ are operators.
+            std.mem.indexOfScalar(u8, "\\[]-^&~", b) != null
         else
             std.mem.indexOfScalar(u8, "\\]-^", b) != null;
         if (needs) try self.putc('\\');
@@ -590,6 +593,7 @@ pub const Printer = struct {
                 switch (@as(atoms.VOp, @enumFromInt(a.sub))) {
                     .sub => try self.put("--"),
                     .inter => try self.put("&&"),
+                    .sym => try self.put("~~"),
                     .uni => {},
                 }
                 try self.operand(&atoms.v_operands[a.syms[1]]);

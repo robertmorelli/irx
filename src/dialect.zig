@@ -79,6 +79,9 @@ pub const Dialect = struct {
     word_boundary: []const u8 = "\\b",
     /// Rust's \\b{start} \\b{end} \\b{start-half} \\b{end-half} \\< \\>.
     word_boundary_variants: bool = false,
+    /// Rust's class set operations [A&&B] [A--B] [A~~B] and nested classes [a[bc]] without a v
+    /// flag; each operand is closed under case equivalence before the operation.
+    class_set_ops: bool = false,
     nonword_boundary: []const u8 = "\\B",
     /// The empty atom may also print as nothing: `(?:|a)`, `a|`, `(?=)` (fuzz cases only;
     /// self-check keeps `(?:)`). POSIX ERE rejects empty branches.
