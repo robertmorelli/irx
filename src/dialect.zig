@@ -82,6 +82,9 @@ pub const Dialect = struct {
     /// Rust's class set operations [A&&B] [A--B] [A~~B] and nested classes [a[bc]] without a v
     /// flag; each operand is closed under case equivalence before the operation.
     class_set_ops: bool = false,
+    /// Global search may report an empty match where the previous match ended (JS matchAll);
+    /// false: such a match is skipped and the search goes on one character later (Rust find_iter).
+    global_empty_after_match: bool = true,
     nonword_boundary: []const u8 = "\\B",
     /// The empty atom may also print as nothing: `(?:|a)`, `a|`, `(?=)` (fuzz cases only;
     /// self-check keeps `(?:)`). POSIX ERE rejects empty branches.

@@ -4,6 +4,10 @@ fn main() {
         let re = regex_lite::Regex::new(&format!("{}{}", irx_hosts::inline_flags(flags), pat)).map_err(|_| 0x04u8)?;
         Ok(Box::new(move |s: &str| Ok(re.is_match(s))))
     });
+    irx_hosts::global(|flags, s, pat| {
+        let re = regex_lite::RegexBuilder::new(&format!("{}{}", irx_hosts::inline_flags(flags), pat)).size_limit(64 << 20).build().map_err(|_| 0x04u8)?;
+        Ok(re.find_iter(s).take(4).map(|m| (m.start(), m.end())).collect())
+    });
     irx_hosts::serve_all("regex-lite", |flags, a, r, pat, repeat| {
         let src = format!("{}\\A(?:{})\\z", irx_hosts::inline_flags(flags), pat);
         let re = match regex_lite::RegexBuilder::new(&src).size_limit(64 << 20).build() { Ok(re) => re, Err(_) => return 0x04 };
@@ -18,7 +22,7 @@ fn main() {
         let src = format!("{}{}", irx_hosts::inline_flags(flags), pat);
         let re = regex_lite::RegexBuilder::new(&src).size_limit(64 << 20).build().map_err(|_| 0x04u8)?;
         let (s0, s1) = (irx_hosts::start(0), irx_hosts::start(1));
-        Ok([(a, s0), (r, s1)].map(|(s, k)| re.find_at(s, k).map(|m| (m.start(), m.end()))))
+        Ok([(a, s0), (r, s1)].map(|(s, k)| re.find_at(s, k).filter(|m| !irx_hosts::sticky() || m.start() == k).map(|m| (m.start(), m.end()))))
     }, |flags, a, r, pat| {
         let src = format!("{}{}", irx_hosts::inline_flags(flags), pat);
         let re = regex_lite::RegexBuilder::new(&src).size_limit(64 << 20).build().map_err(|_| 0x04u8)?;

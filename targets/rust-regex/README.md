@@ -50,3 +50,71 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END rust-regex long-10m results -->
+
+<!-- BEGIN rust-regex rstop results -->
+### Rust regex: rstop campaign
+
+* 153,760 patterns, 3 tables, 1,184 distinct findings
+* findings by kind: 775 wrong_span, 409 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 64 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:\B\|a)*` | 00 |
+| 57 | wrong_span | `u` | `"aa"` | `"aaϑ"` | `(?:\B\|a)*` | 02 |
+| 48 | wrong_capture | `u` | `"aa"` | `"aaϑ"` | `(?:\B\|a)*` | 02 |
+| 46 | wrong_capture | `u` | `"aa"` | `"ϑ"` | `(?:\B\|a)*` | 00 |
+| 28 | wrong_span | `u` | `"aa"` | `"aaϑ"` | `(?:\B\|a)+` | 02 |
+| 26 | wrong_capture | `u` | `"aa"` | `"aaϑ"` | `(?:\B\|a)+` | 02 |
+| 26 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:\B\|a)+` | 00 |
+| 24 | wrong_span | `u` | `"aa"` | `"ӏ"` | `(?:\B\|a)*` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END rust-regex rstop results -->
+
+<!-- BEGIN rust-regex rthom results -->
+### Rust regex: rthom campaign
+
+* 210,240 patterns, 4 tables, 36 distinct findings
+* findings by kind: 24 wrong_span, 12 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 2 | wrong_span | `u` | `"ϑё"` | `"a"` | `(?:(?:\B\|[^a\x{4CF}]){2})*` | 00 |
+| 1 | wrong_capture | `u` | `""` | `".a "` | `(?:.*?)*\b\|()` | 03 |
+| 1 | wrong_span | `u` | `""` | `".a "` | `(?:.*?)*\b\|()` | 03 |
+| 1 | wrong_span | `u` | `"aa a"` | `""` | `(?x:(?:[^\-\x{4CF}]*?)* \b)` | 00 |
+| 1 | wrong_span | `u` | `"a ё"` | `""` | `(?:.*?)*[ \x{451}]` | 00 |
+| 1 | wrong_capture | `u` | `"a ё"` | `""` | `(?:.*?)*[ \x{451}]` | 00 |
+| 1 | wrong_capture | `u` | `"aKaa"` | `""` | `(?x:a (?:a*? [K\x{DF}]*)*)` | 00 |
+| 1 | wrong_span | `u` | `"Ӏaa"` | `""` | `(?:\D*?)*a` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END rust-regex rthom results -->
+
+<!-- BEGIN rust-regex rnfa results -->
+### Rust regex: rnfa campaign
+
+* 211,264 patterns, 4 tables, 0 distinct findings
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END rust-regex rnfa results -->
+
+<!-- BEGIN rust-regex rwb results -->
+### Rust regex: rwb campaign
+
+* 100,512 patterns, 3 tables, 0 distinct findings
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END rust-regex rwb results -->
+
+<!-- BEGIN rust-regex rglob results -->
+### Rust regex: rglob campaign
+
+* 44,544 patterns, 2 tables, 0 distinct findings
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END rust-regex rglob results -->

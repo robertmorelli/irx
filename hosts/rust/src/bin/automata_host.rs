@@ -96,6 +96,22 @@ fn main() {
         let (mut find, _) = build(flags, pat, false)?;
         Ok(Box::new(move |s: &str| find(&Input::new(s)).map(|m| m.is_some()).map_err(|_| ())))
     });
+    // Global search through the crate's own iterator (it skips an empty match where the last
+    // match ended).
+    irx_hosts::global(|flags, s, pat| {
+        let (mut find, _) = build(flags, pat, false)?;
+        let mut err = None;
+        let mut it = regex_automata::util::iter::Searcher::new(Input::new(s));
+        let mut out = Vec::new();
+        while out.len() < 4 {
+            let r = it.try_advance(|inp| match find(inp) {
+                Ok(m) => Ok(m.map(|(a, b)| regex_automata::Match::must(0, a..b))),
+                Err(e) => { err = Some(e); Err(regex_automata::MatchError::gave_up(inp.start())) }
+            });
+            match r { Ok(Some(m)) => out.push((m.start(), m.end())), Ok(None) => break, Err(_) => return Err(err.unwrap_or(0x40)) }
+        }
+        Ok(out)
+    });
     let name = format!("regex-automata-{}", engine());
     irx_hosts::serve_all(&name, |flags, a, r, pat, repeat| {
         let (mut find, _) = match build(flags, &format!("\\A(?:{})\\z", pat), false) { Ok(x) => x, Err(e) => return e };

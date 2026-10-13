@@ -114,3 +114,135 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END fancy-regex long-10m results -->
+
+<!-- BEGIN fancy-regex rstop results -->
+### fancy-regex: rstop campaign
+
+* 215,360 patterns, 4 tables, 439 distinct findings
+* findings by kind: 257 wrong_span, 139 wrong_capture, 28 wrong_result, 15 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 3 | wrong_span | `u` | `"aa"` | `"aaϑ"` | `(?:(?:a+?)?)+` | 02 |
+| 3 | wrong_capture | `u` | `"aa"` | `"aak"` | `(?:(?:a+?)*)*` | 02 |
+| 3 | wrong_capture | `u` | `"aa"` | `"ϑ"` | `(?:(?:a+?)*)*` | 00 |
+| 3 | wrong_span | `u` | `"aa"` | `"aak"` | `(?:(?:a+?)*)*` | 02 |
+| 3 | wrong_span | `u` | `"aa"` | `"aak"` | `(?:(?:a+?)+)*` | 02 |
+| 3 | wrong_span | `u` | `"aaa"` | `"а"` | `(?:(?:a+?)?)*` | 00 |
+| 3 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:(?:a+?)*)*` | 00 |
+| 2 | wrong_capture | `u` | `"aa"` | `"aaϑ"` | `(?:(?:a+?)?)+` | 02 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END fancy-regex rstop results -->
+
+<!-- BEGIN fancy-regex rthom results -->
+### fancy-regex: rthom campaign
+
+* 223,040 patterns, 4 tables, 2,008 distinct findings
+* findings by kind: 1,192 wrong_span, 676 wrong_capture, 140 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 38 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:\B\|a)*` | 00 |
+| 31 | wrong_span | `u` | `"aa"` | `"aaϑ"` | `(?:\B\|a)*` | 02 |
+| 30 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:\B\|a)+` | 00 |
+| 23 | wrong_capture | `u` | `"aa"` | `"aaϑ"` | `(?:\B\|a)*` | 02 |
+| 22 | wrong_span | `u` | `"aa"` | `"ӏ"` | `(?:\B\|a)*` | 00 |
+| 22 | wrong_span | `u` | `"aa"` | `"aaϑ"` | `(?:\B\|a)+` | 02 |
+| 20 | wrong_span | `u` | `"aa"` | `"aaа"` | `(?:\B\|a)*` | 02 |
+| 19 | wrong_capture | `u` | `"aa"` | `"ϑ"` | `(?:\B\|a)*` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END fancy-regex rthom results -->
+
+<!-- BEGIN fancy-regex rnfa results -->
+### fancy-regex: rnfa campaign
+
+* 306,656 patterns, 5 tables, 1,373 distinct findings
+* findings by kind: 786 wrong_span, 547 wrong_capture, 40 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 49 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:\B\|a)*` | 00 |
+| 37 | wrong_capture | `u` | `"aa"` | `"ϑ"` | `(?:\B\|a)*` | 00 |
+| 36 | wrong_span | `u` | `"aa"` | `" "` | `(?:\B\|a)*` | 00 |
+| 34 | wrong_capture | `u` | `"aa"` | `"aaϑ"` | `(?:\B\|a)*` | 02 |
+| 34 | wrong_span | `u` | `"aa"` | `"aaϑ"` | `(?:\B\|a)*` | 02 |
+| 33 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:\B\|a)+` | 00 |
+| 30 | wrong_capture | `u` | `"aa"` | `"ϑ"` | `(?:\B\|a)+` | 00 |
+| 24 | wrong_span | `u` | `"aa"` | `" "` | `(?:\B\|a)+` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END fancy-regex rnfa results -->
+
+<!-- BEGIN fancy-regex rnfa2 results -->
+### fancy-regex: rnfa2 campaign
+
+* 413,312 patterns, 6 tables, 388 distinct findings
+* findings by kind: 211 wrong_span, 123 wrong_capture, 54 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 4 | wrong_result | `u` | `"aa"` | `"a"` | `(?:(?:\B\|a){2,}){2}` | 00 |
+| 3 | wrong_span | `u` | `"aa"` | `"a"` | `(?:(?:a\|\B){2,}){2,2}` | 00 |
+| 3 | wrong_capture | `u` | `"aa"` | `"ϑ"` | `(?:(?:a+?)*)*` | 00 |
+| 3 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:(?:a+?)*)*` | 00 |
+| 3 | wrong_capture | `u` | `"aa"` | `"aak"` | `(?:(?:a+?)*)*` | 02 |
+| 3 | wrong_span | `u` | `"aaa"` | `"а"` | `(?:(?:a+?)?)*` | 00 |
+| 3 | wrong_capture | `u` | `"aa"` | `"aaϑ"` | `(?:(?:a+?)?)+` | 02 |
+| 3 | wrong_span | `u` | `"aa"` | `"aak"` | `(?:(?:a+?)+)*` | 02 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END fancy-regex rnfa2 results -->
+
+<!-- BEGIN fancy-regex rset results -->
+### fancy-regex: rset campaign
+
+* 164,512 patterns, 3 tables, 205 distinct findings
+* findings by kind: 120 wrong_span, 67 wrong_capture, 18 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 4 | wrong_result | `u` | `"aa"` | `"k"` | `(?>(?:(?:a+?){0,})*)` | 00 |
+| 4 | wrong_span | `u` | `"aa"` | `"aaϑ"` | `(?:(?:a+?)*)*` | 02 |
+| 3 | wrong_capture | `u` | `"aa"` | `"ϑ"` | `(?:(?:a+?)*)?` | 00 |
+| 3 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:(?:a+?)*)?` | 00 |
+| 3 | wrong_capture | `u` | `"aa"` | `"aaϑ"` | `(?:(?:a+?)*)*` | 02 |
+| 3 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:(?:a+?)*)*` | 00 |
+| 2 | wrong_span | `imsu` | `"àKſékΣk"` | `"àKéàkΣk"` | `(?:(?:(?:[^\p{Lu}--s]\|\P{So}(?=(?:.\|[ \-]$)()).)+?)*)?` | 02 |
+| 2 | wrong_span | `imsu` | `"àKſékΣk"` | `"àKéàkΣk"` | `(?:(?:(?:[^K&&[a-z]][A-Z]+)+?)*)*` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END fancy-regex rset results -->
+
+<!-- BEGIN fancy-regex rglob results -->
+### fancy-regex: rglob campaign
+
+* 97,792 patterns, 2 tables, 193 distinct findings
+* findings by kind: 147 wrong_span, 40 wrong_capture, 6 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 8 | wrong_span | `u` | `"aa"` | `"aaϑ"` | `(?:(?:a+?)*)*` | 02 |
+| 4 | wrong_span | `u` | `"aa"` | `"aaа"` | `(?:(?:a+?)+)?` | 02 |
+| 4 | wrong_span | `u` | `"aa"` | `"а"` | `(?:(?:a+?)+)?` | 00 |
+| 4 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:(?:a+?)*)?` | 00 |
+| 4 | wrong_span | `u` | `"aa"` | `"aaϑ"` | `(?:(?:a+?)+)?` | 02 |
+| 4 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:(?:a+?)+)?` | 00 |
+| 4 | wrong_span | `u` | `"aa"` | `"aaϑ"` | `(?:(?:a+?)+)*` | 02 |
+| 3 | wrong_capture | `u` | `"aa"` | `"aaϑ"` | `(?:(?:a+?)*)*` | 02 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END fancy-regex rglob results -->

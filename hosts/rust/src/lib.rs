@@ -78,6 +78,13 @@ type BenchCompile = Box<dyn Fn(&str, &str) -> Result<Searcher, u8> + Send + Sync
 static BENCH: std::sync::OnceLock<BenchCompile> = std::sync::OnceLock::new();
 pub fn bench(f: impl Fn(&str, &str) -> Result<Searcher, u8> + Send + Sync + 'static) { let _ = BENCH.set(Box::new(f)); }
 
+/// Mode "gspan" (global search): the engine's own iterator over all matches, as byte ranges.
+/// Hosts register it with `global`; the first four matches per subject are reported.
+type GlobalFn = Box<dyn Fn(&str, &str, &str) -> Result<Vec<(usize, usize)>, u8> + Send + Sync>;
+static GLOBAL: std::sync::OnceLock<GlobalFn> = std::sync::OnceLock::new();
+pub fn global(f: impl Fn(&str, &str, &str) -> Result<Vec<(usize, usize)>, u8> + Send + Sync + 'static) { let _ = GLOBAL.set(Box::new(f)); }
+const GLOBAL_MATCHES: usize = 4;
+
 /// One bench case: "<flags>#<reps>"; response 2 hex bits + compile, A, R nanoseconds (12 hex each).
 fn bench_case(flags: &str, a: &str, r: &str, pat: &str) -> String {
     let fail = |e: u8| format!("fe{:02x}{}", e, "0".repeat(36));
@@ -131,6 +138,17 @@ pub fn serve_all(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, 
             if mode == "bench" {
                 if f.iter().any(|x| x.1) { resp.push_str(&format!("fe40{}", "0".repeat(36))); continue; }
                 resp.push_str(&bench_case(&f[0].0, &f[1].0, &f[2].0, &f[3].0));
+                continue;
+            }
+            if mode == "gspan" {
+                let Some(g) = GLOBAL.get() else { resp.push_str(&failed(0x40, 4 * GLOBAL_MATCHES - 2)); continue; };
+                if f.iter().any(|x| x.1) { resp.push_str(&failed(0x40, 4 * GLOBAL_MATCHES - 2)); continue; }
+                match (g(&f[0].0, &f[1].0, &f[3].0), g(&f[0].0, &f[2].0, &f[3].0)) {
+                    (Ok(ma), Ok(mr)) => for ms in [ma, mr] {
+                        for k in 0..GLOBAL_MATCHES { match ms.get(k) { Some(&(s, e)) => resp.push_str(&pair(s, e)), None => resp.push_str(none) } }
+                    },
+                    (Err(e), _) | (_, Err(e)) => resp.push_str(&failed(e, 4 * GLOBAL_MATCHES - 2)),
+                }
                 continue;
             }
             if mode == "capture" || mode == "lcapture" {

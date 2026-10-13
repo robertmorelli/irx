@@ -27,3 +27,6 @@ sticky = true  # Input::anchored(Anchored::Yes)
 batch_size = 32
 batch_deadline_base_ms = 30000
 batch_deadline_per512_ms = 60000
+
+[global]
+enabled = true  # find_iter: the first matches of a global search

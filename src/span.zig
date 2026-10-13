@@ -290,12 +290,22 @@ pub fn checkGlobal(c: *const finding.Case, raw: []const u8, units: config.SpanUn
         var pos: u16 = 0;
         var done = false;
         var agree = true;
+        var last_end: ?u16 = null;
         for (0..global_matches) |m| {
             var ref: Span = .{ .found = false };
             if (!done and pos <= subj.len) {
                 ref = referenceAt(&c.tree, c.flags, subj, pos, false) orelse return .{ .bits = harness.Bits.skipped };
+                // Rust: an empty match where the last match ended is skipped; search again one
+                // character on.
+                if (!dialect.active.global_empty_after_match and ref.found and ref.s == ref.e and last_end != null and ref.s == last_end.?) {
+                    const next = advanceAfter(subj, ref, c.flags);
+                    ref = if (next <= subj.len) referenceAt(&c.tree, c.flags, subj, next, false) orelse return .{ .bits = harness.Bits.skipped } else .{ .found = false };
+                }
             }
-            if (!ref.found) done = true else pos = advanceAfter(subj, ref, c.flags);
+            if (!ref.found) done = true else {
+                last_end = ref.e;
+                pos = if (dialect.active.global_empty_after_match) advanceAfter(subj, ref, c.flags) else ref.e;
+            }
             const got = hostSpan(subj, wirePos(raw, false, k * 2 * global_matches + 2 * m), wirePos(raw, false, k * 2 * global_matches + 2 * m + 1), units);
             if (got == null or !got.?.eql(ref)) {
                 if (k == 0) { ck.ref_a = ref; ck.got_a = got; } else { ck.ref_r = ref; ck.got_r = got; }

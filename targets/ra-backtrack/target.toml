@@ -21,3 +21,6 @@ lookbehind = false  # lookbehind runs forward here; JS (and the model) match it 
 [offset]
 enabled = true  # span of a search from a start offset (lastIndex / pos / start offset)
 sticky = true  # Input::anchored(Anchored::Yes)
+
+[global]
+enabled = true  # find_iter: the first matches of a global search

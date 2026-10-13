@@ -16,6 +16,8 @@ const base: D.Dialect = .{
     .prop_case = .equivalence_invert,
     .word_boundary_variants = true,
     .class_set_ops = true,
+    // find_iter: a*  on "baa" is [0,0) [1,3), with no empty match at 3.
+    .global_empty_after_match = false,
     // (?R:…) CRLF mode and (?U:…) swap-greed mode besides i, s, m.
     .scoped_mods = 1 | 2 | 4 | 8 | 16,
     .name = "rust",
