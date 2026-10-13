@@ -220,20 +220,26 @@ pub fn quantRel(comptime R: type, r: R, q: QuantSpec, dim: usize) R {
 
 /// Full-match oracle for one subject: (0, n) ∈ rel.
 pub fn fullMatch(t: *const Ast, flags: Flags, w: []const u21) bool {
+    return fullMatchOrNull(t, flags, w) orelse false;
+}
+
+/// Null when the backtracking matcher runs out of steps (no answer, not "no match").
+pub fn fullMatchOrNull(t: *const Ast, flags: Flags, w: []const u21) ?bool {
     if (needsMatcher(t)) {
-        var caps = Caps.init(t) orelse return false;
+        var caps = Caps.init(t) orelse return null;
         var mt: Matcher = .{ .t = t, .flags = flags, .w = w, .caps = &caps, .reset_loop_captures = dialect.active.reset_loop_captures_hint };
-        return mt.fullMatch() orelse false;
+        return mt.fullMatch();
     }
     if (w.len <= relmod.Rel16.max_len) return evalRel(relmod.Rel16, t, t.root, flags, w).get(0, w.len);
     return evalRel(relmod.Rel32, t, t.root, flags, w).get(0, w.len);
 }
 
-/// Decode a UTF-16 subject for `flags` and evaluate the oracle. Null if too long.
+/// Decode a UTF-16 subject for `flags` and evaluate the oracle. Null if too long or the
+/// matcher runs out of steps.
 pub fn oracle(t: *const Ast, flags: Flags, subject: []const u16) ?bool {
     var syms: [31]u21 = undefined;
     const n = alpha.decode(subject, flags, &syms) orelse return null;
-    return fullMatch(t, flags, syms[0..n]);
+    return fullMatchOrNull(t, flags, syms[0..n]);
 }
 
 // ---------------------------------------------------------------------------
