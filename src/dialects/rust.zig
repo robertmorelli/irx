@@ -15,9 +15,9 @@ const base: D.Dialect = .{
     .unicode_props = true,
     .prop_case = .equivalence_invert,
     .name = "rust",
-    // Span mode: empty-loop handling of the automata (and fancy-regex's delegation to
-    // them) is implementation-specific; not modelled.
-    .empty_iteration = .unmodeled,
+    // Empty iterations follow the Thompson NFA: (?:|a)* on "aa" is [0,0) as in Perl, but
+    // (?:\B|x)* on "ϑё" is [0,2) where Perl stops at [0,1).
+    .empty_iteration = .thompson,
     .isLineTerminator = lineTerminator,
     .isSpace = perl.space,
     .isWord = perl.word,
@@ -43,6 +43,13 @@ pub const fancy: D.Dialect = blk: {
     d.allow_lookbehind = true;
     d.allow_empty_quant = false;
     d.lookbehind_fixed = true;
+    // Patterns without lookarounds, backreferences, atomic groups or word boundaries go to the
+    // regex crate whole; the rest run on fancy-regex's backtracking VM, which stops unbounded
+    // loops on an empty iteration and unrolls bounded ones. Not modelled: inside such a pattern
+    // the VM still hands plain subexpressions to the regex crate ((?:|\b)(?:a|(?:)|k)+ on
+    // "aak" is [0,3)).
+    d.nfa_word_boundary = false;
+    d.empty_iteration_bounded = false;
     break :blk d;
 };
 

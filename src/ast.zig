@@ -7,6 +7,7 @@ const alpha = @import("alphabet.zig");
 const grapheme = @import("grapheme.zig");
 const atoms = @import("atoms.zig");
 const relmod = @import("rel.zig");
+const thompson = @import("thompson.zig");
 const Flags = alpha.Flags;
 const AtomSpec = atoms.AtomSpec;
 
@@ -195,6 +196,12 @@ fn backrefWalk(t: *const Ast, idx: u8, caps: *const Caps, closed: *[max_caps]boo
     }
 }
 
+/// Spans and captures come from the Thompson NFA (dialects with empty_iteration = thompson,
+/// for trees it compiles).
+pub fn usesNfa(t: *const Ast) bool {
+    return dialect.active.empty_iteration == .thompson and thompson.supported(t);
+}
+
 pub fn needsMatcher(t: *const Ast) bool {
     for (t.nodes[0..t.len]) |n| if (n.op == .atomic or n.op == .backref) return true;
     return false;
@@ -277,6 +284,11 @@ pub const Matcher = struct {
     /// First match in backtracking priority order starting exactly at `start`; its end
     /// position is left in `self.end`. Null when the step budget runs out.
     pub fn matchAt(self: *Matcher, start: usize) ?bool {
+        if (usesNfa(self.t)) {
+            const e = thompson.matchAt(self.t, self.flags, self.w, start, self.caps) catch return null;
+            self.end = e orelse return false;
+            return true;
+        }
         const rec: Cont = .{ .kind = .record };
         const r = self.m(self.t.root, start, .fwd, &rec);
         if (self.exhausted) return null;
@@ -307,8 +319,10 @@ pub const Matcher = struct {
             .rep => {
                 // RepeatMatcher continuation d: an empty iteration once min is met is rejected
                 // (ES) or ends the loop (Perl/PCRE).
-                if (c.min == 0 and pos == c.start) {
-                    if (dialect.active.empty_iteration == .stop) return self.run(c.next.?, pos);
+                // Thompson dialects reach this matcher only for trees the NFA does not compile
+                // (fancy-regex's own backtracking VM), which stops like Perl.
+                if (c.min == 0 and pos == c.start and (c.max == inf or dialect.active.empty_iteration_bounded)) {
+                    if (dialect.active.empty_iteration == .stop or dialect.active.empty_iteration == .thompson) return self.run(c.next.?, pos);
                     return false;
                 }
                 const nmin: u8 = if (c.min == 0) 0 else c.min - 1;

@@ -183,6 +183,12 @@ pub const Dialect = struct {
     /// After a loop iteration that matched empty (once min is met): ES rejects that path;
     /// Perl/PCRE accept it and leave the loop.
     empty_iteration: EmptyIteration = .reject,
+    /// With empty_iteration = thompson, trees with \\b or \\B also take the NFA (fancy-regex runs
+    /// them on its own backtracking VM, which stops like Perl).
+    nfa_word_boundary: bool = true,
+    /// The empty-iteration rule also applies to bounded loops; false: a bounded loop's empty
+    /// iteration just counts and the loop goes on (fancy-regex's VM unrolls them).
+    empty_iteration_bounded: bool = true,
     /// When a pattern has named groups, plain `(...)` groups don't capture (Ruby, Oniguruma).
     named_groups_only: bool = false,
     /// Counted quantifiers are always greedy: the host prints `{m,n}` without the lazy `?`
@@ -298,9 +304,12 @@ pub const Assertions = packed struct {
 pub const PropCase = enum { equivalence, equivalence_invert, cased, plain, upper_lower };
 
 pub const SpanSemantics = enum { first, longest };
-/// `unmodeled`: the engine's rule is implementation-specific (automata engines: RE2, Go,
-/// Rust); span checks skip patterns where a quantified body can match empty.
-pub const EmptyIteration = enum { reject, stop, unmodeled };
+/// `thompson`: spans and captures come from a regex-automata-shaped Thompson NFA (thompson.zig),
+/// whose state deduplication decides empty iterations (Rust); trees it cannot compile
+/// (fancy-regex's lookarounds, atomic groups, backreferences) stop like Perl.
+/// `unmodeled`: the engine's rule is implementation-specific (RE2, Go); span checks skip
+/// patterns where a quantified body can match empty.
+pub const EmptyIteration = enum { reject, stop, thompson, unmodeled };
 
 pub const Len = struct { min: u32, max: u32, f: u32 = 0 };
 pub const len_cap_default: u32 = 16;

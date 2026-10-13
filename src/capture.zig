@@ -171,7 +171,7 @@ pub fn check(c: *const finding.Case, raw: []const u8, cfg: *const config.Config,
     const skip: Check = .{ .bits = harness.Bits.skipped };
     if (dialect.active.span_semantics != .first) return skip;
     if (dialect.active.empty_iteration == .unmodeled and span.hasNullableLoop(&c.tree, c.tree.root)) return skip;
-    if (dialect.active.empty_iteration != .reject and groupInNullableLoop(&c.tree, c.tree.root, false)) return skip;
+    if (dialect.active.empty_iteration != .reject and !ast.usesNfa(&c.tree) and groupInNullableLoop(&c.tree, c.tree.root, false)) return skip;
     if (cfg.capture_loop == .unmodeled or !cfg.capture_lookbehind) {
         var ctx = [2]bool{ false, false };
         groupContexts(&c.tree, c.tree.root, false, false, &ctx);
