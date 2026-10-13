@@ -3142,11 +3142,13 @@
    "extended_mode"
   ],
   "feature_count": 11,
-  "open_bugs": [],
+  "open_bugs": [
+   "IRX-FANCY-2"
+  ],
   "fast": false,
   "featureful": true,
   "family": "Rust",
-  "tier": "A"
+  "tier": "D"
  },
  "resharp": {
   "overall": {
