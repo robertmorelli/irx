@@ -152,7 +152,7 @@ pub const Nfa = struct {
 
     fn atLeast(self: *Nfa, body: u8, greedy: bool, k: u8) !Ref {
         if (k == 0) {
-            if (minLen(self.t, body) > 0) {
+            if ((minLen(self, body) orelse 0) > 0) {
                 const u = try self.alt(greedy);
                 const r = try self.c(body);
                 try self.patch(u, r.start);
@@ -205,17 +205,52 @@ pub const Nfa = struct {
     }
 };
 
-/// Shortest length a subtree can match (regex-syntax's minimum_len); assertions are 0.
-fn minLen(t: *const ast.Ast, idx: u8) usize {
+/// Shortest length a subtree can match (regex-syntax's minimum_len); assertions are 0. Null when
+/// it can match nothing: an empty class poisons every concatenation, alternation and repetition
+/// around it, except that an alternation of single characters and classes is one class first.
+fn minLen(self: *const Nfa, idx: u8) ?usize {
+    const t = self.t;
     const n = t.nodes[idx];
+    if (n.op == .alt and classLike(self, idx)) return if (classEmpty(self, idx)) null else 1;
     return switch (n.op) {
-        .atom => if (n.atom.kind == .empty or n.atom.isAssertion()) 0 else 1,
-        .concat => minLen(t, n.a) + minLen(t, n.b),
-        .alt => @min(minLen(t, n.a), minLen(t, n.b)),
-        .quant => if (n.quant.min == 0) 0 else n.quant.min * minLen(t, n.a),
-        .group_cap, .group_named, .group_nc, .flag_group => minLen(t, n.a),
+        .atom => if (n.atom.kind == .empty or n.atom.isAssertion()) 0 else if (classEmpty(self, idx)) null else 1,
+        .concat => (minLen(self, n.a) orelse return null) + (minLen(self, n.b) orelse return null),
+        .alt => @min(minLen(self, n.a) orelse return null, minLen(self, n.b) orelse return null),
+        .quant => (minLen(self, n.a) orelse return null) * n.quant.min,
+        .group_cap, .group_named, .group_nc, .flag_group => minLen(self, n.a),
         else => 0,
     };
+}
+
+/// A single character or class after translation (non-capturing and flag groups vanish).
+fn classLike(self: *const Nfa, idx: u8) bool {
+    const n = self.t.nodes[idx];
+    return switch (n.op) {
+        .atom => n.atom.isConsuming() and n.atom.kind != .strs and n.atom.kind != .grapheme,
+        .alt => classLike(self, n.a) and classLike(self, n.b),
+        .group_nc, .flag_group => classLike(self, n.a),
+        else => false,
+    };
+}
+
+/// A class-like subtree matches no scalar value. Only set operations and negated classes can be
+/// empty, so only those are scanned.
+fn classEmpty(self: *const Nfa, idx: u8) bool {
+    const n = self.t.nodes[idx];
+    switch (n.op) {
+        .alt => return classEmpty(self, n.a) and classEmpty(self, n.b),
+        .group_nc, .flag_group => return classEmpty(self, n.a),
+        .atom => {},
+        else => return false,
+    }
+    const a = &n.atom;
+    if (!(a.kind == .vset or (a.kind == .cls and a.neg))) return false;
+    var c: u21 = 0;
+    while (c <= 0x10FFFF) : (c += 1) {
+        if (c == 0xD800) c = 0xE000;
+        if (atoms.matches(a, self.nflags[idx], c)) return false;
+    }
+    return true;
 }
 
 /// The tree has only constructs the NFA compiles.
