@@ -49,6 +49,13 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
                     const l = asciiLower(c);
                     const u: u21 = if (l >= 'a' and l <= 'z') l - 32 else l;
                     hit = (l >= lo and l <= hi) or (u >= lo and u <= hi);
+                } else if (!hit and flags.i and hi >= 0x80) {
+                    // A range reaching past ASCII also takes an uppercase letter's lowercase
+                    // and a lowercase letter's uppercase (ϑ is in [Θ], Θ is not in [ϑ]); a
+                    // titlecase letter only itself (ǅ is not in [Ǆ]).
+                    const k = ucd.category(c);
+                    const o: u21 = if (k[0] == 'L' and k[1] == 'u') ucd.lower1(c) else if (k[0] == 'L' and k[1] == 'l') ucd.simpleUpper(c) else c;
+                    hit = o >= lo and o <= hi;
                 }
             }
             return hit != spec.neg;
