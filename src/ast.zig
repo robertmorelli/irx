@@ -80,6 +80,7 @@ pub const fmod_s: u8 = 2;
 pub const fmod_m: u8 = 4;
 pub const fmod_crlf: u8 = 8;
 pub const fmod_swap: u8 = 16;
+pub const fmod_u: u8 = 32;
 
 /// Flags inside a flag group with modifier `mod`.
 pub fn applyMod(f: Flags, mod: u8) Flags {
@@ -89,6 +90,7 @@ pub fn applyMod(f: Flags, mod: u8) Flags {
     if (mod & fmod_m != 0) g.m = !g.m;
     if (mod & fmod_crlf != 0) g.crlf = !g.crlf;
     if (mod & fmod_swap != 0) g.swap = !g.swap;
+    if (mod & fmod_u != 0) g.u = !g.u;
     return g;
 }
 

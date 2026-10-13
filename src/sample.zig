@@ -221,6 +221,8 @@ pub const Printer = struct {
     empty_ordinal: u32 = 0,
     /// Ordinal of the next spelling choice (rust_spellings).
     pick_ordinal: u32 = 0,
+    /// Inside (?-u:…), where \xHH above 0x7F means a byte.
+    ascii_depth: u8 = 0,
     /// Duplicate named groups (ES2025): alias[i] = the named-group node whose name node i
     /// reuses (none = 255); name_num[i] = the printed number naming node i.
     alias: [ast.max_nodes]u8 = undefined,
@@ -435,11 +437,16 @@ pub const Printer = struct {
             },
             .flag_group => {
                 // Toggles one flag relative to the pattern's flags (flag groups do not nest).
-                const on = if (n.fmod & ast.fmod_i != 0) self.flags.i else if (n.fmod & ast.fmod_s != 0) self.flags.s else if (n.fmod & ast.fmod_m != 0) self.flags.m else false;
-                const letter: u8 = if (n.fmod & ast.fmod_i != 0) 'i' else if (n.fmod & ast.fmod_s != 0) dialect.active.dotall_letter else if (n.fmod & ast.fmod_m != 0) 'm' else if (n.fmod & ast.fmod_crlf != 0) 'R' else 'U';
+                const on = if (n.fmod & ast.fmod_i != 0) self.flags.i else if (n.fmod & ast.fmod_s != 0) self.flags.s else if (n.fmod & ast.fmod_m != 0) self.flags.m else if (n.fmod & ast.fmod_u != 0) self.flags.unicode() else false;
+                const letter: u8 = if (n.fmod & ast.fmod_i != 0) 'i' else if (n.fmod & ast.fmod_s != 0) dialect.active.dotall_letter else if (n.fmod & ast.fmod_m != 0) 'm' else if (n.fmod & ast.fmod_crlf != 0) 'R' else if (n.fmod & ast.fmod_u != 0) 'u' else 'U';
                 try self.put(if (on) "(?-" else "(?");
                 try self.putc(letter);
                 try self.putc(':');
+                const ascii = n.fmod & ast.fmod_u != 0;
+                if (ascii) self.ascii_depth += 1;
+                defer if (ascii) {
+                    self.ascii_depth -= 1;
+                };
                 try self.bareChild(t, n.a);
                 try self.putc(')');
             },
@@ -494,7 +501,7 @@ pub const Printer = struct {
             // Raw characters: x mode ignores whitespace, and a control character stays escaped.
             const ws = c == 0xA0 or c == 0x1680 or (c >= 0x2000 and c <= 0x200A) or c == 0x2028 or c == 0x2029 or c == 0x202F or c == 0x205F or c == 0x3000;
             const raw_ok = c > 0x9F and !(self.xmode and ws);
-            const forms = [_]bool{ true, c <= 0xFF, true, c <= 0xFFFF, true, raw_ok };
+            const forms = [_]bool{ true, c <= 0xFF and (c < 0x80 or self.ascii_depth == 0), true, c <= 0xFFFF, true, raw_ok };
             var ok: [forms.len]u8 = undefined;
             var k: usize = 0;
             for (forms, 0..) |f, j| if (f) {

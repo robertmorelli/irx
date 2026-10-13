@@ -237,8 +237,8 @@ fn has(n: *const SetNode, flags: Flags, x: u21) bool {
     return switch (n.kind) {
         .list => std.mem.indexOfScalar(u21, n.syms, x) != null,
         .range => x >= n.lo and x <= n.hi,
-        .digit => dialect.active.isDigit(x),
-        .space => alpha.isSpace(x),
+        .digit => if (alpha.asciiMode(flags)) Posix.digit.has(x) else dialect.active.isDigit(x),
+        .space => if (alpha.asciiMode(flags)) Posix.space.has(x) else alpha.isSpace(x),
         .word => alpha.isWordChar(x, flags),
         .hspace => dialect.active.isHSpace(x),
         .vspace => dialect.active.isVSpace(x),
@@ -679,8 +679,43 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
     if (dialect.active.word_boundary_variants and dialect.active.assertions.allows(.wordb)) {
         for (1..std.enums.values(WordbVariant).len) |v| try out.append(gpa, .{ .kind = .wordb, .sub = @intCast(v) });
     }
+    if (alpha.asciiMode(flags)) {
+        // Rust (?-u:…) on &str: nothing that could match a lone byte >= 0x80, and no
+        // non-ASCII class members ("pattern can match invalid UTF-8", "Unicode not allowed here").
+        var kept: usize = 0;
+        for (out.items) |a| if (asciiModeValid(a)) {
+            out.items[kept] = a;
+            kept += 1;
+        };
+        out.shrinkRetainingCapacity(kept);
+    }
     if (out.items.len > 65536) return error.InventoryTooLarge;
     return out.toOwnedSlice(gpa);
+}
+
+fn operandAsciiValid(o: *const Operand) bool {
+    return switch (o.kind) {
+        .esc => o.esc == .w or o.esc == .d or o.esc == .s,
+        .range => o.syms[1] < 0x80,
+        .char, .list => for (o.syms[0..@max(o.n, 1)]) |c| {
+            if (c >= 0x80) break false;
+        } else true,
+        .neglist, .prop, .qstr => false,
+    };
+}
+
+fn asciiModeValid(a: AtomSpec) bool {
+    return switch (a.kind) {
+        .dot, .prop, .strs, .grapheme => false,
+        .esc => a.sub == @intFromEnum(Esc.w) or a.sub == @intFromEnum(Esc.d) or a.sub == @intFromEnum(Esc.s),
+        .range => !a.neg and a.syms[1] < 0x80,
+        .cls => !a.neg and for (a.syms[0..a.n]) |c| {
+            if (c >= 0x80) break false;
+        } else true,
+        .posix => !a.neg,
+        .vset => !a.neg and operandAsciiValid(&v_operands[a.syms[0]]) and operandAsciiValid(&v_operands[a.syms[1]]),
+        else => true,
+    };
 }
 
 // ---------------------------------------------------------------------------

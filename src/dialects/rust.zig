@@ -21,8 +21,9 @@ const base: D.Dialect = .{
     .rust_spellings = true,
     // find_iter: a*  on "baa" is [0,0) [1,3), with no empty match at 3.
     .global_empty_after_match = false,
-    // (?R:…) CRLF mode and (?U:…) swap-greed mode besides i, s, m.
-    .scoped_mods = 1 | 2 | 4 | 8 | 16,
+    // (?R:…) CRLF mode, (?U:…) swap-greed mode and (?-u:…) ASCII mode besides i, s, m.
+    .scoped_mods = 1 | 2 | 4 | 8 | 16 | 32,
+    .ascii_mode = true,
     .name = "rust",
     // Empty iterations follow the Thompson NFA: (?:|a)* on "aa" is [0,0) as in Perl, but
     // (?:\B|x)* on "ϑё" is [0,2) where Perl stops at [0,1).
@@ -52,6 +53,8 @@ pub const fancy: D.Dialect = blk: {
     d.allow_lookbehind = true;
     d.allow_empty_quant = false;
     d.lookbehind_fixed = true;
+    // fancy-regex rejects (?-u:\w).
+    d.scoped_mods = 1 | 2 | 4 | 8 | 16;
     // Patterns without lookarounds, backreferences, atomic groups or word boundaries go to the
     // regex crate whole; the rest run on fancy-regex's backtracking VM, which stops unbounded
     // loops on an empty iteration and unrolls bounded ones. Not modelled: inside such a pattern

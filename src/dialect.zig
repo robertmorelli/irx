@@ -91,6 +91,9 @@ pub const Dialect = struct {
     /// Printing varies per pattern among Rust's equivalent spellings: \\x{H} \\xHH \\u{H} \\uHHHH
     /// \\UHHHHHHHH or the raw character; \\pL \\p{Letter} \\p{gc=L} \\p{gc!=L}…; (?<n>) or (?P<n>).
     rust_spellings: bool = false,
+    /// Patterns are always Unicode (flags carry u), and a (?-u:…) group switches to ASCII mode:
+    /// ASCII \\w \\d \\s \\b and case folding; only atoms that cannot match a lone byte (Rust).
+    ascii_mode: bool = false,
     /// Global search may report an empty match where the previous match ended (JS matchAll);
     /// false: such a match is skipped and the search goes on one character later (Rust find_iter).
     global_empty_after_match: bool = true,

@@ -115,7 +115,7 @@ pub const alt_pools = [_][]const u21{ &fold_pool, &cyrillic_greek_pool, &space_d
 pub fn poolSymbols(pool: []const u21, flags: Flags, out: *[max_symbols * 2]u21) []const u21 {
     var n: usize = 0;
     for (pool) |c| {
-        if (c > 0xFFFF and !flags.unicode()) {
+        if (c > 0xFFFF and !flags.unicode() and !dialect.active.ascii_mode) {
             const hs = highSurrogate(c);
             const ls = lowSurrogate(c);
             out[n] = hs;
@@ -184,7 +184,17 @@ pub fn isSpace(c: u21) bool {
     return dialect.active.isSpace(c);
 }
 pub fn isWordChar(c: u21, flags: Flags) bool {
+    if (asciiMode(flags)) return isBasicWord(c);
     return dialect.active.isWord(c, flags);
+}
+
+/// Rust (?-u:…): \w \d \s \b and case folding are ASCII-only.
+pub fn asciiMode(flags: Flags) bool {
+    return dialect.active.ascii_mode and !flags.unicode();
+}
+
+fn asciiFold(c: u21) u21 {
+    return if (c >= 'A' and c <= 'Z') c + 32 else c;
 }
 
 pub fn esLineTerminator(c: u21) bool {
@@ -215,6 +225,7 @@ pub fn esWordChar(c: u21, flags: Flags) bool {
 
 pub fn canonicalize(c: u21, flags: Flags) u21 {
     if (!flags.i) return c;
+    if (asciiMode(flags)) return asciiFold(c);
     if (dialect.active.fold) |f| return f(c);
     if (flags.unicode()) return ucd.simpleFold(c);
     if (c > 0xFFFF) return c;
@@ -224,6 +235,7 @@ pub fn canonicalize(c: u21, flags: Flags) u21 {
 /// Is `c` a character of AllCharacters(rer)?
 pub fn inAllCharacters(c: u21, flags: Flags) bool {
     if (flags.v and flags.i) return ucd.simpleFold(c) == c;
+    if (dialect.active.ascii_mode) return c <= 0x10FFFF;
     if (flags.unicode()) return c <= 0x10FFFF;
     return c <= 0xFFFF;
 }
@@ -232,6 +244,12 @@ pub fn inAllCharacters(c: u21, flags: Flags) bool {
 /// Without i this is just pred(c).
 pub fn existsEquivalent(c: u21, flags: Flags, ctx: anytype, comptime pred: fn (@TypeOf(ctx), u21) bool) bool {
     if (!flags.i) return pred(ctx, c);
+    if (asciiMode(flags)) {
+        if (pred(ctx, c)) return true;
+        if (c >= 'a' and c <= 'z') return pred(ctx, c - 32);
+        if (c >= 'A' and c <= 'Z') return pred(ctx, c + 32);
+        return false;
+    }
     if (dialect.active.fold) |f| return ucd.forEachFoldEquivalent(f, c, ctx, pred);
     return ucd.forEachEquivalent(c, flags.unicode(), ctx, pred);
 }
