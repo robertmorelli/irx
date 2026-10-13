@@ -118,3 +118,32 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END rust-regex rglob results -->
+
+<!-- BEGIN rust-regex rust5h results -->
+### Rust regex: rust5h campaign
+
+* 10,697,792 patterns, 108 tables, 4,517 distinct findings; self-check 14,305,504 probes, 0 mismatches, 109 engine failures
+* findings by kind: 4,440 timeout (batch), 61 wrong_span, 16 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 4 | wrong_span | `iu` | `"Kẞμ IåkA"` | `"ÅKμ  İåkAK"` | `(?:\p{Ll}\|[a-c]\|(?:\z[a~~A]*ı[^\u212B](?:\s$\>\|[^[a-z]--K])\|[^\w~~a])*?)*` | 03 |
+| 4 | wrong_span | `su` | `"\na_　᠎b ᠎"` | `"\n　᠎ "` | `(?:(?:(?:[k-s][[a-z]&&A](?:.[^\u{212A}--[a-c]]\A\|[\x{301}]\U0000000B\|\B)[\p{Ll}~~k])*?.)*?)*\S` | 00 |
+| 3 | wrong_span | `isu` | `" Kß.Kσİ"` | `" _ß.Kσİß"` | `(?:(?:[^A_]\|(?:\B[^s~~K][^\p{L}[^a]]\p{Po}[k~~A]{3,}?){2})*?)+[\p{L}--k]` | 02 |
+| 2 | wrong_span | `iu` | `"😀a््😀́"` | `"😀\ra\r가😀"` | `(?:\A\|(?:\P{dash punctuation}\|\d(?m:(?:[\u{301}\x{AC01}]\|^\x{1F600}[0-9]\|[^[^a]\w]\z).))*?){3,}\w` | 02 |
+| 2 | wrong_span | `iu` | `"😀a््😀́"` | `"😀\ra\r가😀"` | `(?:(?:.\|(?:(?:\d[\x{212A}--K](?:\P{General_Category=Other}\|.)\|\d\|$)[^\u{D}\u0915])*?\x{200B})*?)*\P{So}` | 02 |
+| 2 | wrong_span | `iu` | `"😀a््😀́"` | `"😀\ra\r가😀"` | `(?:(?:.\|(?:(?:\d[\x{212A}--K](?:\P{General_Category=Other}\|.)\|\d\|$)[^\u{D}\u0915])*?\x{200B})*?)*\P{So}` | 03 |
+| 2 | wrong_span | `su` | `"θ_А"` | `"_АΩ_ӏ"` | `(?:(?:[A-Z][\d&&\p{Lu}](?:\u{4CF}\|\w\>)[\U00000391-\x{3A9}]$\|.\|[^\U00000401\U000003C9])*?)*\p{gc!=Ll}` | 00 |
+| 2 | wrong_span | `iu` | `".σ_😀S_b😀"` | `".σ_😀_b "` | `(?:(?:[[\u{1F600}a]&&s][[\x{1F600}a]~~[a-z]]\|\S){0,}?)+\B` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END rust-regex rust5h results -->
+<!-- BEGIN rust-regex rust5h triage -->
+### rust-regex: 5-hour campaign triage
+
+* No regex-crate bugs.
+* 4,440 timeouts: batch deadlines missed while other programs held the CPU (load 27–47 on 8 cores); the batches replay in under 3 s.
+* 77 span/capture findings (22 patterns): a model gap, fixed. Every one has an empty class (`[a&&\W]`, `[^[^a]\p{L}]`). regex-syntax gives it no minimum length, which poisons the enclosing alternation, concatenation and repetition, so regex-automata compiles the loop around it as `(e+)?`. An alternation is merged into one class first only when every flattened branch is a class. With the fix the model agrees with the crate on all 22.
+<!-- END rust-regex rust5h triage -->
