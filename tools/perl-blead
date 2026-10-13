@@ -1,0 +1,4 @@
+#!/bin/sh
+# The uninstalled blead build in vendor/perl5, with its own lib/ (the Perl driver loads JSON::PP).
+d="$(cd "$(dirname "$0")/../vendor/perl5" && pwd)"
+exec "$d/perl" -I"$d/lib" "$@"
