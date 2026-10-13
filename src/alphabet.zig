@@ -10,7 +10,11 @@ pub const Flags = packed struct(u8) {
     s: bool = false,
     u: bool = false,
     v: bool = false,
-    _pad: u3 = 0,
+    /// Scoped-only modes (flag groups, never a pattern's flags): Rust's CRLF mode (?R:…) and
+    /// swap-greed mode (?U:…).
+    crlf: bool = false,
+    swap: bool = false,
+    _pad: u1 = 0,
 
     pub fn unicode(f: Flags) bool {
         return f.u or f.v;

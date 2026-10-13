@@ -234,9 +234,9 @@ pub const Run = struct {
         const pool_idx: u8 = if (self.n_pools > 1 and vrng.float() < self.cfg.pool_rotation) @intCast(1 + vrng.below(self.n_pools - 1)) else 0;
         var spool_buf: [64]u21 = undefined;
         const pool = dialect_mod.subjectPool(self.poolAt(pool_idx), &spool_buf);
-        var mods: [3]u8 = undefined;
+        var mods: [5]u8 = undefined;
         var nm: usize = 0;
-        for ([_]u8{ ast.fmod_i, ast.fmod_s, ast.fmod_m }) |m| if (dialect_mod.active.scoped_mods & m != 0) {
+        for ([_]u8{ ast.fmod_i, ast.fmod_s, ast.fmod_m, ast.fmod_crlf, ast.fmod_swap }) |m| if (dialect_mod.active.scoped_mods & m != 0) {
             mods[nm] = m;
             nm += 1;
         };

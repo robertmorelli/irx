@@ -149,7 +149,7 @@ const flag_strs: [32][]const u8 = blk: {
 };
 
 pub fn flagStr(f: Flags) []const u8 {
-    return flag_strs[f.bits()];
+    return flag_strs[f.bits() & 0x1f];
 }
 
 fn fsStr(comptime f: Flags) []const u8 {

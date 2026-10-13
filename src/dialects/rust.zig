@@ -14,6 +14,9 @@ const base: D.Dialect = .{
     .scoped_flags = true,
     .unicode_props = true,
     .prop_case = .equivalence_invert,
+    .word_boundary_variants = true,
+    // (?R:…) CRLF mode and (?U:…) swap-greed mode besides i, s, m.
+    .scoped_mods = 1 | 2 | 4 | 8 | 16,
     .name = "rust",
     // Empty iterations follow the Thompson NFA: (?:|a)* on "aa" is [0,0) as in Perl, but
     // (?:\B|x)* on "ϑё" is [0,2) where Perl stops at [0,1).

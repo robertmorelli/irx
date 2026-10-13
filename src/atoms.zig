@@ -13,6 +13,9 @@ const ucd = @import("ucd.zig");
 const grapheme = @import("grapheme.zig");
 const dialect = @import("dialect.zig");
 
+/// wordb atom `sub`: the plain boundary or one of Rust's half/whole boundary assertions.
+pub const WordbVariant = enum(u8) { plain, start, end, start_half, end_half, lt, gt };
+
 pub const Kind = enum(u8) { lit, dot, esc, range, cls, vset, caret, dollar, wordb, nwordb, empty, prop, strs, grapheme };
 
 /// Unicode general categories for `\p{…}` / `\P{…}` (a selection that the character pool
@@ -213,7 +216,7 @@ fn has(n: *const SetNode, flags: Flags, x: u21) bool {
         .hspace => dialect.active.isHSpace(x),
         .vspace => dialect.active.isVSpace(x),
         .dotset => alpha.inAllCharacters(x, flags) and
-            (if (dialect.active.dot_all_unless_m) !flags.m or x != '\n' else flags.s or !alpha.isLineTerminator(x)),
+            (if (dialect.active.dot_all_unless_m) !flags.m or x != '\n' else flags.s or !(alpha.isLineTerminator(x) or (flags.crlf and x == '\r'))),
         .all => alpha.inAllCharacters(x, flags),
         // CharacterComplement(rer, S): AllCharacters(rer) minus S.
         .comp => alpha.inAllCharacters(x, flags) and !has(n.a.?, flags, x),
@@ -398,6 +401,16 @@ pub fn assertionAt(spec: *const AtomSpec, flags0: Flags, w: []const u21, i: usiz
     var flags = flags0;
     if (dl.anchors_always_multiline) flags.m = true;
     const n = w.len;
+    if (flags.crlf and flags.m and (spec.kind == .caret or spec.kind == .dollar)) {
+        // Rust (?mR): \r and \n both end lines, never between the two of a \r\n.
+        const crlfAt = struct {
+            fn f(c: u21) bool {
+                return c == '\r' or c == '\n';
+            }
+        }.f;
+        if (spec.kind == .caret) return i == 0 or (crlfAt(w[i - 1]) and !(w[i - 1] == '\r' and i < n and w[i] == '\n'));
+        return i == n or (crlfAt(w[i]) and !(w[i] == '\n' and i > 0 and w[i - 1] == '\r'));
+    }
     return switch (spec.kind) {
         // Perl: /m ^ never matches after a trailing newline; $ without /m
         // also matches before a final newline.
@@ -410,6 +423,18 @@ pub fn assertionAt(spec: *const AtomSpec, flags0: Flags, w: []const u21, i: usiz
                 (dl.crlf_atomic and i + 2 == n and w[i] == '\r' and w[i + 1] == '\n'))),
         .wordb, .nwordb => blk: {
             const ii: isize = @intCast(i);
+            if (spec.kind == .wordb and spec.sub != 0) {
+                // Rust's \b{start} \b{end} \b{start-half} \b{end-half} (\< and \> spell the first two).
+                const l = isWordAt(w, ii - 1, flags);
+                const r = isWordAt(w, ii, flags);
+                break :blk switch (@as(WordbVariant, @enumFromInt(spec.sub))) {
+                    .plain => l != r,
+                    .start, .lt => !l and r,
+                    .end, .gt => l and !r,
+                    .start_half => !l,
+                    .end_half => !r,
+                };
+            }
             const b = if (dl.boundaryAt) |f| f(w, i, flags) else isWordAt(w, ii - 1, flags) != isWordAt(w, ii, flags);
             break :blk if (spec.kind == .wordb) b else !b;
         },
@@ -597,6 +622,9 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
     for ([_]Kind{ .caret, .dollar, .wordb, .nwordb, .empty }) |kd| {
         if (!dialect.active.assertions.allows(kd)) continue;
         try out.append(gpa, .{ .kind = kd });
+    }
+    if (dialect.active.word_boundary_variants and dialect.active.assertions.allows(.wordb)) {
+        for (1..std.enums.values(WordbVariant).len) |v| try out.append(gpa, .{ .kind = .wordb, .sub = @intCast(v) });
     }
     if (out.items.len > 65536) return error.InventoryTooLarge;
     return out.toOwnedSlice(gpa);

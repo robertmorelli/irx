@@ -77,6 +77,8 @@ pub const Dialect = struct {
     fold: ?*const fn (u21) u21 = null,
     named_group: NamedGroup = .angle,
     word_boundary: []const u8 = "\\b",
+    /// Rust's \\b{start} \\b{end} \\b{start-half} \\b{end-half} \\< \\>.
+    word_boundary_variants: bool = false,
     nonword_boundary: []const u8 = "\\B",
     /// The empty atom may also print as nothing: `(?:|a)`, `a|`, `(?=)` (fuzz cases only;
     /// self-check keeps `(?:)`). POSIX ERE rejects empty branches.

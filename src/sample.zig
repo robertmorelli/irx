@@ -422,8 +422,8 @@ pub const Printer = struct {
             },
             .flag_group => {
                 // Toggles one flag relative to the pattern's flags (flag groups do not nest).
-                const on = if (n.fmod & ast.fmod_i != 0) self.flags.i else if (n.fmod & ast.fmod_s != 0) self.flags.s else self.flags.m;
-                const letter: u8 = if (n.fmod & ast.fmod_i != 0) 'i' else if (n.fmod & ast.fmod_s != 0) dialect.active.dotall_letter else 'm';
+                const on = if (n.fmod & ast.fmod_i != 0) self.flags.i else if (n.fmod & ast.fmod_s != 0) self.flags.s else if (n.fmod & ast.fmod_m != 0) self.flags.m else false;
+                const letter: u8 = if (n.fmod & ast.fmod_i != 0) 'i' else if (n.fmod & ast.fmod_s != 0) dialect.active.dotall_letter else if (n.fmod & ast.fmod_m != 0) 'm' else if (n.fmod & ast.fmod_crlf != 0) 'R' else 'U';
                 try self.put(if (on) "(?-" else "(?");
                 try self.putc(letter);
                 try self.putc(':');
@@ -610,7 +610,15 @@ pub const Printer = struct {
             },
             .caret => try self.putc('^'),
             .dollar => try self.putc('$'),
-            .wordb => try self.put(dialect.active.word_boundary),
+            .wordb => try self.put(switch (@as(atoms.WordbVariant, @enumFromInt(a.sub))) {
+                .plain => dialect.active.word_boundary,
+                .start => "\\b{start}",
+                .end => "\\b{end}",
+                .start_half => "\\b{start-half}",
+                .end_half => "\\b{end-half}",
+                .lt => "\\<",
+                .gt => "\\>",
+            }),
             .nwordb => try self.put(dialect.active.nonword_boundary),
             .empty => try self.put("(?:)"),
             .prop => {

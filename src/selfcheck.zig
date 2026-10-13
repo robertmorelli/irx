@@ -249,11 +249,12 @@ pub const Checker = struct {
         }
         for ([_]atoms.Kind{ .caret, .dollar, .wordb, .nwordb }) |kd| {
             if (!dialect.active.assertions.allows(kd)) continue;
-            for (strings.items) |s| {
+            const variants: usize = if (kd == .wordb and dialect.active.word_boundary_variants) std.enums.values(atoms.WordbVariant).len else 1;
+            for (0..variants) |v| for (strings.items) |s| {
                 var syms: [64]u21 = undefined;
                 const n = alpha.decode(s.slice(), flags, &syms) orelse continue;
-                for (0..n + 1) |i| try self.addProbe(flags, .{ .kind = kd }, @intCast(i), s, empty, "assertion");
-            }
+                for (0..n + 1) |i| try self.addProbe(flags, .{ .kind = kd, .sub = @intCast(v) }, @intCast(i), s, empty, "assertion");
+            };
         }
     }
 

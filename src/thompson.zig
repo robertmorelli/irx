@@ -43,6 +43,7 @@ pub const Nfa = struct {
     start: u32 = 0,
     t: *const ast.Ast = undefined,
     caps: ?*const ast.Caps = null,
+    nflags: [ast.max_nodes]Flags = undefined,
 
     fn add(self: *Nfa, s: State) error{TooBig}!u32 {
         if (self.nstates == max_states) return error.TooBig;
@@ -74,8 +75,12 @@ pub const Nfa = struct {
     }
 
     /// Compile `t` (null: unsupported constructs or too many states).
-    pub fn build(self: *Nfa, t: *const ast.Ast, caps: ?*const ast.Caps) ?void {
-        self.* = .{ .nstates = 0, .nedges = 0, .t = t, .caps = caps };
+    pub fn build(self: *Nfa, t: *const ast.Ast, flags: Flags, caps: ?*const ast.Caps) ?void {
+        self.nstates = 0;
+        self.nedges = 0;
+        self.t = t;
+        self.caps = caps;
+        ast.nodeFlags(t, flags, &self.nflags);
         const r = self.c(t.root) catch return null;
         const m = self.add(.{ .kind = .match }) catch return null;
         self.patch(r.end, m) catch return null;
@@ -123,7 +128,7 @@ pub const Nfa = struct {
             .group_nc, .flag_group => return self.c(n.a),
             .quant => {
                 const q = n.quant;
-                const greedy = !q.lazy;
+                const greedy = q.lazy == self.nflags[idx].swap;
                 if (q.max == ast.inf) return self.atLeast(n.a, greedy, q.min);
                 return self.bounded(n.a, greedy, q.min, q.max);
             },
@@ -239,7 +244,7 @@ const Frame = union(enum) {
 pub fn matchAt(t: *const ast.Ast, flags: Flags, w: []const u21, start: usize, caps: ?*ast.Caps) error{TooBig}!?usize {
     if (nfa_store == null) nfa_store = std.heap.page_allocator.create(Nfa) catch return error.TooBig;
     const nfa = nfa_store.?;
-    nfa.build(t, caps) orelse return error.TooBig;
+    nfa.build(t, flags, caps) orelse return error.TooBig;
     const width: usize = w.len + 1;
     const bits = @as(usize, nfa.nstates) * width;
     if (bits > 1 << 28) return error.TooBig;
