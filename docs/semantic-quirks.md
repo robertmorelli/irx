@@ -84,7 +84,7 @@ which dropped U+180E when it stopped being a space separator in Unicode 6.3. In 
 | Ruby, Oniguruma | full folding, including multi-character folds inside classes (`[ß]` matches `"ss"`) |
 | Rust, RE2, Go | simple case folding |
 | regex-lite, Boost, std::regex, LLVM, libc | ASCII only (C locale) |
-| Swift | an ASCII class member matches only ASCII subjects; others match when single-scalar lowercase mappings agree |
+| Swift | an ASCII class member matches only ASCII subjects; others match when single-scalar lowercase mappings agree, after mapping U+1FD3 and U+1FE3 to their canonical equivalents U+0390 and U+03B0. A range reaching past ASCII also takes an uppercase letter's lowercase and a lowercase letter's uppercase (`ϑ` is in `[Θ]`, `Θ` is not in `[ϑ]`, titlecase `ǅ` is not in `[Ǆ]`); range bounds that NFC would change are rejected (IRX-SWIFT-7) |
 | Tcl, Racket | a pattern character matches exactly `{p, upper(p), lower(p)}` (Racket adds `foldcase(p)`; Tcl's uppercase table adds `ß` → `ẞ`); asymmetric |
 | Emacs | `case-fold-search` canonicalizes both sides (`ς Σ` → `σ`, `ẞ` → `ß`, but `ſ` and the Kelvin sign stay distinct) |
 | nim | ranges accept everything between the endpoints' upper forms and between their lower forms (IRX-NIM-1, followed by the model) |
