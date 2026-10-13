@@ -96,10 +96,13 @@ int host_capture(const char *flags, const char *const subj[2], const size_t lens
         const UChar *s = (const UChar *)subj[k], *end = s + lens[k];
         int m = onig_search(re, s, end, s, end, rg, ONIG_OPTION_NONE);
         if (m >= 0) {
-            if (onig_number_of_names(re) == 0) {
+            /* Ruby and Oniguruma syntax: with named groups present, only they capture. The
+             * Perl, Java and Python syntaxes number every group. */
+            OnigSyntaxType *sy = syntax();
+            if (onig_number_of_names(re) == 0 || sy == ONIG_SYNTAX_PERL || sy == ONIG_SYNTAX_JAVA || sy == ONIG_SYNTAX_PYTHON) {
                 for (int g = 0; g < rg->num_regs && g < CAP_PAIRS; g++) if (rg->beg[g] >= 0) { out[k][2 * g] = rg->beg[g]; out[k][2 * g + 1] = rg->end[g]; }
             } else {
-                /* With named groups only they capture; report group gN at slot N. */
+                /* Report group gN at slot N. */
                 out[k][0] = rg->beg[0]; out[k][1] = rg->end[0];
                 for (int g = 1; g < CAP_PAIRS; g++) {
                     char nm[8]; snprintf(nm, sizeof nm, "g%d", g);
