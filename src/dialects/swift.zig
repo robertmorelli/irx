@@ -31,12 +31,22 @@ fn asciiLower(c: u21) u21 {
 /// lowercase mappings agree.
 fn member(m: u21, c: u21) bool {
     if (m < 0x80) return c < 0x80 and asciiLower(c) == asciiLower(m);
-    return ucd.lower1(c) == ucd.lower1(m);
+    return caseless(c) == caseless(m);
+}
+
+/// Lowercase mapping after canonical singletons: the Greek letters U+1FD3 and U+1FE3 are
+/// canonically equivalent to U+0390 and U+03B0 and match them case-insensitively.
+fn caseless(c: u21) u21 {
+    return ucd.lower1(switch (c) {
+        0x1FD3 => 0x390,
+        0x1FE3 => 0x3B0,
+        else => c,
+    });
 }
 
 fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
     switch (spec.kind) {
-        .lit => return if (flags.i) ucd.lower1(c) == ucd.lower1(spec.syms[0]) else c == spec.syms[0],
+        .lit => return if (flags.i) caseless(c) == caseless(spec.syms[0]) else c == spec.syms[0],
         .cls, .range => {
             var hit = false;
             if (spec.kind == .cls) {
