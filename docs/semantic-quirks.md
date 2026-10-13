@@ -126,9 +126,16 @@ which dropped U+180E when it stopped being a space separator in Unicode 6.3. In 
 
 The ECMAScript rule rejects an iteration that matched empty once the minimum is met and tries the next
 alternative. Perl, PCRE, Python, Java, .NET, Ruby, ICU, Swift, Racket and Emacs instead accept the empty iteration
-and leave the loop. RE2, Go, Rust, .NET NonBacktracking and libc++ have their own rules; irx does not model them,
-so span and capture checks skip patterns with a nullable loop there (`empty_iteration = unmodeled`), and mutation
-mode avoids them. Onigmo additionally ends a counted loop at an empty iteration before its minimum
+and leave the loop. Rust's engines follow their Thompson NFA: regex-automata compiles a star over a nullable body
+as `(e+)?`, `e{n,}` as `e{n-1}e+` and unrolls bounded repeats, and its searches never revisit a (state,
+position) pair. So an empty first iteration ends the loop as in Perl (`(?:|a)*` on `"aa"` is `[0,0)`), but a later
+empty iteration is dropped and the next alternative tried (`(?:\B|x)*` on `"ϑё"` is `[0,2)`, Perl `[0,1)`); irx
+models this exactly with a regex-automata-shaped NFA (`empty_iteration = thompson`, `src/thompson.zig`).
+fancy-regex hands patterns without lookarounds, backreferences, atomic groups or `\b`/`\B` to the regex crate;
+its own VM stops unbounded loops like Perl and unrolls bounded ones, and it still delegates plain subexpressions
+inside such a pattern (not modelled). RE2, Go, .NET NonBacktracking and libc++ have their own rules; irx does not
+model them, so span and capture checks skip patterns with a nullable loop there (`empty_iteration = unmodeled`),
+and mutation mode avoids them. Onigmo additionally ends a counted loop at an empty iteration before its minimum
 (`(?:a+|\B){2}` on `"ba"` is `[1,1)`), a known gap in the model.
 
 Some engines reject such bodies outright: fancy-regex and Racket refuse quantifiers (other than `?`) over a body
@@ -184,9 +191,11 @@ check.)
 
 ## Global search: continuing after an empty match
 
-ECMAScript's `matchAll` continues one position after an empty match (a whole surrogate pair under `u`/`v`). Perl,
-PCRE, Python and Rust instead retry at the same position demanding a non-empty match; Java and .NET advance one
-unit. irx models the ECMAScript rule only.
+ECMAScript's `matchAll` continues one position after an empty match (a whole surrogate pair under `u`/`v`), and
+may report an empty match where the previous match ended (`a*` on `"baa"`: `[0,0) [1,3) [3,3)`). Rust's
+`find_iter` skips an empty match where the last match ended and searches one character on (`[0,0) [1,3)`); irx
+models both (`global_empty_after_match`). Perl, PCRE and Python retry at the same position demanding a non-empty
+match; Java and .NET advance one unit (not modelled).
 
 ## Match selection
 
