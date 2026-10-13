@@ -265,12 +265,13 @@ def run_engine(name, target, mode, cases, out, timeout):
 
 # Open ledger bugs (README) that affect each engine, by ID prefix (legacy and IRX- IDs). Shared
 # engines inherit their library's bugs (PHP and Erlang embed PCRE2; SpiderMonkey shares
-# Irregexp's IRX-V8-5; PCRE1 shares IRX-PCRE2-4, counted as one).
+# Irregexp's IRX-V8-5; PCRE1 shares IRX-PCRE2-4, counted as one; Onigmo shares IRX-ONIG-1 but not
+# IRX-ONIG-2, which is in Oniguruma's Python syntax).
 LEDGER = {
     "resharp": ["IRX-RESHARP", "RESHARP"], "fancy-regex": ["IRX-FANCY"],
     "pcre2": ["IRX-PCRE2"], "pcre2-jit": ["IRX-PCRE2"], "php-pcre2": ["IRX-PCRE2"], "erlang-re": ["IRX-PCRE2"],
     "pcre1": [("IRX-PCRE2-4",)], "pcre1-jit": [("IRX-PCRE2-4",)],
-    "oniguruma": ["IRX-ONIG"], "ruby-onigmo": ["IRX-ONIG", "IRX-RUBY", "RUBY"],
+    "oniguruma": ["IRX-ONIG"], "ruby-onigmo": [("IRX-ONIG-1",), "IRX-RUBY", "RUBY"],
     "re2": ["IRX-RE2"], "re2j": ["IRX-RE2J"], "icu-c": ["IRX-ICU", "ICU"], "icu": ["IRX-ICU", "ICU"],
     "vectorscan": ["IRX-HS", "HS"], "llvm-regex": ["IRX-LLVM"], "libc-regex": ["IRX-LIBC"],
     "cpp-regex": ["IRX-LIBCXX"], "boost-regex": ["IRX-BOOST"],
@@ -281,6 +282,7 @@ LEDGER = {
     "dotnet-interp": ["IRX-DOTNET", "DOTNET"], "dotnet-compiled": ["IRX-DOTNET", "DOTNET"], "dotnet-nonbacktracking": ["IRX-DOTNET", "DOTNET"],
     "swift-regex": ["IRX-SWIFT", "SWIFT", "SWIFT-PERF"], "racket": ["IRX-RACKET", "RACKET"],
     "emacs": ["IRX-EMACS"], "nim-regex": ["IRX-NIM", "NIM"],
+    "python-re": ["IRX-PYRE"], "python-regex": ["IRX-PYREGEX"],
 }
 
 

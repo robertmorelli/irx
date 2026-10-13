@@ -5565,7 +5565,8 @@
   ],
   "feature_count": 14,
   "open_bugs": [
-   "IRX-ONIG-1"
+   "IRX-ONIG-1",
+   "IRX-ONIG-2"
   ],
   "fast": false,
   "featureful": true,
@@ -14924,11 +14925,13 @@
    "extended_mode"
   ],
   "feature_count": 11,
-  "open_bugs": [],
+  "open_bugs": [
+   "IRX-PYRE-1"
+  ],
   "fast": false,
   "featureful": true,
   "family": "Script",
-  "tier": "A"
+  "tier": "D"
  },
  "python-regex": {
   "overall": {
@@ -15427,11 +15430,13 @@
    "extended_mode"
   ],
   "feature_count": 13,
-  "open_bugs": [],
+  "open_bugs": [
+   "IRX-PYREGEX-1"
+  ],
   "fast": false,
   "featureful": true,
   "family": "Script",
-  "tier": "A"
+  "tier": "D"
  },
  "ruby-onigmo": {
   "overall": {
