@@ -207,7 +207,8 @@ pub const Nfa = struct {
 
 /// Shortest length a subtree can match (regex-syntax's minimum_len); assertions are 0. Null when
 /// it can match nothing: an empty class poisons every concatenation, alternation and repetition
-/// around it, except that an alternation of single characters and classes is one class first.
+/// around it, except that an alternation whose branches (flattened, `a|b|c` is one alternation)
+/// are all single characters and classes is one class first.
 fn minLen(self: *const Nfa, idx: u8) ?usize {
     const t = self.t;
     const n = t.nodes[idx];
@@ -215,11 +216,18 @@ fn minLen(self: *const Nfa, idx: u8) ?usize {
     return switch (n.op) {
         .atom => if (n.atom.kind == .empty or n.atom.isAssertion()) 0 else if (classEmpty(self, idx)) null else 1,
         .concat => (minLen(self, n.a) orelse return null) + (minLen(self, n.b) orelse return null),
-        .alt => @min(minLen(self, n.a) orelse return null, minLen(self, n.b) orelse return null),
+        .alt => @min(branchMin(self, n.a) orelse return null, branchMin(self, n.b) orelse return null),
         .quant => (minLen(self, n.a) orelse return null) * n.quant.min,
         .group_cap, .group_named, .group_nc, .flag_group => minLen(self, n.a),
         else => 0,
     };
+}
+
+/// One branch of a flattened alternation that is not merged into a class.
+fn branchMin(self: *const Nfa, idx: u8) ?usize {
+    const n = self.t.nodes[idx];
+    if (n.op != .alt) return minLen(self, idx);
+    return @min(branchMin(self, n.a) orelse return null, branchMin(self, n.b) orelse return null);
 }
 
 /// A single character or class after translation (non-capturing and flag groups vanish).
