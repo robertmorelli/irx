@@ -61,3 +61,27 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END bun long-10m results -->
+
+<!-- BEGIN bun r10 results -->
+### JavaScriptCore (Bun): r10 campaign
+
+* 408,704 patterns, 6 tables, 56 distinct findings
+* findings by kind: 56 timeout (batch)
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END bun r10 results -->
+
+<!-- BEGIN bun r2h results -->
+### JavaScriptCore (Bun): r2h campaign
+
+* 7,973,216 patterns, 81 tables, 2,594 distinct findings; self-check 21,012,224 probes, 0 mismatches, 0 engine failures
+* findings by kind: 2,594 timeout (batch)
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END bun r2h results -->
+<!-- BEGIN bun r2h triage -->
+### bun: r2h (2-hour) campaign triage
+
+* No wrong answers in about 8 million patterns (every mode reported 0 mismatches); self-check clean.
+* All 2,594 findings are batch timeouts, under machine load averages of 12 to 19 on 8 cores; none is a confirmed hang.
+<!-- END bun r2h triage -->
