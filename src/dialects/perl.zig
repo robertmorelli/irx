@@ -45,6 +45,7 @@ pub const dialect: D.Dialect = .{
     .name = "perl",
     // An empty loop iteration ends the loop (PCRE: "the loop is forcibly broken").
     .empty_iteration = .stop,
+    .empty_iteration_at_min = true,
     .isLineTerminator = lineTerminator,
     .isSpace = space,
     .isWord = word,
@@ -75,6 +76,10 @@ pub fn pcre2Space(c: u21) bool {
 pub const pcre2: D.Dialect = blk: {
     var d = dialect;
     d.name = "pcre2";
+    d.empty_iteration_at_min = false;
+    // Bounded loops are unrolled, so an empty iteration there just counts: `(?:^|.){1,3}a` on
+    // "baa" is [0,2) (Perl [0,3)).
+    d.empty_iteration_bounded = false;
     // Prepend followed by an Extended_Pictographic character splits (IRX-PCRE2-6).
     d.grapheme_prepend_pict = false;
     // No GB9c (Indic conjuncts) in PCRE2 10.49.
@@ -144,6 +149,7 @@ fn boostLineTerminator(c: u21) bool {
 /// case folding, an ASCII pool, fixed-length lookbehind, no \p{…} (that needs the ICU traits).
 pub const boost: D.Dialect = blk: {
     var d = asciiClasses(dialect, "boost");
+    d.empty_iteration_at_min = false;
     // \X is a combining sequence, but after an optional or repeated element regex_match fails
     // (IRX-BOOST-3), which would drown other findings: no \X.
     d.grapheme_escape = .none;

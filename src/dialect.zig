@@ -209,6 +209,10 @@ pub const Dialect = struct {
     /// The empty-iteration rule also applies to bounded loops; false: a bounded loop's empty
     /// iteration just counts and the loop goes on (fancy-regex's VM unrolls them).
     empty_iteration_bounded: bool = true,
+    /// The iteration that reaches the minimum also ends the loop when it matched empty (Perl's
+    /// WHILEM counts it before its empty check: `(?:^|.){2,3}a` on "baa" is [0,3)); false: only
+    /// iterations after the minimum (PCRE2 unrolls bounded loops: [0,2)).
+    empty_iteration_at_min: bool = false,
     /// When a pattern has named groups, plain `(...)` groups don't capture (Ruby, Oniguruma).
     named_groups_only: bool = false,
     /// Counted quantifiers are always greedy: the host prints `{m,n}` without the lazy `?`

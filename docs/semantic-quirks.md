@@ -126,7 +126,10 @@ which dropped U+180E when it stopped being a space separator in Unicode 6.3. In 
 
 The ECMAScript rule rejects an iteration that matched empty once the minimum is met and tries the next
 alternative. Perl, PCRE, Python, Java, .NET, Ruby, ICU, Swift, Racket and Emacs instead accept the empty iteration
-and leave the loop. Rust's engines follow their Thompson NFA: regex-automata compiles a star over a nullable body
+and leave the loop. Where the check starts differs: Perl's WHILEM counts an iteration before testing
+it, so the iteration that reaches the minimum also ends the loop when empty (`(?:^|.){2,3}a` on `"baa"` is
+`[0,3)`); PCRE2 unrolls bounded loops and checks only unbounded ones (`[0,2)`, as do Python and the others
+here). Rust's engines follow their Thompson NFA: regex-automata compiles a star over a nullable body
 as `(e+)?`, `e{n,}` as `e{n-1}e+` and unrolls bounded repeats, and its searches never revisit a (state,
 position) pair. So an empty first iteration ends the loop as in Perl (`(?:|a)*` on `"aa"` is `[0,0)`), but a later
 empty iteration is dropped and the next alternative tried (`(?:\B|x)*` on `"ϑё"` is `[0,2)`, Perl `[0,1)`); irx
