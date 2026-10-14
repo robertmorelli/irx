@@ -4,7 +4,7 @@
 [target]
 title = "Hermes (jsvu)"
 kind = "shell"   # d8 | perl | shell
-command = "/opt/homebrew/bin/python3 {root}/tools/bridge.py {root}/vendor/jsvu-home/.jsvu/bin/hermes {driver} {mode}"
+command = "/opt/homebrew/bin/python3.14 {root}/tools/bridge.py {root}/vendor/jsvu-home/.jsvu/bin/hermes {driver} {mode}"
 dialect = "es"   # src/dialects/
 selfcheck = false
 
