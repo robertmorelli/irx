@@ -246,3 +246,78 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END fancy-regex rglob results -->
+
+<!-- BEGIN fancy-regex r10 results -->
+### fancy-regex: r10 campaign
+
+* 1,660,416 patterns, 18 tables, 152 distinct findings
+* findings by kind: 141 wrong_capture, 6 wrong_result, 5 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 2 | wrong_result | `iu` | `"sſſS"` | `""` | `([A-Z]+)(?:\1)` | 00 |
+| 2 | wrong_result | `iu` | `"sſſS"` | `"a"` | `(\S*)(?:\1)` | 00 |
+| 1 | wrong_capture | `u` | `"aaaaaaaa"` | `"aaaaaaaaa"` | `(?:(?:(^)a\|a)aa\Ba)+` | 02 |
+| 1 | wrong_capture | `u` | `"a\naaaaaa"` | `"a\naaaaaaa"` | `(?:(?:(?!)\|a)(?:(\s)\|a))*` | 02 |
+| 1 | wrong_capture | `u` | `"aaaaaaaθ"` | `"aaa0a"` | `(?:a\B(?:\p{Nd}\|[\x{430}\x{3B8}]\|(?<g1>a))){0,}` | 02 |
+| 1 | wrong_capture | `u` | `"a\naaaaaa"` | `"a\naaa"` | `(?:a(?>a\|(\p{Cc})))+` | 02 |
+| 1 | wrong_capture | `u` | `"_a"` | `"ſ"` | `(?>(\P{Ll})\|a){0,}` | 00 |
+| 1 | wrong_capture | `u` | `"aaa0aaaa"` | `"a"` | `(?:a(?=)(?:a\|(?<g1>\S)))*` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END fancy-regex r10 results -->
+
+<!-- BEGIN fancy-regex r10b results -->
+### fancy-regex: r10b campaign
+
+* 1,854,272 patterns, 20 tables, 436 distinct findings
+* findings by kind: 243 wrong_span, 150 wrong_capture, 42 wrong_result, 1 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 4 | wrong_span | `u` | `"aa"` | `"aaſ"` | `(?:(?:a+?)+)*` | 02 |
+| 4 | wrong_span | `u` | `"aa"` | `"aaſ"` | `(?:(?:a+?)+)?` | 02 |
+| 4 | wrong_capture | `u` | `"aa"` | `"aaſ"` | `(?:(?:a+?)+)*` | 02 |
+| 4 | wrong_result | `u` | `"aa"` | `"a"` | `(?:(?:\B\|a){2,}){2}` | 00 |
+| 4 | wrong_capture | `u` | `"aa"` | `"_"` | `(?:(?:a+?)+)*` | 00 |
+| 4 | wrong_capture | `u` | `"aa"` | `"aaſ"` | `(?:(?:a+?)+)?` | 02 |
+| 4 | wrong_span | `u` | `"aa"` | `"_"` | `(?:(?:a+?)+)*` | 00 |
+| 3 | wrong_span | `u` | `"aaaaaaaa"` | `"aaaaa"` | `(?x:(?:(?:(?:a a)+?)+)?)` | 03 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END fancy-regex r10b results -->
+
+<!-- BEGIN fancy-regex r2h results -->
+### fancy-regex: r2h campaign
+
+* 539,424 patterns, 7 tables, 655 distinct findings; self-check 14,322,400 probes, 0 mismatches, 76 engine failures
+* findings by kind: 485 wrong_span, 130 wrong_capture, 40 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 6 | wrong_span | `u` | `"aa"` | `"aaϑ"` | `(?:(?:a+?)*)*` | 02 |
+| 5 | wrong_span | `u` | `"aa"` | `"ϑ"` | `(?:(?:a+?)*)*` | 00 |
+| 4 | wrong_span | `imsu` | `"àKſékΣk"` | `"àKéàkΣk"` | `(?:[^K~~K](?:(?:(?:[^\u{1F600}\u{E0}]{1,}?)?)*\|[ \u017F](?:^[\u{391}-\u03A9])+\z))?` | 02 |
+| 4 | wrong_span | `u` | `"aa"` | `"а"` | `(?:(?:a+?)+)?` | 00 |
+| 4 | wrong_span | `u` | `"aa"` | `"aas"` | `(?:(?:a+?)*){0,}` | 02 |
+| 4 | wrong_span | `u` | `"aa"` | `"а"` | `(?:(?:a+?)?){0,}` | 00 |
+| 4 | wrong_span | `u` | `"aa"` | `"aaϑ"` | `(?:(?:a+?)+)?` | 02 |
+| 4 | wrong_result | `u` | `"aa"` | `"k"` | `(?>(?:(?:a+?){0,})*)` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END fancy-regex r2h results -->
+<!-- BEGIN fancy-regex r2h triage -->
+### fancy-regex: r2h (2-hour) campaign triage
+
+fancy-regex 0.19.2.
+
+* No new bugs. IRX-FANCY-2 (lazy loops inside loops, e.g. `(?:(?:a+?)*)*` on `"aa"`), about 470 findings; IRX-FANCY-3 (unbounded inner repeat whose first iteration in a later outer round matches empty), including a lookbehind variant: `^(?:(?:\D|(?<=\W)){2,}){2}$` fails on `" a"` (Perl matches).
+* Known model gap (not modelled): inside a pattern that runs on fancy-regex's VM (lookarounds, atomic groups, `\b`/`\B`/`\>`), plain subexpressions are still handed to the regex crate, so their loops follow the regex crate's empty-iteration rule: `(?>(?:a|()|[^σ-])*)` on `"as"` is `[0,2)` (Perl `[0,1)`). About 100 findings.
+* 76 self-check engine failures: batch deadline exceeded under load.
+<!-- END fancy-regex r2h triage -->
