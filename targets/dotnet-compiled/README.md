@@ -119,3 +119,57 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-compiled long-10m results -->
+
+<!-- BEGIN dotnet-compiled r10 results -->
+### .NET 9 Regex (Compiled): r10 campaign
+
+* 339,424 patterns, 5 tables, 1,386 distinct findings
+* findings by kind: 634 exception, 337 wrong_span, 258 wrong_result, 157 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 22 | exception | `` | `"a"` | `""` | `(?<=(){0,1}?)a` | 08 |
+| 16 | exception | `` | `""` | `"a"` | `(?<=(?:){0,1}?)` | 08 |
+| 12 | exception | `` | `"a"` | `""` | `(?<=(){0,}?)a` | 08 |
+| 12 | exception | `` | `"a"` | `""` | `(?<=(?:){0,1}?)a` | 08 |
+| 10 | exception | `` | `""` | `"a"` | `(?x:(?:(?<!(?:){0,1}?))*)` | 08 |
+| 8 | exception | `` | `""` | `"a"` | `(?<=(?:){0,}?)` | 08 |
+| 8 | exception | `` | `""` | `"a"` | `(?:(?<=(){0,1}?))+` | 08 |
+| 8 | exception | `` | `""` | `"a"` | `(?:(?<=(?:){0,1}?))*` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END dotnet-compiled r10 results -->
+
+<!-- BEGIN dotnet-compiled r2h results -->
+### .NET 9 Regex (Compiled): r2h campaign
+
+* 4,107,168 patterns, 43 tables, 1,577 distinct findings; self-check 3,457,024 probes, 0 mismatches, 0 engine failures
+* findings by kind: 739 wrong_span, 466 wrong_result, 366 wrong_capture, 6 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 92 | wrong_result | `` | `"aa"` | `""` | `\D+\Ba` | 00 |
+| 63 | wrong_span | `` | `"aa"` | `""` | `\D+\Ba` | 00 |
+| 56 | wrong_result | `` | `"aa"` | `""` | `\D{1,2}\Ba` | 00 |
+| 34 | wrong_span | `` | `"aa"` | `""` | `\D{1,2}\Ba` | 00 |
+| 33 | wrong_capture | `` | `"aa"` | `""` | `\D+\Ba` | 00 |
+| 22 | wrong_capture | `` | `"aa"` | `""` | `\D{1,2}\Ba` | 00 |
+| 22 | wrong_result | `` | `"aa"` | `""` | `\D{1,}\Ba` | 00 |
+| 15 | wrong_span | `` | `"aa"` | `""` | `\D{1,}\Ba` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END dotnet-compiled r2h results -->
+<!-- BEGIN dotnet-compiled r2h triage -->
+### dotnet-compiled: r2h (2-hour) campaign triage
+
+The host rolls forward to the newest installed runtime: this campaign ran on .NET 11.0.0-rc.1 (the results title says .NET 9).
+
+* New: IRX-DOTNET-12 (a loop over `\D`, `\W` or `\P{Nd}` before `\B` never gives characters back: `^\D+\Ba$` fails on `"aa"`), about 940 findings; IRX-DOTNET-13 (a loop with minimum ≥ 1 over `(loop|empty)` ignores the empty branch: `(?:a+|)+` never matches `""`), about 210. Both are regressions since .NET 9.0.4 (present in 10.0.12 and 11 RC 1, interpreter and Compiled).
+* Known: IRX-DOTNET-8's family (nested counted loops whose spans differ from Perl, also on .NET 9: `(?:(?:.{2,2}|a)+){2,2}` on `"aaaaaaϑ"` is `[0,6)`, Perl `[0,7)`), about 290.
+* Model gap, fixed: .NET numbers unnamed groups before named ones, so in `(?<g1>a)|aa()\1` the `\1` is the empty `()`; backreferences are now printed by .NET numbering (named groups as `\k<gN>`). 128 findings.
+* Self-check clean.
+<!-- END dotnet-compiled r2h triage -->
