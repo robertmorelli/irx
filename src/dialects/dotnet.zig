@@ -85,5 +85,8 @@ pub const ecma: D.Dialect = blk: {
     d.isBoundaryWord = null;
     d.escapes_ignore_case = true;
     d.extended_mode = false; // ECMAScript excludes IgnorePatternWhitespace
+    // A backreference to a group that has not participated matches empty, as in JavaScript:
+    // (a)|\1 matches "" under RegexOptions.ECMAScript (.NET 9.0.4 and 11 RC 1).
+    d.backref_unset_matches_empty = true;
     break :blk d;
 };
