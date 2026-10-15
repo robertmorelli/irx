@@ -283,6 +283,7 @@ LEDGER = {
     "swift-regex": ["IRX-SWIFT", "SWIFT", "SWIFT-PERF"], "racket": ["IRX-RACKET", "RACKET"],
     "emacs": ["IRX-EMACS"], "nim-regex": ["IRX-NIM", "NIM"],
     "python-re": ["IRX-PYRE"], "python-regex": ["IRX-PYREGEX"],
+    "regex-lite": ["IRX-RLITE"],
 }
 
 
