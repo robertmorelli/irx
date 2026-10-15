@@ -115,3 +115,55 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-nonbacktracking long-10m results -->
+
+<!-- BEGIN dotnet-nonbacktracking r10 results -->
+### .NET 9 Regex (NonBacktracking): r10 campaign
+
+* 570,144 patterns, 7 tables, 4,103 distinct findings
+* findings by kind: 2,378 wrong_span, 1,717 wrong_capture, 8 wrong_result
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 6 | wrong_span | `` | `"aa"` | `""` | `(?:aa\|\|a)a` | 00 |
+| 4 | wrong_span | `` | `"aa"` | `""` | `(?:aa\|(?:)\|a)a` | 00 |
+| 3 | wrong_span | `` | `"aa"` | `""` | `(?:aa\|()\|a)a` | 00 |
+| 3 | wrong_span | `` | `"aa"` | `""` | `(?:aa\|a??)a` | 00 |
+| 3 | wrong_span | `` | `"aa"` | `""` | `(?:$\|()\|a)a` | 00 |
+| 3 | wrong_span | `` | `"aaaaaaa"` | `""` | `(?:(?:aaa\|a){2,}?){2,2}` | 00 |
+| 3 | wrong_span | `` | `"aaaaaaa"` | `""` | `(?:(?:a{2,}?)+){2,}?` | 00 |
+| 3 | wrong_span | `` | `"aa"` | `""` | `(?:a??\|(?:))a` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END dotnet-nonbacktracking r10 results -->
+
+<!-- BEGIN dotnet-nonbacktracking r2h results -->
+### .NET 9 Regex (NonBacktracking): r2h campaign
+
+* 7,555,296 patterns, 77 tables, 6,113 distinct findings; self-check 3,440,640 probes, 0 mismatches, 32 engine failures
+* findings by kind: 4,000 wrong_span, 2,000 wrong_capture, 96 wrong_result, 17 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 14 | wrong_span | `` | `"aa"` | `""` | `(?:aa\|\|a)a` | 00 |
+| 12 | wrong_capture | `` | `"aa"` | `""` | `(?:aa\|\|a)a` | 00 |
+| 10 | wrong_span | `` | `"aaaaaaa"` | `""` | `(?:(?:a{2,}?)+){2,2}?` | 00 |
+| 9 | wrong_span | `` | `"aaaaaaa"` | `""` | `(?:(?:a{2,}?)+){2,}?` | 00 |
+| 8 | wrong_span | `` | `"aaaaaaa"` | `""` | `(?:(?:a{2,3}?)+){2,}?` | 00 |
+| 8 | wrong_capture | `` | `"aaaaaaa"` | `""` | `(?:(?:a{2,}?)+){2,2}?` | 00 |
+| 8 | wrong_capture | `` | `"aaaaaaa"` | `""` | `(?:(?:a{2,}?)+){2,}?` | 00 |
+| 7 | wrong_capture | `` | `"aaaaaaa"` | `""` | `(?:(?:a{2,3}?)+){2,}?` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END dotnet-nonbacktracking r2h results -->
+<!-- BEGIN dotnet-nonbacktracking r2h triage -->
+### dotnet-nonbacktracking: r2h (2-hour) campaign triage
+
+Ran on .NET 11.0.0-rc.1.
+
+* No new IDs. IRX-DOTNET-7 widened: besides loops that give back an iteration, NonBacktracking prefers a longer match after an empty or lazy alternative and with lazy counted loops (`(?:aa||a)a` on `"aa"` → `[0,2)`, backtracking `[0,1)`; `(?:a{3,}?)+a` on `"aaaaa"` → `[0,5)`), also on .NET 9.0.4. About 5,100 findings.
+* `\b`/`\B` loop shapes (IRX-DOTNET-6, -9, -10), about 990. 32 self-check engine failures; 17 timeouts.
+<!-- END dotnet-nonbacktracking r2h triage -->

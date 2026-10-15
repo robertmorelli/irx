@@ -122,3 +122,57 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END dotnet-interp long-10m results -->
+
+<!-- BEGIN dotnet-interp r10 results -->
+### .NET 9 Regex (interpreter): r10 campaign
+
+* 350,688 patterns, 5 tables, 7,641 distinct findings
+* findings by kind: 4,292 wrong_span, 1,668 wrong_capture, 892 wrong_result, 404 timeout (batch), 363 exception, 14 tier_mismatch, 8 protocol (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 15 | wrong_span | `` | `""` | `"a"` | `(?:(?:)+?)*` | 02 |
+| 10 | wrong_capture | `` | `""` | `"a"` | `(?:(?:)+?)*` | 02 |
+| 7 | wrong_span | `` | `""` | `"a"` | `(?:(?:){1,}?)*` | 02 |
+| 6 | wrong_result | `` | `"aa"` | `"ϑ"` | `(?:a()+?)*` | 00 |
+| 5 | wrong_span | `` | `""` | `"a"` | `(?x:(?:(?:)+?)+)` | 02 |
+| 4 | wrong_span | `` | `""` | `"a"` | `(?:()+?)+` | 02 |
+| 3 | wrong_result | `` | `"aa"` | `""` | `(?:a()+?){1,}` | 00 |
+| 3 | wrong_span | `` | `""` | `"a"` | `(?:(?:$)+?)*` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END dotnet-interp r10 results -->
+
+<!-- BEGIN dotnet-interp r2h results -->
+### .NET 9 Regex (interpreter): r2h campaign
+
+* 72,460,928 patterns, 726 tables, 12,041 distinct findings; self-check 3,457,024 probes, 0 mismatches, 0 engine failures
+* findings by kind: 6,000 wrong_span, 4,000 wrong_result, 2,000 wrong_capture, 29 timeout (batch), 10 syntax_error, 2 exception
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 510 | wrong_result | `` | `"aa"` | `""` | `\D+\Ba` | 00 |
+| 235 | wrong_span | `` | `"aa"` | `""` | `\D+\Ba` | 00 |
+| 200 | wrong_result | `` | `"aa"` | `""` | `\D{1,}\Ba` | 00 |
+| 166 | wrong_result | `` | `"aa"` | `""` | `\D{1,2}\Ba` | 00 |
+| 135 | wrong_capture | `` | `"aa"` | `""` | `\D+\Ba` | 00 |
+| 112 | wrong_span | `` | `"aa"` | `""` | `\D{1,}\Ba` | 00 |
+| 106 | wrong_result | `` | `"😀aa"` | `"😀"` | `\D+\Ba` | 00 |
+| 92 | wrong_span | `` | `"aa"` | `""` | `\D{1,2}\Ba` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END dotnet-interp r2h results -->
+<!-- BEGIN dotnet-interp r2h triage -->
+### dotnet-interp: r2h (2-hour) campaign triage
+
+Ran on .NET 11.0.0-rc.1 (the host rolls forward to the newest runtime).
+
+* New: IRX-DOTNET-15 (`(?!a(?:()()|()))` throws `ArgumentOutOfRangeException`; .NET 10 and 11, 9.0.4 correct).
+* Known: IRX-DOTNET-12 (loops over `\D`, `\W`, `\P{Nd}` before `\B`), about 9,600; IRX-DOTNET-13 (counted loop over `(loop|empty)`), about 1,300; IRX-DOTNET-8's family (nested counted loops), about 1,100.
+* 4 syntax_error findings are a pattern with a lone surrogate (`\x{DE00}`) the host cannot pass on; not an engine bug.
+* Self-check clean; the .NET backreference numbering fix held (no backreference-only findings).
+<!-- END dotnet-interp r2h triage -->
