@@ -58,7 +58,7 @@ full(Mode, F, A, R, P) ->
             Reps = case Mode of "repeat" -> 2; "tierup" -> 2; _ -> 1 end,
             try
                 Bits = lists:foldl(fun({K, S, Rep}, Acc) ->
-                    case re:run(S, MP, [{capture, none}]) of
+                    case re:run(S, MP, [report_errors, {capture, none}]) of
                         match -> Acc bor ((1 bsl K) bsl (4 * Rep));
                         nomatch -> Acc;
                         {error, _} -> throw(limit)
@@ -73,7 +73,7 @@ span(F, A, R, P, OA, OR, RunOpts) ->
         {error, _} -> fail(4, 2);
         {ok, MP} ->
             try
-                [case re:run(S, MP, [{capture, first, index}, {offset, O} | RunOpts]) of
+                [case re:run(S, MP, [report_errors, {capture, first, index}, {offset, O} | RunOpts]) of
                      {match, [{Pos, Len}]} -> [hex2(Pos), hex2(Pos + Len)];
                      nomatch -> "ffff";
                      {error, _} -> throw(limit)
@@ -87,7 +87,7 @@ capture(F, A, R, P) ->
         {error, _} -> fail(4, 26);
         {ok, MP} ->
             try
-                [case re:run(S, MP, [{capture, all, index}]) of
+                [case re:run(S, MP, [report_errors, {capture, all, index}]) of
                      {match, Gs} ->
                          Gs7 = lists:sublist(Gs ++ lists:duplicate(7, {-1, 0}), 7),
                          [case G of {-1, _} -> "ffff"; {Pos, Len} -> [hex2(Pos), hex2(Pos + Len)] end || G <- Gs7];
@@ -108,9 +108,9 @@ bench(F0, A, R, P) ->
         {ok, MP} ->
             Tc = erlang:monotonic_time(nanosecond) - T0,
             try
-                M = fun(S) -> case re:run(S, MP, [{capture, none}]) of match -> 1; nomatch -> 0; {error, _} -> throw(limit) end end,
+                M = fun(S) -> case re:run(S, MP, [report_errors, {capture, none}]) of match -> 1; nomatch -> 0; {error, _} -> throw(limit) end end,
                 Bits = M(A) bor (M(R) bsl 1),
-                Loop = fun Lp(_, 0) -> ok; Lp(S, K) -> _ = re:run(S, MP, [{capture, none}]), Lp(S, K - 1) end,
+                Loop = fun Lp(_, 0) -> ok; Lp(S, K) -> _ = re:run(S, MP, [report_errors, {capture, none}]), Lp(S, K - 1) end,
                 T1 = erlang:monotonic_time(nanosecond), Loop(A, N),
                 T2 = erlang:monotonic_time(nanosecond), Loop(R, N),
                 T3 = erlang:monotonic_time(nanosecond),
