@@ -116,6 +116,9 @@ pub const Dialect = struct {
     /// Backreferences to named groups are spelled \k<name>, and with any named group present a
     /// numbered reference is an error (Onigmo, Oniguruma).
     backref_by_name: bool = false,
+    /// Unnamed groups are numbered first and named groups after them (.NET), so a numbered
+    /// reference counts unnamed groups only and a reference to a named group uses \k<name>.
+    named_groups_last: bool = false,
     /// Loop bodies' captures are cleared per iteration (capture model hint for the oracle).
     reset_loop_captures_hint: bool = false,
     /// \h \H \v \V (horizontal / vertical whitespace) are generated, with these sets.

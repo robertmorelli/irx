@@ -25,6 +25,7 @@ pub const dialect: D.Dialect = .{
     // which would drown other findings: no atomic groups.
     .atomic_groups = false,
     .backrefs = true,
+    .named_groups_last = true,
     .extended_mode = true,
     .scoped_flags = true,
     .isBoundaryWord = boundaryWord,

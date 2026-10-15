@@ -214,6 +214,10 @@ pub const Printer = struct {
     printed_groups: u8 = 0,
     tree_groups: [ast.max_caps]u8 = undefined,
     n_tree_groups: u8 = 0,
+    /// Named groups printed so far, and each tree capture's number among unnamed groups only
+    /// (named_groups_last).
+    named_printed: u8 = 0,
+    tree_unnamed: [ast.max_caps]u8 = undefined,
     limit: usize = std.math.maxInt(usize),
     /// Spelling seed for empty atoms: 0 always prints `(?:)`; otherwise each empty atom
     /// picks `(?:)`, nothing (where the syntax allows) or `()` from (spell, ordinal).
@@ -317,6 +321,7 @@ pub const Printer = struct {
         self.printed_groups +|= 1;
         if (self.n_tree_groups < ast.max_caps) {
             self.tree_groups[self.n_tree_groups] = self.printed_groups;
+            self.tree_unnamed[self.n_tree_groups] = self.printed_groups - self.named_printed;
             self.n_tree_groups += 1;
         }
     }
@@ -456,6 +461,7 @@ pub const Printer = struct {
                 self.noteTreeGroup();
                 self.name_num[idx] = if (self.alias[idx] != 255) self.name_num[self.alias[idx]] else self.printed_groups;
                 if (self.n_tree_groups > 0) self.named_target[self.n_tree_groups - 1] = self.name_num[idx];
+                self.named_printed +|= 1;
                 const ng = if (dialect.active.rust_spellings and self.pick(2) == 1) dialect.NamedGroup.p_angle else dialect.active.named_group;
                 switch (ng) {
                     .angle => try self.fmt("(?<g{d}>", .{self.name_num[idx]}),
@@ -489,8 +495,10 @@ pub const Printer = struct {
                 const named = if (n.fmod < self.n_tree_groups) self.named_target[n.fmod] else 0;
                 if (num == 0) {
                     try self.put("(?:)");
-                } else if (dialect.active.backref_by_name and named != 0) {
+                } else if ((dialect.active.backref_by_name or dialect.active.named_groups_last) and named != 0) {
                     try self.fmt("(?:\\k<g{d}>)", .{named});
+                } else if (dialect.active.named_groups_last) {
+                    try self.fmt("(?:\\{d})", .{self.tree_unnamed[n.fmod]});
                 } else try self.fmt("(?:\\{d})", .{num});
             },
         }
