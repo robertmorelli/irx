@@ -116,3 +116,55 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END hermes long-10m results -->
+
+<!-- BEGIN hermes r10 results -->
+### Hermes (jsvu): r10 campaign
+
+* 3,200 patterns, 2 tables, 99 distinct findings
+* findings by kind: 79 exception, 16 protocol (batch), 2 wrong_result, 1 wrong_span, 1 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 5 | exception | `` | `"a"` | `"ϑ"` | `(?:.\|())+?a` | 08 |
+| 2 | wrong_result | `` | `"aё"` | `""` | `(?:(?:[^\u0430\u03D5]+){1,})+[^a\u03B8]` | 00 |
+| 2 | exception | `` | `"a"` | `"aaaϑ"` | `(?:.\|())+?a` | 08 |
+| 2 | exception | `` | `""` | `"aӏ"` | `(?:(?:a\|())?)+` | 08 |
+| 1 | exception | `` | `""` | `"aϑ"` | `(?:a*)+?` | 08 |
+| 1 | exception | `` | `""` | `"aϑ"` | `(?:a\|(?:)*?)*?` | 08 |
+| 1 | wrong_span | `` | `"aё"` | `""` | `(?:(?:[^\u0430\u03D5]+){1,})+[^a\u03B8]` | 00 |
+| 1 | exception | `` | `""` | `"aϑ"` | `(?:a\|())+?` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END hermes r10 results -->
+
+<!-- BEGIN hermes r2h results -->
+### Hermes (jsvu): r2h campaign
+
+* 39,744 patterns, 2 tables, 1,294 distinct findings
+* findings by kind: 908 exception, 227 protocol (batch), 68 wrong_span, 62 wrong_result, 29 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 8 | wrong_span | `` | `"aa"` | `""` | `(?:(?:a+)+){2,2}` | 00 |
+| 6 | wrong_result | `` | `"aa"` | `""` | `(?:(?:a+)+){2,2}` | 00 |
+| 5 | exception | `` | `"a"` | `"ϑ"` | `(?:.\|())+?a` | 08 |
+| 4 | wrong_result | `` | `"aa"` | `""` | `(?:(?:a+){1}){2,}` | 00 |
+| 4 | wrong_span | `` | `"aa"` | `""` | `(?:(?:a+){1}){2,}` | 00 |
+| 4 | wrong_span | `` | `"aa"` | `""` | `(?:(?:a{1,}){1,1}){2}` | 00 |
+| 4 | wrong_result | `` | `"aa"` | `""` | `(?:(?:a+)+){0,}a` | 00 |
+| 4 | wrong_result | `` | `"aa"` | `""` | `(?:(?:a+)+){2,}` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END hermes r2h results -->
+<!-- BEGIN hermes r2h triage -->
+### hermes: r2h (2-hour) campaign triage
+
+Hermes 0.13.0 (through `tools/bridge.py`; only about 40,000 patterns in 2 hours).
+
+* No new bugs. IRX-HERMES-2 (`RangeError: Maximum regex stack depth reached` on tiny inputs, e.g. `(?:.|())+?a` on `"ϑ"`): the 908 exceptions. IRX-HERMES-3 (nested loops, e.g. `(?:(?:a+)+){2,}` on `"aa"`) and IRX-HERMES-4 (lookbehind with a `^` alternative, e.g. `(?<=^.|a)`): the wrong results, spans and captures.
+* 227 protocol findings: malformed bridge replies on slow batches.
+<!-- END hermes r2h triage -->
