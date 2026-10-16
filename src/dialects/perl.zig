@@ -46,6 +46,10 @@ pub const dialect: D.Dialect = .{
     // An empty loop iteration ends the loop (PCRE: "the loop is forcibly broken").
     .empty_iteration = .stop,
     .empty_iteration_at_min = true,
+    // Lookbehind bodies are matched forward from a start position, so an atomic group or
+    // possessive loop can run past the lookbehind ((?<=a?+)a fails on "a"); the model reads
+    // lookbehind right to left. Keeps them out (inherited by PCRE2 and Boost).
+    .lookbehind_no_atomic = true,
     .isLineTerminator = lineTerminator,
     .isSpace = space,
     .isWord = word,

@@ -66,6 +66,10 @@ pub const dialect: D.Dialect = .{
     // counted or possessive part ((?<=a*a{0,2}), (?<!aa*+); (?<=a*) and (?<=a*b*) still
     // compile): keep lookbehinds bounded.
     .lookbehind_len_cap = 16,
+    // Lookbehind bodies are matched forward from a start position (not cut at the lookbehind),
+    // so an atomic part can run past it: (?<=a?+)a fails on "a" (Perl, PCRE2 agree); the
+    // model reads lookbehind right to left.
+    .lookbehind_no_atomic = true,
     .name = "java",
     .isLineTerminator = lineTerminator,
     .isSpace = perl.space,
