@@ -43,12 +43,18 @@ pub const dialect: D.Dialect = .{
     .grapheme_escape = .extended_gb9c,
     .scoped_flags = true,
     .unicode_props = true,
-    .prop_case = .equivalence_invert,
+    // Under CASE_INSENSITIVE (with or without UNICODE_CASE), \p{Lu}, \p{Ll} and \p{Lt} match
+    // any cased letter (OpenJDK 27: \p{Lu} matches "a" and "ΐ"; \P{Lu} matches neither).
+    .prop_case = .cased,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
     // "Look-behind group does not have an obvious maximum length": unbounded repeats of
     // groups are rejected; `(?<=a*)` compiles (and IRX-JAVA-3 shows it misbehaves).
     .lookbehind_no_unbounded_group = true,
+    // OpenJDK 27 also rejects some unbounded single-character repeats in lookbehind next to a
+    // counted or possessive part ((?<=a*a{0,2}), (?<!aa*+); (?<=a*) and (?<=a*b*) still
+    // compile): keep lookbehinds bounded.
+    .lookbehind_len_cap = 16,
     .name = "java",
     .isLineTerminator = lineTerminator,
     .isSpace = perl.space,
