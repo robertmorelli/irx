@@ -50,6 +50,7 @@ pub const dialect: D.Dialect = .{
     // `(?<=a??)` and `(?<=a+?)` are rejected; `(?<=a{0,1}?)` compiles.
     .lookbehind_no_lazy = true,
     .lookbehind_no_lookaround = true,
+    .lookbehind_no_atomic = true,
     // Full case folding for literals under i (a pattern ß matches "ss", "ſS"); listed class
     // members use simple folding. Multi-fold characters stay out of subjects.
     .full_fold = .literals,

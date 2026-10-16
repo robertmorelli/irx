@@ -196,6 +196,11 @@ pub const Dialect = struct {
     /// No lookarounds inside lookbehind (ICU rejects unbounded quantifiers even in a lookahead
     /// nested in a lookbehind; keeping lookarounds out is the simple sufficient rule).
     lookbehind_no_lookaround: bool = false,
+    /// No atomic group or possessive quantifier inside lookbehind: the engine matches the body
+    /// forward from a start position with the subject cut at the lookbehind (ICU), which the
+    /// model's right-to-left lookbehind does not reproduce for atomic parts (`a(?<=aa?+)`
+    /// matches `"a"` in ICU, Perl and PCRE2; read right to left, `a?+` takes the only `a`).
+    lookbehind_no_atomic: bool = false,
     /// No $ inside lookbehind (Oniguruma's Perl/Java/Python syntaxes, where $ is a semi-end anchor).
     lookbehind_no_dollar: bool = false,
     /// No quantifier at all inside lookbehind (Boost).
@@ -409,6 +414,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (d.lookbehind_onig and (c.f & (tb.aux_lk | tb.aux_cq) != 0 or (n.op == .neg_look_behind and c.f & tb.aux_cp != 0))) ok.* = false;
             if (d.lookbehind_no_lazy and c.f & tb.aux_lz != 0) ok.* = false;
             if (d.lookbehind_no_lookaround and c.f & tb.aux_lk != 0) ok.* = false;
+            if (d.lookbehind_no_atomic and c.f & tb.aux_cx != 0) ok.* = false;
             return .{ .min = 0, .max = 0, .f = tb.aux_lk | tb.aux_za | (c.f & inherit) };
         },
         .group_nc => return lenOf(t, n.a, ok),
