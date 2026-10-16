@@ -51,6 +51,9 @@ pub const dialect: D.Dialect = .{
     .lookbehind_no_lazy = true,
     .lookbehind_no_lookaround = true,
     .lookbehind_no_atomic = true,
+    // Bounded repeats count an empty iteration instead of ending the loop (as PCRE2):
+    // (?:^|.){0,2}a on " aaa" is [0,2) (Perl [0,3)); unbounded loops still stop.
+    .empty_iteration_bounded = false,
     // Full case folding for literals under i (a pattern ß matches "ss", "ſS"); listed class
     // members use simple folding. Multi-fold characters stay out of subjects.
     .full_fold = .literals,
