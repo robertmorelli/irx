@@ -124,3 +124,56 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END java long-10m results -->
+
+<!-- BEGIN java r10 results -->
+### java.util.regex: r10 campaign
+
+* 6,133,280 patterns, 63 tables, 13,178 distinct findings
+* findings by kind: 6,000 wrong_span, 4,000 wrong_result, 2,000 wrong_capture, 972 syntax_error, 206 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 36 | syntax_error | `u` | `""` | `"a"` | `(?<!aa*+)` | 04 |
+| 30 | syntax_error | `u` | `""` | `"a"` | `(?<!aa++)` | 04 |
+| 28 | wrong_span | `u` | `"aa"` | `"aϑ"` | `(?:a\|^){2,}` | 03 |
+| 24 | syntax_error | `u` | `""` | `"a"` | `(?<!a*a{1,1})` | 04 |
+| 24 | wrong_capture | `u` | `"aa"` | `"aϑ"` | `(?:a\|^){2,}` | 03 |
+| 23 | wrong_span | `u` | `"a"` | `"aϑ"` | `(?:a\|\b){2,}` | 03 |
+| 17 | wrong_capture | `u` | `"a"` | `"aϑ"` | `(?:a\|\b){2,}` | 03 |
+| 15 | wrong_span | `u` | `""` | `"aϑ"` | `(?:a\|^){2,}` | 03 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END java r10 results -->
+
+<!-- BEGIN java r2h results -->
+### java.util.regex: r2h campaign
+
+* 32,479,872 patterns, 326 tables, 15,957 distinct findings; self-check 5,116,544 probes, 0 mismatches, 0 engine failures
+* findings by kind: 6,000 wrong_span, 4,000 wrong_result, 3,957 timeout (batch), 2,000 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 110 | wrong_span | `mu` | `"a"` | `""` | `(?:a\|^){2,2}` | 00 |
+| 98 | wrong_result | `mu` | `"a"` | `""` | `(?:a\|^){2,2}` | 00 |
+| 60 | wrong_result | `mu` | `"a"` | `""` | `(?:^\|a){2,2}` | 00 |
+| 56 | wrong_span | `u` | `"a"` | `"a_"` | `(?:a\|\b){2,}` | 03 |
+| 47 | wrong_span | `u` | `"aa"` | `"a_"` | `(?:a\|^){2,}` | 03 |
+| 46 | wrong_span | `u` | `"aa"` | `"a"` | `(?:a\|\B){2,2}` | 00 |
+| 43 | wrong_capture | `u` | `"aa"` | `"a_"` | `(?:a\|^){2,}` | 03 |
+| 40 | wrong_capture | `u` | `"a"` | `"a_"` | `(?:a\|\b){2,}` | 03 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END java r2h results -->
+<!-- BEGIN java r2h triage -->
+### java: r2h (2-hour) campaign triage
+
+OpenJDK 27, with the OpenJDK 27 model fixes (cased `\p{Lu}`, bounded lookbehinds, range folding through shared uppercase); self-check clean (it had 88 mismatches before).
+
+* No new engine bugs. IRX-JAVA-2 (counted group with a zero-width branch, `(?:a|^){2}` / `(?:a|\b){2,}` on `"a"`; still open in OpenJDK 27), about 4,500 findings and most of the rest; IRX-JAVA-4 (captures in nested counted loops, `(?:(a)+){2,2}` on `"aaa"`).
+* Model gap, fixed after the run: lookbehind bodies are matched forward from a start position without cutting the subject, so `(?<=a?+)a` fails on `"a"` (Perl and PCRE2 agree); Java and the Perl family now keep atomic groups and possessive quantifiers out of lookbehinds.
+* 3,957 batch timeouts.
+<!-- END java r2h triage -->
