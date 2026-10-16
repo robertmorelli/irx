@@ -62,3 +62,26 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END go-regexp long-10m results -->
+
+<!-- BEGIN go-regexp r10 results -->
+### Go regexp: r10 campaign
+
+* 18,864,000 patterns, 190 tables, 0 distinct findings
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END go-regexp r10 results -->
+
+<!-- BEGIN go-regexp r2h results -->
+### Go regexp: r2h campaign
+
+* 154,701,024 patterns, 1549 tables, 0 distinct findings; self-check 3,473,184 probes, 0 mismatches, 0 engine failures
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END go-regexp r2h results -->
+<!-- BEGIN go-regexp r2h triage -->
+### go-regexp: r2h (2-hour) campaign triage
+
+Go 1.27.2.
+
+* Clean: no findings at all in about 155 million patterns; self-check clean.
+<!-- END go-regexp r2h triage -->
