@@ -17,8 +17,8 @@ fn fold(c: u21) u21 {
     return ucd.simpleLower(ucd.simpleUpper(c));
 }
 
-/// Ranges under CASE_INSENSITIVE: c, upper(c), lower(c) or lower(upper(c)) inside the range
-/// (so K matches [a-z] but not [A-Z]); literals and members use `fold`.
+/// Ranges under CASE_INSENSITIVE: c, upper(c) or lower(c) inside the range, or a range member
+/// sharing c's simple uppercase; literals and members use `fold`.
 fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
     if (spec.kind == .range and flags.i) {
         const lo = spec.syms[0];
@@ -28,7 +28,18 @@ fn matchAtom(spec: *const atoms.AtomSpec, flags: D.Flags, c: u21) bool {
                 return x >= l and x <= h;
             }
         }.f;
-        const hit = in(c, lo, hi) or in(ucd.simpleUpper(c), lo, hi) or in(ucd.simpleLower(c), lo, hi) or in(fold(c), lo, hi);
+        // c, upper(c) or lower(c) inside the range, or a range member with the same simple
+        // uppercase as c (OpenJDK 27: [\x{131}] matches "i", [\x{B5}] matches "μ", [A-Z]
+        // matches ſ and ı; the Kelvin sign matches [a-z] through k but not [A-Z]).
+        const R = struct {
+            lo: u21,
+            hi: u21,
+            fn f(r: @This(), x: u21) bool {
+                return x >= r.lo and x <= r.hi;
+            }
+        };
+        const hit = in(c, lo, hi) or in(ucd.simpleUpper(c), lo, hi) or in(ucd.simpleLower(c), lo, hi) or
+            ucd.forEachFoldEquivalent(&ucd.simpleUpper, c, R{ .lo = lo, .hi = hi }, R.f);
         return hit != spec.neg;
     }
     return atoms.matchesGeneric(spec, flags, c);
