@@ -9,8 +9,8 @@ confirmed by hand, usually against other engines too.
 
 ### Confirmed findings
 
-The [bug ledger](#bug-ledger) has **119 confirmed bug IDs**, **86 unique reported bugs**
-(distinct upstream issue links), **110 distinct bug shapes**, and **76 candidates**
+The [bug ledger](#bug-ledger) has **120 confirmed bug IDs**, **86 unique reported bugs**
+(distinct upstream issue links), **111 distinct bug shapes**, and **76 candidates**
 still to audit or report. Bug IDs count
 separate ledger rows, including confirmed repros linked to an existing report.
 Unique bugs count each upstream issue once; shapes group the same failure pattern
@@ -481,6 +481,7 @@ recorded in the tables below. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 =
 | IRX-RLITE-1 | regex-lite | Open · not filed | wrong result: `regex_lite::Regex::new(r"(?i)^[[:^upper:]]$")?.is_match("a")` → `true`; also `"A"` → `true`, and `(?i)[[:^lower:]]` on `"a"` → expected `false` (the `regex` crate; `(?i)[^[:upper:]]` and `(?i)[^A-Z]` give `false` in regex-lite too) | Tested: regex-lite 0.1.9. A negated POSIX class is case-folded after negation, so under `i` it matches every letter, while a negated bracket class folds first. Found by the Rust model completion (POSIX classes); the `rust-lite` dialect keeps negated POSIX classes out of `i` |
 | IRX-GRAAL-1 | GraalJS | Open · not filed | wrong result: `/^(?:a-(?:(?:(?:\b\|\b)(?:)a)?){1,2}){2}$/.test("a-a-")` → `false`; also `{1,2}` for the outer count → expected `true` (V8, SpiderMonkey) | Tested: GraalJS community 25.4.4.1.1 (TRegex, macOS aarch64 native image). Needs the counted outer loop, the inner `{1,2}`, the `\b\|\b` alternation and the empty group together: `(?:\b\|\b)a`, `\b(?:)a`, `(?:\b\|x)(?:)a`, an outer `+` or an uncounted inner group all match. Found by the new `graaljs` target's sweep. |
 | IRX-GRAAL-2 | GraalJS | Open · not filed | wrong result: `/^A\b/u.test("A😀")` → `false`; `/^\B/u.test("😀")` → `false` → expected `true`; `true` (V8 15.6, Bun 1.4.2) | Tested: GraalJS 25.4.4.1.1 (TRegex). Under `u`, neither `\b` nor `\B` holds at a position next to an astral character (both assertions fail there); without `u` both are correct. Found by the r2h campaign self-check on `graaljs` (60 mismatches) |
+| IRX-GRAAL-3 | GraalJS | Open · not filed | wrong result: `/^[\W--\p{L}]$/iv.test("Σ")` → `true`; also `[\W--[^a]]` → expected `false` (V8 15.6, Bun 1.4.2; GraalJS itself gives `false` under `v`) | Tested: GraalJS 25.4.4.1.1 (TRegex). Under `iv`, a set difference whose left side is `\W` keeps characters that the right side removes; `/^\W$/iv.test("Σ")` is correctly `true`. Found by the r2h campaign on `graaljs` |
 | IRX-HERMES-1 | Hermes | Open · [#2235](https://github.com/facebook/hermes/issues/2235) | wrong result: `/^(?:(?:(?:\W+){1,1})*\s)$/.test("\u2028\n")` → `false` → expected `true` | Reproduces in the v0.13.0 CLI and a source build from current `260318099.0.0-stable` at `09d3bf2` (2026-10-08). Boa also fails it (cross-check) |
 | IRX-HERMES-2 | Hermes | Open · [#2234](https://github.com/facebook/hermes/issues/2234) | exception on tiny input: `/^(?:(?:^a?)+?)$/.test("aa")` → `RangeError: Maximum regex stack depth reached` → expected `false` | Reproduces in the v0.13.0 CLI and current stable source build `09d3bf2`. Also `(?:a*)+?\B` on `"a"`, `(?:(?:(?:)\|(?:)){2,2}){1,2}` on `"a"`: lazy loops over empty-matchable bodies recurse without bound |
 | IRX-HERMES-3 | Hermes | Open · [#2232](https://github.com/facebook/hermes/issues/2232) | wrong result: `/(?:(?:a+){1}){2}/.test("aa")` → `false`; `/^(?:(?:a{2,}){2}){2}$/.test("a".repeat(8))` → `false` → expected `true` | Reproduces in the v0.13.0 CLI and current stable source build `09d3bf2`. A counted repeat of a group whose body is a counted repeat of a greedy loop; same shape as IRX-BOA-7 |
@@ -610,7 +611,7 @@ target has its own. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are 
 | V8 linear engine; no-optimization and fallback paths | [`v8-linear`](targets/v8-linear), [`v8-noopt`](targets/v8-noopt) | d8 modes `linear`; `noopt`, `nopeephole`, `fallback0` | `es` (exact; linear: `""` and `s` flags only) | sweeps clean (706k / 250k per mode) |
 | SpiderMonkey 158 (jsvu) | [`spidermonkey`](targets/spidermonkey) | `driver.js` (`sm`) | `es` (exact) | new |
 | JavaScriptCore (system `jsc`) | [`jsc`](targets/jsc) | `driver.js` (`jsc`) | `es` (exact) | new |
-| GraalJS 25.4 (TRegex) | [`graaljs`](targets/graaljs) | `driver.js` (`vendor/graaljs`) | `es` (exact) | IRX-GRAAL-1…2 |
+| GraalJS 25.4 (TRegex) | [`graaljs`](targets/graaljs) | `driver.js` (`vendor/graaljs`) | `es` (exact) | IRX-GRAAL-1…3 |
 | C++ `std::regex` (libc++) | [`cpp-regex`](targets/cpp-regex) | `hosts/c/cpp_regex_host` (`std::wregex`, ECMAScript) | `cpp`: ES subset, ASCII pool, `i`/`m` only | IRX-LIBCXX-1…5 |
 | QuickJS (upstream `9d01a96`) | [`quickjs`](targets/quickjs) | `driver.js` (std) | ES2024 | IRX-QJS-1, IRX-QJS-2 |
 | XS | [`xs`](targets/xs) | bridge | ES2024 | IRX-XS-1…11 |
