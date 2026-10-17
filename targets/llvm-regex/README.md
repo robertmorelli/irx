@@ -121,3 +121,54 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END llvm-regex long-10m results -->
+
+<!-- BEGIN llvm-regex r10 results -->
+### LLVM Regex (POSIX ERE, translated): r10 campaign
+
+* 2,618,944 patterns, 28 tables, 6,000 distinct findings
+* findings by kind: 4,000 wrong_result, 2,000 wrong_span
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 452 | wrong_result | `mu` | `"_a"` | `""` | `(?:(?:)\|.)a` | 00 |
+| 238 | wrong_result | `mu` | `"_a"` | `""` | `(?:()\|.)a` | 00 |
+| 188 | wrong_span | `u` | `"_a"` | `"_aa"` | `(?:(?:)\|.)a` | 02 |
+| 138 | wrong_result | `mu` | `"_a"` | `""` | `(?:(?:)\|\D)a` | 00 |
+| 128 | wrong_result | `u` | `"a"` | `""` | `(?:^){2,2}a` | 00 |
+| 110 | wrong_result | `u` | `"a"` | `""` | `a(?:$){2,2}` | 00 |
+| 93 | wrong_span | `u` | `"_a"` | `"_aa"` | `(?:()\|.)a` | 02 |
+| 62 | wrong_result | `mu` | `"_a"` | `""` | `(?:()\|\D)a` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END llvm-regex r10 results -->
+
+<!-- BEGIN llvm-regex r2h results -->
+### LLVM Regex (POSIX ERE, translated): r2h campaign
+
+* 30,074,752 patterns, 302 tables, 6,006 distinct findings; self-check 119,992 probes, 0 mismatches, 0 engine failures
+* findings by kind: 4,000 wrong_result, 2,000 wrong_span, 6 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 452 | wrong_result | `mu` | `"_a"` | `""` | `(?:(?:)\|.)a` | 00 |
+| 238 | wrong_result | `mu` | `"_a"` | `""` | `(?:()\|.)a` | 00 |
+| 188 | wrong_span | `u` | `"_a"` | `"_aa"` | `(?:(?:)\|.)a` | 02 |
+| 138 | wrong_result | `mu` | `"_a"` | `""` | `(?:(?:)\|\D)a` | 00 |
+| 128 | wrong_result | `u` | `"a"` | `""` | `(?:^){2,2}a` | 00 |
+| 110 | wrong_result | `u` | `"a"` | `""` | `a(?:$){2,2}` | 00 |
+| 93 | wrong_span | `u` | `"_a"` | `"_aa"` | `(?:()\|.)a` | 02 |
+| 62 | wrong_result | `mu` | `"\na"` | `""` | `(?:(?:)\|\s)a` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END llvm-regex r2h results -->
+<!-- BEGIN llvm-regex r2h triage -->
+### llvm-regex: r2h (2-hour) campaign triage
+
+LLVM 23.1.3 Spencer regex.
+
+* No new bugs; self-check clean. Same set as `llvm-regex-asan`: IRX-LLVM-1 (empty alternative) and IRX-LLVM-2 (repeated anchors, also `(?:a|^){2}`). 6 batch timeouts.
+<!-- END llvm-regex r2h triage -->
