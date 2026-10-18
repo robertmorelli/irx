@@ -203,7 +203,8 @@ pub const pcre1: D.Dialect = blk: {
     // /i does not reach \p{Lu} / \p{Ll} (PCRE2 treats them as any cased letter).
     d.prop_case = .plain;
     // Older Unicode case data: no simple fold between U+0390/U+1FD3 or U+03B0/U+1FE3 (PCRE2
-    // and the model fold them), so keep them out of the pool.
-    d.pool_exclude = &.{ 0xDF, 0x130, 0x390, 0x3B0, 0x1FD3, 0x1FE3 };
+    // and the model fold them), and an older category for U+1F3FB (emoji modifier): keep them
+    // out of the pool.
+    d.pool_exclude = &.{ 0xDF, 0x130, 0x390, 0x3B0, 0x1FD3, 0x1FE3, 0x1F3FB };
     break :blk d;
 };
