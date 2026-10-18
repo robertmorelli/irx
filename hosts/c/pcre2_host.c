@@ -2,6 +2,20 @@
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 #include "proto.h"
+
+/* A match that hit PCRE2's resource limits (match, depth, heap or JIT stack) is reported as a
+ * limit (0x40, skipped by irx), not as an exception (0x08). */
+static int err_bits(int rc) {
+    switch (rc) {
+    case PCRE2_ERROR_MATCHLIMIT:
+    case PCRE2_ERROR_DEPTHLIMIT:
+    case PCRE2_ERROR_HEAPLIMIT:
+    case PCRE2_ERROR_JIT_STACKLIMIT:
+        return 0x40;
+    default:
+        return 0x08;
+    }
+}
 const char *host_name(void) { static char b[64]; pcre2_config(PCRE2_CONFIG_VERSION, b); static char o[96]; snprintf(o, sizeof o, "pcre2-%s%s%s", b, getenv("IRX_PCRE2_JIT") ? "-jit" : "", getenv("IRX_PCRE2_NOUCP") ? "-noucp" : ""); return o; }
 int host_case(const char *flags, const char *a, size_t alen, const char *r, size_t rlen, const char *pat, size_t plen, int repeat) {
     uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP);
@@ -21,7 +35,7 @@ int host_case(const char *flags, const char *a, size_t alen, const char *r, size
         for (int k = 0; k < 2; k++) {
             int rc = pcre2_match(re, (PCRE2_SPTR)subj[k], lens[k], 0, 0, md, NULL);
             if (rc >= 0) bits |= (1 << k) << (rep * 4);
-            else if (rc != PCRE2_ERROR_NOMATCH) { bits = 0x08; goto done; }
+            else if (rc != PCRE2_ERROR_NOMATCH) { bits = err_bits(rc); goto done; }
         }
 done:
     pcre2_match_data_free(md); pcre2_code_free(re);
@@ -42,7 +56,7 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
         int rc = pcre2_match(re, (PCRE2_SPTR)subj[k], lens[k], host_start[k], host_anchored ? PCRE2_ANCHORED : 0, md, NULL);
         if (rc >= 0) { PCRE2_SIZE *ov = pcre2_get_ovector_pointer(md); out[2 * k] = (long)ov[0]; out[2 * k + 1] = (long)ov[1]; }
         else if (rc == PCRE2_ERROR_NOMATCH) out[2 * k] = out[2 * k + 1] = -1;
-        else { e = 0x08; break; }
+        else { e = err_bits(rc); break; }
     }
     pcre2_match_data_free(md); pcre2_code_free(re);
     return e;
@@ -65,7 +79,7 @@ int host_capture(const char *flags, const char *const subj[2], const size_t lens
             PCRE2_SIZE *ov = pcre2_get_ovector_pointer(md); uint32_t n = pcre2_get_ovector_count(md);
             for (uint32_t g = 0; g < n && g < CAP_PAIRS; g++)
                 if (ov[2 * g] != PCRE2_UNSET) { out[k][2 * g] = (long)ov[2 * g]; out[k][2 * g + 1] = (long)ov[2 * g + 1]; }
-        } else if (rc != PCRE2_ERROR_NOMATCH) e = 0x08;
+        } else if (rc != PCRE2_ERROR_NOMATCH) e = err_bits(rc);
     }
     pcre2_match_data_free(md); pcre2_code_free(re);
     return e;
