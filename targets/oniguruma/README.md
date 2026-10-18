@@ -126,3 +126,56 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END oniguruma long-10m results -->
+
+<!-- BEGIN oniguruma r10 results -->
+### Oniguruma 6.9 (C library): r10 campaign
+
+* 8,110,240 patterns, 83 tables, 3,646 distinct findings
+* findings by kind: 1,316 wrong_span, 1,150 wrong_result, 655 exception, 525 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 12 | wrong_result | `u` | `"a"` | `"ϑ"` | `(?:^a*){2,3}` | 00 |
+| 6 | exception | `u` | `"aaaaaa"` | `""` | `(?:(?:(?:(?:(?:()\|(?:(?:)\|a)*)*){2,2})*a){1,2}a){3,3}` | 08 |
+| 6 | exception | `u` | `"aaa aa"` | `""` | `(?:(?:(?:.*){2,})+(?:a\|(?:(?:)\|)\b)a){3,}` | 08 |
+| 5 | wrong_span | `u` | `"a"` | `"aϑ"` | `(?:\ba*){2,3}` | 03 |
+| 5 | wrong_span | `u` | `"a"` | `"aϑ"` | `(?:\ba*){3,}` | 03 |
+| 4 | exception | `u` | `"aaaa"` | `"aaKaåa"` | `(?:a(?:(?:(?:(?:.\|()){0,2})*){2,})+a){2,2}` | 08 |
+| 4 | exception | `u` | `"aaaaaa"` | `""` | `(?:(?:(?:a*\|(?:)){2,})*a{2,}){3,}` | 08 |
+| 4 | exception | `u` | `"aΐa aϑ"` | `""` | `(?:(?:(?:(?:a\|[^\x{3C9}\x{2126}]*){0,2}){0,2})*.[^a_]){3,}` | 08 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END oniguruma r10 results -->
+
+<!-- BEGIN oniguruma r2h results -->
+### Oniguruma 6.9 (C library): r2h campaign
+
+* 105,129,696 patterns, 1053 tables, 16,451 distinct findings; self-check 4,752,672 probes, 0 mismatches, 0 engine failures
+* findings by kind: 6,000 wrong_span, 4,451 exception, 4,000 wrong_result, 2,000 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 12 | wrong_result | `u` | `"a"` | `"ϑ"` | `(?:^a*){2,3}` | 00 |
+| 8 | wrong_result | `u` | `"a"` | `""` | `(?:\b(?:a\|^)){2,2}` | 00 |
+| 8 | exception | `u` | `" aaa"` | `"😀\ra aa"` | `(?x:(?:\B (?:. (?:()\|(?:.*\|)+)+){2,3}){2,})` | 08 |
+| 8 | wrong_result | `u` | `"a"` | `"A"` | `(?:^a*){2,3}` | 00 |
+| 6 | wrong_span | `u` | `"a"` | `""` | `(?:\b(?:a\|^)){2,2}` | 00 |
+| 6 | exception | `u` | `"😀😀"` | `"😀aaaaa"` | `(?:[_\x{1F600}](?:(?:\|(?:()\|(?:)\|(?:))+\|a){0,3})*){2,2}` | 08 |
+| 6 | wrong_span | `u` | `"​"` | `"a"` | `(?:(?:.\|^)\B){2,2}` | 00 |
+| 6 | wrong_result | `u` | `"a"` | `""` | `(?:^\b\|a){2,2}` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END oniguruma r2h results -->
+<!-- BEGIN oniguruma r2h triage -->
+### oniguruma: r2h (2-hour) campaign triage
+
+Oniguruma 6.9.10 (`ONIG_SYNTAX_RUBY`), with the range full-fold model fix.
+
+* New: IRX-ONIG-3 (under dotall, `\B.+` misses a `\B` that only holds later: `"a aa"` → no match, expected `[3,4)`; Ruby/Onigmo correct), the `\B.+`/`\B.*` span and capture findings.
+* Known: IRX-ONIG-1 (counted repeat of a group starting with an anchor, `(?:^a*){2,3}`), about 5,100.
+* The 4,451 exceptions are retry-limit hits (`ONIGERR_RETRY_LIMIT_IN_MATCH_OVER`); the host now reports them as limits (rebuilt after this run). Self-check clean.
+<!-- END oniguruma r2h triage -->
