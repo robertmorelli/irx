@@ -40,7 +40,7 @@ pub const AnyChar = enum { empty_negated_class, space_or_nonspace };
 
 /// combining: a character and the marks after it (Boost; CR LF stays two clusters).
 pub const Grapheme = enum { none, extended, extended_gb9c, combining };
-pub const FullFold = enum { none, literals, classes };
+pub const FullFold = enum { none, literals, classes, ranges };
 
 pub const Dialect = struct {
     name: []const u8,
@@ -136,7 +136,8 @@ pub const Dialect = struct {
     grapheme_prepend_pict: bool = true,
     /// Full case folding under i: a pattern character with a multi-character fold (ß → ss)
     /// matches subject strings with that fold. `literals`: literal characters; `classes`: also
-    /// members listed in a non-negated class (not ranges).
+    /// members listed in a non-negated class (Perl: not inside a range); `ranges`: also
+    /// members of a non-negated range (Oniguruma/Onigmo).
     full_fold: FullFold = .none,
     /// Characters that may appear in patterns but not in subjects: with full folding, a subject
     /// ß would also be matched by pattern sequences like `ss`, which the atom model cannot see.

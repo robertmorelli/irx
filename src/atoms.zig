@@ -525,12 +525,13 @@ pub fn foldsMulti(a: *const AtomSpec, flags: Flags) bool {
     if (!flags.i or dialect.active.full_fold == .none) return false;
     return switch (a.kind) {
         .lit => multiFold(a.syms[0]) != null,
-        .cls => dialect.active.full_fold == .classes and !a.neg and for (a.syms[0..a.n]) |c| {
+        .cls => dialect.active.full_fold != .literals and !a.neg and for (a.syms[0..a.n]) |c| {
             if (multiFold(c) != null) break true;
         } else false,
-        // Oniguruma/Onigmo expand a range too: (?i)[\x{C0}-\x{FF}] matches "ss" through ß.
+        // Oniguruma/Onigmo expand a range too: (?i)[\x{C0}-\x{FF}] matches "ss" through ß; Perl
+        // does not ('ss' !~ /\A[\0-\x{ff}]\z/ui, perlrecharclass).
         .range => blk: {
-            if (dialect.active.full_fold != .classes or a.neg) break :blk false;
+            if (dialect.active.full_fold != .ranges or a.neg) break :blk false;
             var buf: [multi_fold_chars.len]u21 = undefined;
             break :blk rangeMultiFolds(a, &buf).len > 0;
         },

@@ -49,9 +49,9 @@ pub const dialect: D.Dialect = .{
     .escape = .x_brace,
     .any_char = .space_or_nonspace,
     .strings = .code_points,
-    // Full case folding under i: a pattern ß (also listed in a class) matches "ss"; subjects keep
-    // multi-fold characters out.
-    .full_fold = .classes,
+    // Full case folding under i: a pattern ß (also listed in a class or inside a range) matches
+    // "ss"; subjects keep multi-fold characters out.
+    .full_fold = .ranges,
     .pattern_only = &.{ 0xDF, 0x1E9E, 0xFB00, 0xFB01, 0x130 },
     // Onigmo lookbehind: fixed length, no variable quantifiers, no lookahead inside.
     .lookbehind_fixed = true,
@@ -100,9 +100,9 @@ pub const oniguruma: D.Dialect = .{
     .escape = .x_brace,
     .any_char = .space_or_nonspace,
     .strings = .code_points,
-    // Full case folding under i: a pattern ß (also listed in a class) matches "ss"; subjects keep
-    // multi-fold characters out.
-    .full_fold = .classes,
+    // Full case folding under i: a pattern ß (also listed in a class or inside a range) matches
+    // "ss"; subjects keep multi-fold characters out.
+    .full_fold = .ranges,
     .pattern_only = &.{ 0xDF, 0x1E9E, 0xFB00, 0xFB01, 0x130 },
     .quantify_assertions = false,
     // Lookbehind: variable-length support is uneven ((?<=a*) compiles, (?<!aa?) and
