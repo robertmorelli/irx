@@ -112,3 +112,55 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END pcre2 long-10m results -->
+
+<!-- BEGIN pcre2 r10 results -->
+### PCRE2 10.49 (interpreter; IRX_PCRE2_JIT=1 for the JIT): r10 campaign
+
+* 3,826,112 patterns, 40 tables, 11,174 distinct findings
+* findings by kind: 3,571 wrong_span, 3,370 wrong_result, 2,629 exception, 1,604 wrong_capture
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 6 | wrong_result | `u` | `"aa"` | `""` | `\P{So}+\D` | 00 |
+| 6 | exception | `u` | `"aaaaaa"` | `"aaaa"` | `(?:aa(?:(?:(?:)*){0,3}){0,3}\|\x{3A9}){3}` | 08 |
+| 6 | exception | `u` | `"aaaaaa"` | `""` | `(?:(?:(?:(?:a\|)*\|)+)+aa){3,}` | 08 |
+| 4 | exception | `u` | `"aaaaaa"` | `"aΐaϑ"` | `(?:(?:(?:(){0,2}){0,3}.){2,2}){3,}` | 08 |
+| 4 | exception | `u` | `"aaa"` | `""` | `(?:(?:(?:a\|())*\|()){0,3})+a{3}` | 08 |
+| 4 | wrong_result | `u` | `"a"` | `""` | `(?<=a?+)a` | 00 |
+| 4 | exception | `u` | `"aaa"` | `"ΐΐaa"` | `(?:(?:(?:(?:\|\V)+\|(?:()\|)*){0,2})+a){3}` | 08 |
+| 3 | wrong_span | `u` | `"aa"` | `""` | `\P{So}+\D` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END pcre2 r10 results -->
+
+<!-- BEGIN pcre2 r2h results -->
+### PCRE2 10.49 (interpreter; IRX_PCRE2_JIT=1 for the JIT): r2h campaign
+
+* 34,253,248 patterns, 344 tables, 12,029 distinct findings; self-check 4,602,528 probes, 0 mismatches, 0 engine failures
+* findings by kind: 6,000 wrong_span, 4,000 wrong_result, 2,000 wrong_capture, 29 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 46 | wrong_result | `u` | `"aa"` | `""` | `\P{Lu}+\D` | 00 |
+| 40 | wrong_result | `u` | `"a"` | `""` | `\D*\P{Po}` | 00 |
+| 34 | wrong_result | `u` | `"aa"` | `""` | `\D+\P{Po}` | 00 |
+| 34 | wrong_result | `u` | `"aa"` | `""` | `\D+\P{Zl}` | 00 |
+| 30 | wrong_result | `u` | `"aa"` | `""` | `\D+\P{So}` | 00 |
+| 30 | wrong_result | `u` | `"a"` | `""` | `\P{Zl}*\D` | 00 |
+| 28 | wrong_result | `u` | `"aa"` | `""` | `\D+\P{Pd}` | 00 |
+| 28 | wrong_result | `u` | `"aa"` | `""` | `\P{Pd}+\D` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END pcre2 r2h results -->
+<!-- BEGIN pcre2 r2h triage -->
+### pcre2: r2h (2-hour) campaign triage
+
+PCRE2 10.49 (interpreter), with the limit-mapping host fix; self-check clean.
+
+* New: IRX-PCRE2-8 (auto-possessification ignores that a possessive/atomic optional group can match empty: `/b+(?:a)?+b/` on `bb` → no match; also PCRE1), found as `(?:[\x{3B1}-\x{3C9}]{1,2}(?>(?:()a)?)){3,}` on `ΩθΩ`.
+* Known: IRX-PCRE2-4, about 11,200; lookbehind shapes of IRX-PCRE2-5/-7, about 760. The 29 timeouts are batch timeouts on deeply nested loops.
+<!-- END pcre2 r2h triage -->
