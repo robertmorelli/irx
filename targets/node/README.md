@@ -93,3 +93,34 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END node 30m results -->
+
+<!-- BEGIN node r2h results -->
+### V8 14.1 (Node 25.8) - older V8, excluded from the ledger: r2h campaign
+
+* 22,039,936 patterns, 222 tables, 13,019 distinct findings; self-check 19,969,280 probes, 7,656 mismatches, 0 engine failures
+* findings by kind: 5,597 wrong_span, 4,000 wrong_result, 2,000 wrong_capture, 1,422 timeout (batch), 20 selfcheck_mismatch (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 888 | wrong_result | `mu` | `""` | `"𝟎"` | `(?:)` | 03 |
+| 888 | wrong_result | `mu` | `""` | `"𝟎"` | `(?:)` | 33 |
+| 406 | wrong_result | `mu` | `""` | `"𝟎"` | `()` | 33 |
+| 406 | wrong_result | `mu` | `""` | `"𝟎"` | `()` | 03 |
+| 60 | wrong_span | `u` | `"K"` | `""` | `(?i:\u{212A})` | 00 |
+| 48 | wrong_span | `u` | `"σa😀"` | `"a"` | `\B\S*` | 00 |
+| 39 | wrong_span | `u` | `""` | `"aa😀"` | `\B` | 03 |
+| 37 | wrong_span | `u` | `".aa😀aaa😀"` | `"a"` | `\B\S*` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END node r2h results -->
+<!-- BEGIN node r2h triage -->
+### node: r2h (2-hour) campaign triage
+
+Node 25.8.1 (V8 14.1.146.11): older V8, excluded from the ledger; d8 15.6 is correct on every shape below.
+
+* The surrogate-pair family (IRX-V8-2/3/4, V8-2), about 4,800 findings and the `\B[^]*` self-check mismatches.
+* Older-V8 inline-modifier bugs (fixed by V8 15.5): under `u`/`v` a modifier group's case flag leaks into later classes (as on Deno's V8 15.0), and without `u` an alternation inside `(?i:…)` with a negated class matches wrongly (`/^(?:(?i:a|[^Kσ]))$/.test("k")` → `true`, d8 `false`), about 3,800.
+* 1,422 batch timeouts.
+<!-- END node r2h triage -->
