@@ -123,3 +123,56 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END nim-regex long-10m results -->
+
+<!-- BEGIN nim-regex r10 results -->
+### nim-regex: r10 campaign
+
+* 568,096 patterns, 7 tables, 10,257 distinct findings
+* findings by kind: 4,000 wrong_result, 3,206 wrong_span, 2,000 wrong_capture, 1,030 timeout (batch), 15 crash (batch), 6 exception
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 20 | wrong_result | `u` | `"a"` | `""` | `(?x:(?=(?:)) a)` | 00 |
+| 16 | wrong_result | `u` | `"aa"` | `""` | `(?x:(?<!a) a a)` | 00 |
+| 14 | wrong_result | `u` | `"a"` | `""` | `(?x:(?=()) a)` | 00 |
+| 12 | wrong_span | `u` | `""` | `"a"` | `(?x:(?=()) (?:))` | 02 |
+| 12 | wrong_span | `u` | `""` | `"a"` | `(?x:(?=(?:)) (?:))` | 02 |
+| 12 | wrong_result | `u` | `""` | `"a"` | `(?x:(?=()) (?:))` | 00 |
+| 10 | wrong_result | `u` | `"a"` | `""` | `(?x:(?!(?:))\|(?:) a)` | 00 |
+| 10 | wrong_result | `u` | `""` | `"a"` | `(?x:(?=(?:)) (?:))` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END nim-regex r10 results -->
+
+<!-- BEGIN nim-regex r2h results -->
+### nim-regex: r2h campaign
+
+* 6,224,064 patterns, 64 tables, 20,005 distinct findings; self-check 3,104,544 probes, 0 mismatches, 0 engine failures
+* findings by kind: 10,000 timeout (batch), 4,000 wrong_span, 4,000 wrong_result, 2,000 wrong_capture, 5 exception
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 234 | wrong_result | `u` | `"a"` | `""` | `(?x:(?=(?:)) a)` | 00 |
+| 190 | wrong_span | `u` | `"a"` | `""` | `(?x:(?=(?:)) a)` | 00 |
+| 114 | wrong_capture | `u` | `"a"` | `""` | `(?x:(?=(?:)) a)` | 00 |
+| 100 | wrong_result | `u` | `"a"` | `""` | `(?x:(?<!a) a)` | 00 |
+| 94 | wrong_result | `u` | `"a"` | `""` | `(?x:(?=()) a)` | 00 |
+| 75 | wrong_span | `u` | `"a"` | `""` | `(?x:(?<!a) a)` | 00 |
+| 66 | wrong_span | `u` | `"a"` | `""` | `(?x:(?=()) a)` | 00 |
+| 46 | wrong_capture | `u` | `"a"` | `""` | `(?x:(?<!a) a)` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END nim-regex r2h results -->
+<!-- BEGIN nim-regex r2h triage -->
+### nim-regex: r2h (2-hour) campaign triage
+
+nim-regex 0.27.0 (Nim 2.2.12).
+
+* New: IRX-NIM-5 (empty or unset groups get the malformed slice `0 .. -2` when the pattern has a lookahead: `(?=())a*` on `"a"`), the capture findings the host could not parse.
+* Known: IRX-NIM-2 (extended-mode lookaround followed by a space), about 10,000; IRX-NIM-4 (`RangeDefect` on `(?:(?:()(?:^)*){0,3}){3}`), the 5 exceptions; IRX-NIM-3 (group start after a counted repeat and a negative lookbehind). Self-check clean.
+* 10,000 batch timeouts (nim-regex is slow on large batches).
+<!-- END nim-regex r2h triage -->
