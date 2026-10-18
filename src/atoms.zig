@@ -504,7 +504,12 @@ pub fn multiFold(c: u21) ?[]const u21 {
 /// `f(ctx, end)` for each, stopping when it returns true.
 pub fn forEachFoldMatch(a: *const AtomSpec, flags: Flags, w: []const u21, i: usize, ctx: anytype, comptime f: fn (@TypeOf(ctx), usize) bool) bool {
     if (!foldsMulti(a, flags)) return false;
-    const members: []const u21 = if (a.kind == .lit) a.syms[0..1] else a.syms[0..a.n];
+    var buf: [multi_fold_chars.len]u21 = undefined;
+    const members: []const u21 = switch (a.kind) {
+        .lit => a.syms[0..1],
+        .range => rangeMultiFolds(a, &buf),
+        else => a.syms[0..a.n],
+    };
     for (members) |c| {
         const fold = multiFold(c) orelse continue;
         if (i + fold.len > w.len) continue;
@@ -523,8 +528,27 @@ pub fn foldsMulti(a: *const AtomSpec, flags: Flags) bool {
         .cls => dialect.active.full_fold == .classes and !a.neg and for (a.syms[0..a.n]) |c| {
             if (multiFold(c) != null) break true;
         } else false,
+        // Oniguruma/Onigmo expand a range too: (?i)[\x{C0}-\x{FF}] matches "ss" through ß.
+        .range => blk: {
+            if (dialect.active.full_fold != .classes or a.neg) break :blk false;
+            var buf: [multi_fold_chars.len]u21 = undefined;
+            break :blk rangeMultiFolds(a, &buf).len > 0;
+        },
         else => false,
     };
+}
+
+/// Every character `multiFold` knows.
+const multi_fold_chars = [_]u21{ 0xDF, 0x130, 0x1E9E, 0xFB00, 0xFB01, 0xFB02, 0xFB03, 0xFB04, 0xFB05, 0xFB06 };
+
+/// The multi-fold characters inside a range atom.
+fn rangeMultiFolds(a: *const AtomSpec, buf: *[multi_fold_chars.len]u21) []const u21 {
+    var n: usize = 0;
+    for (multi_fold_chars) |c| if (c >= a.syms[0] and c <= a.syms[1]) {
+        buf[n] = c;
+        n += 1;
+    };
+    return buf[0..n];
 }
 
 /// Does string `s` (a \q{…} alternative) occur at w[i..]? Case-insensitive under i (v mode:
