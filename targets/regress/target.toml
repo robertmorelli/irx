@@ -1,0 +1,28 @@
+# irx target: regress (the Rust ECMAScript regex crate behind Boa)
+# Run: tools/irx_target.py regress [--duration SECONDS]
+
+[target]
+title = "regress (Rust, Boa's RegExp engine)"
+kind = "shell"   # d8 | perl | shell
+command = "{root}/hosts/bin/regress_host {mode}"
+dialect = "es"   # src/dialects/
+selfcheck = true
+
+[span]
+enabled = true
+units = "utf16"  # find_from_utf16 / find_from_ucs2 indices
+
+[capture]
+enabled = true
+loop = "reset"  # ECMAScript: loop bodies' captures reset per iteration
+
+[harness]
+# regress backtracks; IRX-BOA-8 / IRX-XS-7-style patterns can hang a batch.
+batch_size = 128
+
+[offset]
+enabled = true  # search from a start index (find_from_*)
+sticky = true
+
+[global]
+enabled = false  # Matches' empty-match advance is not checked against AdvanceStringIndex

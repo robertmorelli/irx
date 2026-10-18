@@ -30,7 +30,7 @@ fi
 step boost-asan sh -c "c++ $SAN -std=c++17 -Wno-everything -I$B/boost/include -o '$H/bin/boost_regex_host_asan' '$H/c/boost_regex_host.cc'"
 step cpp-asan sh -c "c++ $SAN -std=c++17 -Wno-everything -o '$H/bin/cpp_regex_host_asan' '$H/c/cpp_regex_host.cc'"
 step go sh -c "cd '$H/go' && go build -o '$H/bin/go_host' ."
-step rust sh -c "cd '$H/rust' && cargo build --release -q && cp target/release/regex_host target/release/regex_lite_host target/release/automata_host target/release/fancy_host target/release/resharp_host '$H/bin/'"
+step rust sh -c "cd '$H/rust' && cargo build --release -q && cp target/release/regex_host target/release/regex_lite_host target/release/automata_host target/release/fancy_host target/release/resharp_host target/release/regress_host '$H/bin/'"
 step java sh -c "javac -d '$H/bin/java' '$H/java/Host.java'"
 step re2j sh -c "javac -cp '$H/../vendor/re2j/re2j-1.8.jar' -d '$H/bin/re2j' '$H/java/Re2jHost.java'"
 step dotnet sh -c "cd '$H/dotnet' && dotnet build -c Release -o '$H/bin/dotnet' -v q"

@@ -7,19 +7,28 @@ fn hex4(b: &[u8]) -> Option<u32> {
 }
 
 /// Parse a JSON string at b[*i] == '"'. Returns (text, had_lone_surrogate).
-fn parse_str(b: &[u8], i: &mut usize) -> Option<(String, bool)> {
+fn parse_str(b: &[u8], i: &mut usize) -> Option<(String, bool, Vec<u16>)> {
     if b.get(*i) != Some(&b'"') { return None; }
     *i += 1;
     let mut s: Vec<u8> = Vec::new();
+    let mut raw: Vec<u16> = Vec::new();
     let mut bad = false;
     let pushc = |s: &mut Vec<u8>, c: char| { let mut t = [0u8; 4]; s.extend_from_slice(c.encode_utf8(&mut t).as_bytes()); };
     while *i < b.len() && b[*i] != b'"' {
-        if b[*i] != b'\\' { s.push(b[*i]); *i += 1; continue; }
+        if b[*i] != b'\\' {
+            // One UTF-8 character (the JSON text is UTF-8): copy it and its UTF-16 units.
+            let n = match b[*i] { x if x < 0x80 => 1, x if x >= 0xF0 => 4, x if x >= 0xE0 => 3, _ => 2 };
+            let ch = std::str::from_utf8(b.get(*i..*i + n)?).ok()?;
+            s.extend_from_slice(ch.as_bytes());
+            raw.extend(ch.encode_utf16());
+            *i += n;
+            continue;
+        }
         *i += 1;
         match b.get(*i)? {
-            b'"' => s.push(b'"'), b'\\' => s.push(b'\\'), b'/' => s.push(b'/'),
-            b'n' => s.push(b'\n'), b'r' => s.push(b'\r'), b't' => s.push(b'\t'),
-            b'b' => s.push(8), b'f' => s.push(12),
+            b'"' => { s.push(b'"'); raw.push(0x22); } b'\\' => { s.push(b'\\'); raw.push(0x5C); } b'/' => { s.push(b'/'); raw.push(0x2F); }
+            b'n' => { s.push(b'\n'); raw.push(10); } b'r' => { s.push(b'\r'); raw.push(13); } b't' => { s.push(b'\t'); raw.push(9); }
+            b'b' => { s.push(8); raw.push(8); } b'f' => { s.push(12); raw.push(12); }
             b'u' => {
                 let c = hex4(&b[*i + 1..])?;
                 *i += 4;
@@ -27,11 +36,14 @@ fn parse_str(b: &[u8], i: &mut usize) -> Option<(String, bool)> {
                     if let Some(d) = hex4(&b[*i + 3..]) {
                         if (0xDC00..=0xDFFF).contains(&d) {
                             pushc(&mut s, char::from_u32(0x10000 + ((c - 0xD800) << 10) + (d - 0xDC00))?);
+                            raw.push(c as u16);
+                            raw.push(d as u16);
                             *i += 6 + 1;
                             continue;
                         }
                     }
                 }
+                raw.push(c as u16);
                 match char::from_u32(c) { Some(ch) => pushc(&mut s, ch), None => { bad = true; pushc(&mut s, '\u{FFFD}'); } }
             }
             _ => return None,
@@ -40,7 +52,22 @@ fn parse_str(b: &[u8], i: &mut usize) -> Option<(String, bool)> {
     }
     if b.get(*i) != Some(&b'"') { return None; }
     *i += 1;
-    Some((String::from_utf8(s).ok()?, bad))
+    Some((String::from_utf8(s).ok()?, bad, raw))
+}
+
+/// Hosts that match UTF-16 (ECMAScript engines) take subjects with lone surrogates: they read
+/// the raw code units with `raw(k)` (0 flags, 1 A, 2 R, 3 pattern). A lone surrogate in the
+/// flags or the pattern is still unsupported.
+static LONE_OK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+pub fn allow_lone_surrogates() {
+    LONE_OK.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+thread_local! { static RAW: std::cell::RefCell<[Vec<u16>; 4]> = std::cell::RefCell::new(Default::default()); }
+pub fn raw(k: usize) -> Vec<u16> {
+    RAW.with(|r| r.borrow()[k].clone())
+}
+fn unsupported(f: &[(String, bool)]) -> bool {
+    if LONE_OK.load(std::sync::atomic::Ordering::Relaxed) { f[0].1 || f[3].1 } else { f.iter().any(|x| x.1) }
 }
 
 /// First match of an unanchored search in A and R as byte ranges, or failure bits.
@@ -130,19 +157,20 @@ pub fn serve_all(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, 
             i += 1; // '['
             let mut f = Vec::new();
             for k in 0..4 {
-                let (s, bad) = parse_str(b, &mut i).expect("bad case");
+                let (s, bad, raw16) = parse_str(b, &mut i).expect("bad case");
+                RAW.with(|r| r.borrow_mut()[k] = raw16);
                 f.push((s, bad));
                 if k < 3 { i += 1; }
             }
             i += 1; // ']'
             if mode == "bench" {
-                if f.iter().any(|x| x.1) { resp.push_str(&format!("fe40{}", "0".repeat(36))); continue; }
+                if unsupported(&f) { resp.push_str(&format!("fe40{}", "0".repeat(36))); continue; }
                 resp.push_str(&bench_case(&f[0].0, &f[1].0, &f[2].0, &f[3].0));
                 continue;
             }
             if mode == "gspan" {
                 let Some(g) = GLOBAL.get() else { resp.push_str(&failed(0x40, 4 * GLOBAL_MATCHES - 2)); continue; };
-                if f.iter().any(|x| x.1) { resp.push_str(&failed(0x40, 4 * GLOBAL_MATCHES - 2)); continue; }
+                if unsupported(&f) { resp.push_str(&failed(0x40, 4 * GLOBAL_MATCHES - 2)); continue; }
                 match (g(&f[0].0, &f[1].0, &f[3].0), g(&f[0].0, &f[2].0, &f[3].0)) {
                     (Ok(ma), Ok(mr)) => for ms in [ma, mr] {
                         for k in 0..GLOBAL_MATCHES { match ms.get(k) { Some(&(s, e)) => resp.push_str(&pair(s, e)), None => resp.push_str(none) } }
@@ -152,7 +180,7 @@ pub fn serve_all(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, 
                 continue;
             }
             if mode == "capture" || mode == "lcapture" {
-                if f.iter().any(|x| x.1) { resp.push_str(&failed(0x40, 26)); continue; }
+                if unsupported(&f) { resp.push_str(&failed(0x40, 26)); continue; }
                 match capture(&f[0].0, &f[1].0, &f[2].0, &f[3].0) {
                     Err(e) => resp.push_str(&failed(e, 26)),
                     Ok(subj) => for gs in subj { for g in gs { match g { Some((s, e)) => resp.push_str(&pair(s, e)), None => resp.push_str(none) } } },
@@ -161,7 +189,7 @@ pub fn serve_all(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, 
             }
             if mode == "span" || mode == "lspan" || mode == "ospan" || mode == "aspan" {
                 STICKY.store(mode == "aspan", std::sync::atomic::Ordering::Relaxed);
-                if f.iter().any(|x| x.1) { resp.push_str(&failed(0x40, 2)); continue; }
+                if unsupported(&f) { resp.push_str(&failed(0x40, 2)); continue; }
                 // ospan: "<flags>@<a>,<r>" sets the search starts.
                 let mut fl = f[0].0.clone();
                 START[0].store(0, std::sync::atomic::Ordering::Relaxed);
@@ -177,7 +205,7 @@ pub fn serve_all(name: &str, case: impl Fn(&str, &str, &str, &str, bool) -> u8, 
                 }
                 continue;
             }
-            let bits = if f.iter().any(|x| x.1) { 0x40 } else { case(&f[0].0, &f[1].0, &f[2].0, &f[3].0, repeat) };
+            let bits = if unsupported(&f) { 0x40 } else { case(&f[0].0, &f[1].0, &f[2].0, &f[3].0, repeat) };
             resp.push_str(&format!("{:02x}", bits));
         }
         writeln!(out, "{}", resp).unwrap();
