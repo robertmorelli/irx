@@ -4,6 +4,20 @@
  * \w \d \s and POSIX classes ASCII-only. */
 #include <oniguruma.h>
 #include "proto.h"
+
+/* A search that hit Oniguruma's own resource limits (retry or stack limit) is reported as a
+ * limit (0x40, skipped by irx), not as an exception (0x08): it says nothing about correctness. */
+static int err_bits(int m) {
+    switch (m) {
+    case ONIGERR_MATCH_STACK_LIMIT_OVER:
+    case ONIGERR_RETRY_LIMIT_IN_MATCH_OVER:
+    case ONIGERR_RETRY_LIMIT_IN_SEARCH_OVER:
+    case ONIGERR_SUBEXP_CALL_LIMIT_IN_SEARCH_OVER:
+        return 0x40;
+    default:
+        return 0x08;
+    }
+}
 static OnigSyntaxType *syntax(void) {
     const char *s = getenv("IRX_ONIG_SYNTAX");
     if (!s || !*s || !strcmp(s, "ruby")) return ONIG_SYNTAX_RUBY;
@@ -56,7 +70,7 @@ int host_case(const char *flags, const char *a, size_t alen, const char *r, size
             const UChar *s = (const UChar *)subj[k], *e = s + lens[k];
             int m = onig_search(re, s, e, s, e, NULL, ONIG_OPTION_NONE);
             if (m >= 0) bits |= (1 << k) << (rep * 4);
-            else if (m != ONIG_MISMATCH) { bits = 0x08; goto done; }
+            else if (m != ONIG_MISMATCH) { bits = err_bits(m); goto done; }
         }
 done:
     onig_free(re);
@@ -77,7 +91,7 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
                               : onig_search(re, s, end, s + host_start[k], end, rg, ONIG_OPTION_NONE);
         if (m >= 0) { out[2 * k] = rg->beg[0]; out[2 * k + 1] = rg->end[0]; }
         else if (m == ONIG_MISMATCH) out[2 * k] = out[2 * k + 1] = -1;
-        else { e = 0x08; break; }
+        else { e = err_bits(m); break; }
     }
     onig_region_free(rg, 1); onig_free(re);
     return e;
@@ -111,7 +125,7 @@ int host_capture(const char *flags, const char *const subj[2], const size_t lens
                 }
             }
         }
-        else if (m != ONIG_MISMATCH) e = 0x08;
+        else if (m != ONIG_MISMATCH) e = err_bits(m);
     }
     onig_region_free(rg, 1); onig_free(re);
     return e;
