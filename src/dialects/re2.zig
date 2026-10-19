@@ -61,6 +61,6 @@ pub const go_longest: D.Dialect = longest(go, "go-longest");
 pub const re2j: D.Dialect = blk: {
     var d = dialect;
     d.name = "re2j";
-    d.pool_exclude = &.{ 0x180E, 0x1F600 };
+    d.pool_exclude = &.{ 0x180E, 0x1F600, 0x390, 0x3B0, 0x1FD3, 0x1FE3 };
     break :blk d;
 };
