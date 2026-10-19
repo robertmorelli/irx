@@ -32,3 +32,27 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END ra-backtrack rnfa results -->
+
+<!-- BEGIN ra-backtrack r10 results -->
+### regex-automata 0.4 backtrack: r10 campaign
+
+* 1,979,360 patterns, 21 tables, 0 distinct findings
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END ra-backtrack r10 results -->
+
+<!-- BEGIN ra-backtrack r2h results -->
+### regex-automata 0.4 backtrack: r2h campaign
+
+* 177,824 patterns, 3 tables, 0 distinct findings; self-check 14,321,888 probes, 0 mismatches, 77 engine failures
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END ra-backtrack r2h results -->
+<!-- BEGIN ra-backtrack r2h triage -->
+### ra-backtrack: r2h (2-hour) campaign triage
+
+regex-automata bounded backtracker.
+
+* No findings; self-check clean apart from 77 batch-deadline timeouts in the self-check.
+* Run cut short: from 01:26 one lane spent over an hour in the model's own Thompson NFA (`classEmpty` rescanning all of Unicode for each negated class, for every enclosing repetition and every reference position) on a global-span check, with every other lane idle; the run was stopped with SIGINT at 02:50, so only about 178,000 patterns were tested. Fixed in irx (memoized `classEmpty` with a cheap probe first).
+<!-- END ra-backtrack r2h triage -->
