@@ -53,6 +53,8 @@ pub const dialect: D.Dialect = .{
     .scoped_mods = 1, // (?i:) only: Racket's s/m modes differ from the model's
 
     .unicode_props = true,
+    // (?i:) does not reach \p{…}: (?i:\p{Lu}) rejects a, σ and ß.
+    .prop_case = .plain,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
     .name = "racket",
