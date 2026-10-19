@@ -18,3 +18,27 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END ra-pikevm rglob results -->
+
+<!-- BEGIN ra-pikevm r10 results -->
+### regex-automata 0.4 pikevm: r10 campaign
+
+* 1,715,872 patterns, 19 tables, 0 distinct findings
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END ra-pikevm r10 results -->
+
+<!-- BEGIN ra-pikevm r2h results -->
+### regex-automata 0.4 pikevm: r2h campaign
+
+* 545,056 patterns, 7 tables, 0 distinct findings; self-check 14,321,376 probes, 0 mismatches, 78 engine failures
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END ra-pikevm r2h results -->
+<!-- BEGIN ra-pikevm r2h triage -->
+### ra-pikevm: r2h (2-hour) campaign triage
+
+regex-automata PikeVM.
+
+* No findings; self-check clean (78 batch-deadline timeouts).
+* Only 545,000 patterns: from 08:34 a lane was stuck in the model on a tree whose NFA is too big, rebuilt (with a fresh `classEmpty` scan) at every reference position. Fixed in irx (a failed build is remembered for the same tree); stopped with SIGINT at 08:48.
+<!-- END ra-pikevm r2h triage -->
