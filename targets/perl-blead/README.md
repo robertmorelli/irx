@@ -67,3 +67,35 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 * Model gap, fixed: Perl's WHILEM counts an iteration before its empty-match check, so the iteration that reaches a loop's minimum also ends the loop when it matched empty (`(?:^|.){2,3}a` on `"baa"` is `[0,3)`); the model only stopped after the minimum (findings 11532, 11561). PCRE2, checked alongside, unrolls bounded loops and has no empty check there (`[0,2)`); now modelled too.
 * 6,907 timeouts: batches over the deadline under heavy machine load.
 <!-- END perl-blead blead10h triage -->
+
+<!-- BEGIN perl-blead r2h results -->
+### Perl blead: r2h campaign
+
+* 30,545,568 patterns, 307 tables, 7,931 distinct findings; self-check 4,820,512 probes, 528 mismatches, 0 engine failures
+* findings by kind: 4,000 wrong_result, 3,024 timeout (batch), 574 wrong_span, 333 wrong_capture, 24 selfcheck_mismatch (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 602 | wrong_result | `mu` | `"a"` | `""` | `^\ba*` | 00 |
+| 321 | wrong_result | `iu` | `"assa"` | `""` | `a[k-\x{17F}]a` | 00 |
+| 230 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:()\|a)` | 00 |
+| 186 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:\|a)` | 00 |
+| 184 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:(?:)\|a)` | 00 |
+| 124 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:a\|)` | 00 |
+| 118 | wrong_result | `mu` | `"a"` | `""` | `^\b(?:a\|())` | 00 |
+| 100 | wrong_result | `u` | `"ΐ"` | `""` | `[\x{390}\x{1FD3}]` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END perl-blead r2h results -->
+<!-- BEGIN perl-blead r2h triage -->
+### perl-blead: r2h (2-hour) campaign triage
+
+Perl blead 5.45.4 (`vendor/perl5` at 5b2f72d, Unicode 18).
+
+* New: IRX-PERL-9 (`"\x{410}" =~ /\A\x{450}*\z/i` → true: a caseless loop with minimum 0 over a Cyrillic letter whose cases differ in their UTF-8 lead byte accepts the upper case's lead byte with the lower case's continuation byte; also Perl 5.34 and 5.44).
+* Known: IRX-PERL-2 (`^\b` under `/m`), about 2,900; IRX-PERL-6 (`[\x{390}\x{1FD3}]`), about 420, and the 8 remaining self-check mismatches. About 3,000 batch timeouts on deeply nested loops.
+* Model gaps, fixed: (1) Perl applies multi-character folds only to class members listed explicitly, not inside ranges (`a[k-\x{17F}]` on `"aSs"`; perlrecharclass); range full-folding is now Oniguruma/Onigmo only. (2) Unicode 18 grapheme clusters: GB9c no longer needs a consonant before the linker, and variation selectors, emoji modifiers and tags are InCB=Extend; new `perl-blead` dialect. These caused 520 of the 528 self-check mismatches.
+* Not reproduced: `[s\x{DF}]|(?:)` on `"Sſa"` (span `[0,2)` in the campaign, `[0,1)` in a fresh process), 5 findings.
+<!-- END perl-blead r2h triage -->
