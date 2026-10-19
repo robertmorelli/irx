@@ -16,6 +16,28 @@ type Find = Box<dyn FnMut(&Input) -> Result<Option<(usize, usize)>, u8>>;
 /// Captures (whole match + groups 1..6), or failure bits.
 type Caps = Box<dyn FnMut(&Input) -> Result<[Option<(usize, usize)>; 7], u8>>;
 
+/// Set when a dense-DFA build timed out and its thread is still running: the host exits at the
+/// next build (irx restarts it), so an abandoned build never keeps burning a core.
+static ABANDONED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// A dense DFA, or unsupported (0x40) past the size limits or after 10 s: some patterns take
+/// many minutes to determinize even under the size limits, stalling the whole batch.
+fn build_dfa(c: syntax::Config, pat: &str) -> Result<dfa::regex::Regex, u8> {
+    if ABANDONED.load(std::sync::atomic::Ordering::Relaxed) { std::process::exit(0); }
+    let (tx, rx) = std::sync::mpsc::channel();
+    let pat = pat.to_string();
+    std::thread::spawn(move || {
+        let re = dfa::regex::Regex::builder().syntax(c)
+            .dense(dfa::dense::Config::new().dfa_size_limit(Some(4 << 20)).determinize_size_limit(Some(4 << 20)))
+            .build(&pat).map_err(|_| 0x40u8);
+        let _ = tx.send(re);
+    });
+    match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+        Ok(r) => r,
+        Err(_) => { ABANDONED.store(true, std::sync::atomic::Ordering::Relaxed); Err(0x40) }
+    }
+}
+
 fn build(flags: &str, pat: &str, want_caps: bool) -> Result<(Find, Option<Caps>), u8> {
     if regex_automata::util::syntax::parse(pat).is_err() { return Err(0x04); }  // syntax only: no size limit
     let c = cfg(flags);
@@ -70,9 +92,7 @@ fn build(flags: &str, pat: &str, want_caps: bool) -> Result<(Find, Option<Caps>)
         }
         "dfa" => {
             if want_caps { return Err(0x40); }
-            let re = dfa::regex::Regex::builder().syntax(c)
-                .dense(dfa::dense::Config::new().dfa_size_limit(Some(4 << 20)).determinize_size_limit(Some(4 << 20)))
-                .build(pat).map_err(|_| 0x40u8)?;
+            let re = build_dfa(c, pat)?;
             Ok((Box::new(move |i| re.try_search(i).map(|m| m.map(|m| (m.start(), m.end()))).map_err(|_| 0x40)), None))
         }
         _ => {
