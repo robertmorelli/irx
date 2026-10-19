@@ -100,3 +100,55 @@ Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END racket long-10m results -->
+
+<!-- BEGIN racket r10 results -->
+### Racket #px: r10 campaign
+
+* 8,601,024 patterns, 88 tables, 11,294 distinct findings
+* findings by kind: 4,000 wrong_result, 3,292 syntax_error, 2,000 wrong_span, 2,000 wrong_capture, 2 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 61 | syntax_error | `u` | `""` | `"a"` | `(?:)(?:)` | 04 |
+| 55 | wrong_result | `u` | `"ё"` | `""` | `[^\x{410}\x{4CF}]` | 00 |
+| 55 | wrong_result | `u` | `"ё"` | `""` | `[^\x{430}\x{4CF}]` | 00 |
+| 54 | wrong_result | `u` | `"ё"` | `""` | `[^\x{401}\x{4CF}]` | 00 |
+| 28 | wrong_result | `u` | `"ё"` | `"aa"` | `[^\x{430}\x{4CF}]` | 00 |
+| 17 | wrong_result | `u` | `"ё"` | `"aa"` | `[^\x{401}\x{4CF}]` | 00 |
+| 13 | wrong_span | `u` | `"ё"` | `""` | `[^\x{410}\x{4CF}]` | 00 |
+| 12 | wrong_capture | `u` | `"ё"` | `""` | `[^\x{410}\x{4CF}]` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END racket r10 results -->
+
+<!-- BEGIN racket r2h results -->
+### Racket #px: r2h campaign
+
+* 145,212,288 patterns, 1454 tables, 16,278 distinct findings; self-check 3,473,184 probes, 9,832 mismatches, 0 engine failures
+* findings by kind: 8,000 syntax_error, 4,000 wrong_result, 2,000 wrong_capture, 2,000 wrong_span, 278 timeout (batch), 27 selfcheck_mismatch (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 710 | wrong_result | `u` | `"ё"` | `""` | `[^\x{430}\x{4CF}]` | 00 |
+| 664 | wrong_result | `u` | `"ё"` | `""` | `[^\x{410}\x{4CF}]` | 00 |
+| 610 | wrong_result | `u` | `"ё"` | `""` | `[^\x{401}\x{4CF}]` | 00 |
+| 442 | wrong_result | `u` | `"ё"` | `"aa"` | `[^\x{430}\x{4CF}]` | 00 |
+| 416 | wrong_result | `u` | `"ё"` | `"aa"` | `[^\x{401}\x{4CF}]` | 00 |
+| 413 | syntax_error | `u` | `""` | `"a"` | `(?:)(?:)` | 04 |
+| 358 | wrong_result | `u` | `"ё"` | `"aa"` | `[^\x{410}\x{4CF}]` | 00 |
+| 203 | wrong_span | `u` | `"ё"` | `""` | `[^\x{430}\x{4CF}]` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END racket r2h results -->
+<!-- BEGIN racket r2h triage -->
+### racket: r2h (2-hour) campaign triage
+
+Racket 9.3 CS (`#px`).
+
+* No new IDs. IRX-RACKET-1 (`(?:)(?:)` crash), the 8,000 syntax errors. IRX-RACKET-3 (negated classes with non-ASCII members exclude other multibyte characters), widened to two-member classes (`[^аӏ]` rejects ё): nearly all wrong answers. Self-check mismatches on classes holding `ſ` (`[^s\x{17F}]`, `[k-\x{17F}]`): IRX-RACKET-3/-1.
+* Model gap, fixed: Racket's `(?i:)` does not reach `\p{…}` (`(?i:\p{Lu})` rejects a, σ and ß); the racket dialect now uses plain property matching. About 2,000 self-check mismatches.
+<!-- END racket r2h triage -->
