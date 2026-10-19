@@ -44,6 +44,8 @@ pub const Nfa = struct {
     t: *const ast.Ast = undefined,
     caps: ?*const ast.Caps = null,
     nflags: [ast.max_nodes]Flags = undefined,
+    /// classEmpty per node: 0 unknown, 1 empty, 2 not empty.
+    empty_memo: [ast.max_nodes]u2 = undefined,
 
     fn add(self: *Nfa, s: State) error{TooBig}!u32 {
         if (self.nstates == max_states) return error.TooBig;
@@ -81,6 +83,7 @@ pub const Nfa = struct {
         self.t = t;
         self.caps = caps;
         ast.nodeFlags(t, flags, &self.nflags);
+        @memset(self.empty_memo[0..t.len], 0);
         const r = self.c(t.root) catch return null;
         const m = self.add(.{ .kind = .match }) catch return null;
         self.patch(r.end, m) catch return null;
@@ -209,7 +212,7 @@ pub const Nfa = struct {
 /// it can match nothing: an empty class poisons every concatenation, alternation and repetition
 /// around it, except that an alternation whose branches (flattened, `a|b|c` is one alternation)
 /// are all single characters and classes is one class first.
-fn minLen(self: *const Nfa, idx: u8) ?usize {
+fn minLen(self: *Nfa, idx: u8) ?usize {
     const t = self.t;
     const n = t.nodes[idx];
     if (n.op == .alt and classLike(self, idx)) return if (classEmpty(self, idx)) null else 1;
@@ -224,7 +227,7 @@ fn minLen(self: *const Nfa, idx: u8) ?usize {
 }
 
 /// One branch of a flattened alternation that is not merged into a class.
-fn branchMin(self: *const Nfa, idx: u8) ?usize {
+fn branchMin(self: *Nfa, idx: u8) ?usize {
     const n = self.t.nodes[idx];
     if (n.op != .alt) return minLen(self, idx);
     return @min(branchMin(self, n.a) orelse return null, branchMin(self, n.b) orelse return null);
@@ -243,7 +246,7 @@ fn classLike(self: *const Nfa, idx: u8) bool {
 
 /// A class-like subtree matches no scalar value. Only set operations and negated classes can be
 /// empty, so only those are scanned.
-fn classEmpty(self: *const Nfa, idx: u8) bool {
+fn classEmpty(self: *Nfa, idx: u8) bool {
     const n = self.t.nodes[idx];
     switch (n.op) {
         .alt => return classEmpty(self, n.a) and classEmpty(self, n.b),
@@ -253,12 +256,22 @@ fn classEmpty(self: *const Nfa, idx: u8) bool {
     }
     const a = &n.atom;
     if (!(a.kind == .vset or (a.kind == .cls and a.neg))) return false;
-    var c: u21 = 0;
-    while (c <= 0x10FFFF) : (c += 1) {
-        if (c == 0xD800) c = 0xE000;
-        if (atoms.matches(a, self.nflags[idx], c)) return false;
-    }
-    return true;
+    // Memoized, with a cheap probe first: the full scan runs for every negated class each time
+    // the NFA is built, and minLen asks again for each enclosing repetition.
+    if (self.empty_memo[idx] != 0) return self.empty_memo[idx] == 1;
+    const empty = scan: {
+        for ([_]u21{ 'a', 'Z', '0', ' ', '_', '-', '\n', 0xE9, 0x3B1, 0x430, 0x4E00, 0x1F600 }) |c| {
+            if (atoms.matches(a, self.nflags[idx], c)) break :scan false;
+        }
+        var c: u21 = 0;
+        while (c <= 0x10FFFF) : (c += 1) {
+            if (c == 0xD800) c = 0xE000;
+            if (atoms.matches(a, self.nflags[idx], c)) break :scan false;
+        }
+        break :scan true;
+    };
+    self.empty_memo[idx] = if (empty) 1 else 2;
+    return empty;
 }
 
 /// The tree has only constructs the NFA compiles.
