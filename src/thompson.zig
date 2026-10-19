@@ -50,6 +50,8 @@ pub const Nfa = struct {
     /// per reference position, so an unchanged tree reuses the NFA and classEmpty's memo.
     key: u64 = 0,
     built: bool = false,
+    /// The build for `key` failed (too many states): fail again without rebuilding.
+    failed: bool = false,
 
     fn add(self: *Nfa, s: State) error{TooBig}!u32 {
         if (self.nstates == max_states) return error.TooBig;
@@ -87,7 +89,6 @@ pub const Nfa = struct {
         self.t = t;
         self.caps = caps;
         ast.nodeFlags(t, flags, &self.nflags);
-        @memset(self.empty_memo[0..t.len], 0);
         const r = self.c(t.root) catch return null;
         const m = self.add(.{ .kind = .match }) catch return null;
         self.patch(r.end, m) catch return null;
@@ -309,12 +310,14 @@ pub fn matchAt(t: *const ast.Ast, flags: Flags, w: []const u21, start: usize, ca
     h.update(&.{ t.root, @bitCast(flags) });
     h.update(std.mem.asBytes(&@intFromPtr(caps)));
     const key = h.final();
-    if (!nfa.built or nfa.key != key) {
-        nfa.built = false;
-        nfa.build(t, flags, caps) orelse return error.TooBig;
+    if (!(nfa.built or nfa.failed) or nfa.key != key) {
+        @memset(nfa.empty_memo[0..t.len], 0);
         nfa.key = key;
-        nfa.built = true;
+        nfa.built = false;
+        nfa.failed = nfa.build(t, flags, caps) == null;
+        nfa.built = !nfa.failed;
     }
+    if (nfa.failed) return error.TooBig;
     const width: usize = w.len + 1;
     const bits = @as(usize, nfa.nstates) * width;
     if (bits > 1 << 28) return error.TooBig;
