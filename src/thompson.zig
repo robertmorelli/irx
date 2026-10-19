@@ -46,6 +46,10 @@ pub const Nfa = struct {
     nflags: [ast.max_nodes]Flags = undefined,
     /// classEmpty per node: 0 unknown, 1 empty, 2 not empty.
     empty_memo: [ast.max_nodes]u2 = undefined,
+    /// What the NFA was last built from (tree contents, flags, capture map): matchAt runs once
+    /// per reference position, so an unchanged tree reuses the NFA and classEmpty's memo.
+    key: u64 = 0,
+    built: bool = false,
 
     fn add(self: *Nfa, s: State) error{TooBig}!u32 {
         if (self.nstates == max_states) return error.TooBig;
@@ -300,7 +304,17 @@ const Frame = union(enum) {
 pub fn matchAt(t: *const ast.Ast, flags: Flags, w: []const u21, start: usize, caps: ?*ast.Caps) error{TooBig}!?usize {
     if (nfa_store == null) nfa_store = std.heap.page_allocator.create(Nfa) catch return error.TooBig;
     const nfa = nfa_store.?;
-    nfa.build(t, flags, caps) orelse return error.TooBig;
+    var h = std.hash.Wyhash.init(0);
+    h.update(std.mem.sliceAsBytes(t.nodes[0..t.len]));
+    h.update(&.{ t.root, @bitCast(flags) });
+    h.update(std.mem.asBytes(&@intFromPtr(caps)));
+    const key = h.final();
+    if (!nfa.built or nfa.key != key) {
+        nfa.built = false;
+        nfa.build(t, flags, caps) orelse return error.TooBig;
+        nfa.key = key;
+        nfa.built = true;
+    }
     const width: usize = w.len + 1;
     const bits = @as(usize, nfa.nstates) * width;
     if (bits > 1 << 28) return error.TooBig;
