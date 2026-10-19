@@ -56,7 +56,8 @@ pub const re2_longest: D.Dialect = longest(dialect, "re2-longest");
 pub const go_longest: D.Dialect = longest(go, "go-longest");
 
 /// re2j (RE2's Java port): RE2 syntax and semantics. Its Unicode tables are old (U+180E is still
-/// Zs, U+1F600 has no category), so both stay out of the pool. (?i)\p{Ll} missing A-Z is a bug
+/// Zs, U+1F600 has no category, U+0390/U+1FD3 and U+03B0/U+1FE3 do not case-fold together), so
+/// they stay out of the pool. (?i)\p{Ll} missing A-Z is a bug
 /// (IRX-RE2J-1), left visible.
 pub const re2j: D.Dialect = blk: {
     var d = dialect;
