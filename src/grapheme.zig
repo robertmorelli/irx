@@ -106,13 +106,17 @@ pub fn gcb(c: u21) Gcb {
     return .other;
 }
 
-fn incb(c: u21) InCB {
+fn incb(c: u21, unicode18: bool) InCB {
     if (std.mem.indexOfScalar(u21, &incb_linker, c) != null) return .linker;
     if (inRanges(c, &incb_consonant)) return .consonant;
     if (c == 0x200D) return .extend;
     // Extend characters with a nonzero combining class (approximated: nonspacing marks other
-    // than variation selectors, emoji modifiers and tags, which have class 0).
+    // than variation selectors, emoji modifiers and tags, which have class 0). Unicode 18 adds
+    // those three to InCB=Extend.
     const g = gcb(c);
+    if (unicode18 and g == .extend and c != 0x200C) {
+        if ((c >= 0xFE00 and c <= 0xFE0F) or (c >= 0x1F3FB and c <= 0x1F3FF) or (c >= 0xE0020 and c <= 0xE007F) or (c >= 0xE0100 and c <= 0xE01EF)) return .extend;
+    }
     if (g == .extend and c != 0x200C and !(c >= 0xFE00 and c <= 0xFE0F) and !(c >= 0x1F3FB and c <= 0x1F3FF) and !(c >= 0xE0020 and c <= 0xE007F)) {
         const cat = ucd.category(c);
         if (cat[0] == 'M' and cat[1] == 'n') return .extend;
@@ -126,6 +130,8 @@ const State = struct {
     ep: u2 = 0,
     /// 1: Consonant [Extend Linker]* without a linker yet; 2: with one.
     cb: u2 = 0,
+    /// Unicode 18 GB9c: a linker joins a following consonant after any base.
+    any_base: bool = false,
 
     fn push(s: *State, c: u21, g: Gcb) void {
         s.ri_odd = if (g == .ri) !s.ri_odd else false;
@@ -135,9 +141,9 @@ const State = struct {
             .zwj => if (s.ep == 1) 2 else 0,
             else => 0,
         };
-        s.cb = switch (incb(c)) {
+        s.cb = switch (incb(c, s.any_base)) {
             .consonant => 1,
-            .linker => if (s.cb != 0) 2 else 0,
+            .linker => if (s.cb != 0 or s.any_base) 2 else 0,
             .extend => s.cb,
             .none => 0,
         };
@@ -154,7 +160,7 @@ fn breaks(prev: Gcb, cur: Gcb, c: u21, s: *const State, gb9c: bool) bool {
     if (cur == .extend or cur == .zwj) return false; // GB9
     if (cur == .spacing_mark) return false; // GB9a
     if (prev == .prepend) return false; // GB9b
-    if (gb9c and s.cb == 2 and incb(c) == .consonant) return false; // GB9c
+    if (gb9c and s.cb == 2 and incb(c, s.any_base) == .consonant) return false; // GB9c
     if (prev == .zwj and cur == .ext_pict and s.ep == 2) return false; // GB11
     if (prev == .ri and cur == .ri and s.ri_odd) return false; // GB12, GB13
     return true; // GB999
@@ -165,12 +171,12 @@ pub fn clusterEnd(w: []const u21, i: usize, gb9c: bool) usize {
     return clusterEndOpts(w, i, .{ .gb9c = gb9c });
 }
 
-pub const Opts = struct { gb9c: bool = false, prepend_pict: bool = true, combining: bool = false };
+pub const Opts = struct { gb9c: bool = false, gb9c_any_base: bool = false, prepend_pict: bool = true, combining: bool = false };
 
 /// The cluster end for the active dialect's \X.
 pub fn clusterEndActive(w: []const u21, i: usize) usize {
     const d = @import("dialect.zig").active;
-    return clusterEndOpts(w, i, .{ .gb9c = d.grapheme_escape == .extended_gb9c, .prepend_pict = d.grapheme_prepend_pict, .combining = d.grapheme_escape == .combining });
+    return clusterEndOpts(w, i, .{ .gb9c = d.grapheme_escape == .extended_gb9c or d.grapheme_escape == .extended_gb9c_18, .gb9c_any_base = d.grapheme_escape == .extended_gb9c_18, .prepend_pict = d.grapheme_prepend_pict, .combining = d.grapheme_escape == .combining });
 }
 
 pub fn clusterEndOpts(w: []const u21, i: usize, o: Opts) usize {
@@ -183,7 +189,7 @@ pub fn clusterEndOpts(w: []const u21, i: usize, o: Opts) usize {
         return j;
     }
     const gb9c = o.gb9c;
-    var s: State = .{};
+    var s: State = .{ .any_base = o.gb9c_any_base };
     var g = gcb(w[i]);
     s.push(w[i], g);
     var j = i + 1;

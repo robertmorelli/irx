@@ -39,7 +39,7 @@ pub const NamedGroup = enum { angle, p_angle, plain_capture };
 pub const AnyChar = enum { empty_negated_class, space_or_nonspace };
 
 /// combining: a character and the marks after it (Boost; CR LF stays two clusters).
-pub const Grapheme = enum { none, extended, extended_gb9c, combining };
+pub const Grapheme = enum { none, extended, extended_gb9c, extended_gb9c_18, combining };
 pub const FullFold = enum { none, literals, classes, ranges };
 
 pub const Dialect = struct {
@@ -129,7 +129,8 @@ pub const Dialect = struct {
     /// A backreference may sit inside a lookaround (libc++ rejects it: IRX-LIBCXX-5).
     backref_in_lookaround: bool = true,
     /// \X: one extended grapheme cluster (UAX #29) from the current position, atomically;
-    /// `extended_gb9c` adds rule GB9c (Indic conjuncts, Unicode 15.1).
+    /// `extended_gb9c` adds rule GB9c (Indic conjuncts, Unicode 15.1); `extended_gb9c_18` uses
+    /// Unicode 18's GB9c, where the linker need not follow a consonant (`a\u094D\u0924` is one cluster).
     grapheme_escape: Grapheme = .none,
     /// Follow UAX #29 for Prepend + emoji and regional indicator + Extend (PCRE2 does not:
     /// IRX-PCRE2-6).
@@ -254,6 +255,7 @@ pub const perl = @import("dialects/perl.zig").dialect;
 pub const pcre2 = @import("dialects/perl.zig").pcre2;
 pub const perl_a = @import("dialects/perl.zig").perl_a;
 pub const perl_aa = @import("dialects/perl.zig").perl_aa;
+pub const perl_blead = @import("dialects/perl.zig").perl_blead;
 pub const pcre2_ascii = @import("dialects/perl.zig").pcre2_ascii;
 pub const boost = @import("dialects/perl.zig").boost;
 pub const pcre1 = @import("dialects/perl.zig").pcre1;
@@ -290,7 +292,7 @@ pub const vectorscan = @import("dialects/vectorscan.zig").dialect;
 pub const llvm = @import("dialects/llvm.zig").dialect;
 pub const libc = @import("dialects/llvm.zig").libc;
 pub const gnu = @import("dialects/llvm.zig").gnu;
-pub const all = [_]*const Dialect{ &es, &irregexp, &perl, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm, &libc, &cpp, &boost, &re2j, &onig_perl, &onig_java, &onig_python, &onig_ascii, &dotnet_ecma, &pcre1, &gnu };
+pub const all = [_]*const Dialect{ &es, &irregexp, &perl, &perl_blead, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm, &libc, &cpp, &boost, &re2j, &onig_perl, &onig_java, &onig_python, &onig_ascii, &dotnet_ecma, &pcre1, &gnu };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;

@@ -128,6 +128,13 @@ fn aaFold(c: u21) u21 {
     return if ((c < 0x80) == (f < 0x80)) f else c;
 }
 
+/// Perl blead (5.45, Unicode 18): \X uses Unicode 18's GB9c.
+pub const perl_blead: D.Dialect = blk: {
+    var d = dialect;
+    d.name = "perl-blead";
+    d.grapheme_escape = .extended_gb9c_18;
+    break :blk d;
+};
 pub const perl_a: D.Dialect = asciiClasses(dialect, "perl-a");
 pub const perl_aa: D.Dialect = blk: {
     var d = asciiClasses(dialect, "perl-aa");
