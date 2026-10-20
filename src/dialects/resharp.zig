@@ -1,4 +1,4 @@
-//! RE# (resharp crate) in UnicodeMode::Full with multiline off (reference: resharp 0.7.5).
+//! RE# (resharp crate) in UnicodeMode::Full with multiline off (reference: resharp 0.7.6).
 //! Derivative-based: no lazy quantifiers, lookbehind only at the pattern start (which
 //! also rules out mid-pattern ^ \b \B, compiled as lookbehinds), no lookahead or `$`
 //! under m inside unbounded `*`/`+`; `_ & ~` are operators.
@@ -11,6 +11,9 @@ fn lineTerminator(c: u21) bool {
 
 pub const dialect: D.Dialect = .{
     .unicode_props = true,
+    // Under i a negated property is the complement of the case-closed property, as in the regex
+    // crate: (?i)\P{Lu} matches no letter (resharp 0.7.6).
+    .prop_case = .equivalence_invert,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
     .name = "resharp",
