@@ -147,3 +147,26 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 * 4,440 timeouts: batch deadlines missed while other programs held the CPU (load 27–47 on 8 cores); the batches replay in under 3 s.
 * 77 span/capture findings (22 patterns): a model gap, fixed. Every one has an empty class (`[a&&\W]`, `[^[^a]\p{L}]`). regex-syntax gives it no minimum length, which poisons the enclosing alternation, concatenation and repetition, so regex-automata compiles the loop around it as `(e+)?`. An alternation is merged into one class first only when every flattened branch is a class. With the fix the model agrees with the crate on all 22.
 <!-- END rust-regex rust5h triage -->
+
+<!-- BEGIN rust-regex r10 results -->
+### Rust regex: r10 campaign
+
+* 872,192 patterns, 10 tables, 0 distinct findings
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END rust-regex r10 results -->
+
+<!-- BEGIN rust-regex r2h results -->
+### Rust regex: r2h campaign
+
+* 211,264 patterns, 4 tables, 0 distinct findings; self-check 14,319,840 probes, 0 mismatches, 81 engine failures
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END rust-regex r2h results -->
+<!-- BEGIN rust-regex r2h triage -->
+### rust-regex: r2h (2-hour) campaign triage
+
+Rust `regex` crate.
+
+* No findings. Run cut short: from 11:04 a lane was stuck in the model's `classEmpty` Unicode scan again (the per-tree memo missed); fixed in irx with a per-thread cache keyed by the atom and its flags, and stopped with SIGINT at 11:28.
+<!-- END rust-regex r2h triage -->
