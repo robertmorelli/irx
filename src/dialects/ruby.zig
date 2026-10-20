@@ -53,7 +53,10 @@ pub const dialect: D.Dialect = .{
     // "ss"; subjects keep multi-fold characters out.
     .full_fold = .ranges,
     .pattern_only = &.{ 0xDF, 0x1E9E, 0xFB00, 0xFB01, 0x130 },
-    // Onigmo lookbehind: fixed length, no variable quantifiers, no lookahead inside.
+    // Onigmo lookbehind: fixed length, no variable quantifiers, no lookahead inside, and no
+    // atomic group or possessive quantifier ((?<=(?>a))b, (?<=a?+)b: "invalid pattern in
+    // look-behind"; C Oniguruma accepts both).
+    .lookbehind_no_atomic = true,
     .lookbehind_fixed = true,
     .lookbehind_no_variable = true,
     .lookbehind_onig = true,
