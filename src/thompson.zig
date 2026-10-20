@@ -264,6 +264,17 @@ fn classEmpty(self: *Nfa, idx: u8) bool {
     // Memoized, with a cheap probe first: the full scan runs for every negated class each time
     // the NFA is built, and minLen asks again for each enclosing repetition.
     if (self.empty_memo[idx] != 0) return self.empty_memo[idx] == 1;
+    // Across trees too: emptiness depends only on the atom and its flags, and the generator
+    // reuses atoms, so a per-thread table keyed by their bytes skips repeat scans.
+    var h = std.hash.Wyhash.init(1);
+    h.update(std.mem.asBytes(a));
+    h.update(&.{@bitCast(self.nflags[idx])});
+    const key = h.final() | 1;
+    const slot = &empty_cache[@intCast(key % empty_cache.len)];
+    if (slot.key == key) {
+        self.empty_memo[idx] = if (slot.empty) 1 else 2;
+        return slot.empty;
+    }
     const empty = scan: {
         for ([_]u21{ 'a', 'Z', '0', ' ', '_', '-', '\n', 0xE9, 0x3B1, 0x430, 0x4E00, 0x1F600 }) |c| {
             if (atoms.matches(a, self.nflags[idx], c)) break :scan false;
@@ -276,8 +287,12 @@ fn classEmpty(self: *Nfa, idx: u8) bool {
         break :scan true;
     };
     self.empty_memo[idx] = if (empty) 1 else 2;
+    slot.* = .{ .key = key, .empty = empty };
     return empty;
 }
+
+const EmptyEntry = struct { key: u64 = 0, empty: bool = false };
+threadlocal var empty_cache: [1024]EmptyEntry = [_]EmptyEntry{.{}} ** 1024;
 
 /// The tree has only constructs the NFA compiles.
 pub fn supported(t: *const ast.Ast) bool {
