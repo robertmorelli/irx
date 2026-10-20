@@ -36,3 +36,27 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END regex-lite rglob results -->
+
+<!-- BEGIN regex-lite r10 results -->
+### Rust regex-lite 0.1: r10 campaign
+
+* 16,477,312 patterns, 166 tables, 0 distinct findings
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END regex-lite r10 results -->
+
+<!-- BEGIN regex-lite r2h results -->
+### Rust regex-lite 0.1: r2h campaign
+
+* 88,902,560 patterns, 891 tables, 0 distinct findings; self-check 3,971,712 probes, 304 mismatches, 0 engine failures
+* findings by kind: 20 selfcheck_mismatch (selfcheck)
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END regex-lite r2h results -->
+<!-- BEGIN regex-lite r2h triage -->
+### regex-lite: r2h (2-hour) campaign triage
+
+regex-lite 0.1.9.
+
+* No findings: 89 million patterns, no wrong answers. All 304 self-check mismatches are IRX-RLITE-1 (`(?i)[[:^lower:]]` and `(?i)[[:^upper:]]` match every letter; the `regex` crate matches none).
+<!-- END regex-lite r2h triage -->
