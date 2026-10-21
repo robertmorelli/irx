@@ -68,3 +68,77 @@ Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; con
 
 Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
 <!-- END swift-regex long-10m results -->
+
+<!-- BEGIN swift-regex r10 results -->
+### Swift Regex 6.4 (unicodeScalar semantics, simple word boundaries): r10 campaign
+
+* 4,565,536 patterns, 47 tables, 8,018 distinct findings
+* findings by kind: 4,000 wrong_result, 2,000 wrong_capture, 2,000 wrong_span, 18 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 113 | wrong_result | `iu` | `""` | `"à"` | `[\x{C0}-\x{DE}]*` | 03 |
+| 113 | wrong_result | `iu` | `""` | `"à"` | `[\x{C0}-\x{DE}]*` | 33 |
+| 55 | wrong_span | `iu` | `"a"` | `"à"` | `[\x{C0}-\x{DE}]\|a` | 03 |
+| 55 | wrong_capture | `iu` | `"a"` | `"à"` | `[\x{C0}-\x{DE}]\|a` | 03 |
+| 55 | wrong_result | `iu` | `"ΐ"` | `""` | `[^\x{410}\x{1FD3}]` | 00 |
+| 52 | wrong_result | `iu` | `"ΐ"` | `""` | `[^a\x{1FD3}]` | 00 |
+| 49 | wrong_capture | `iu` | `""` | `"à"` | `[\x{C0}-\x{DE}]*` | 03 |
+| 49 | wrong_span | `iu` | `""` | `"à"` | `[\x{C0}-\x{DE}]*` | 03 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END swift-regex r10 results -->
+
+<!-- BEGIN swift-regex r10b results -->
+### Swift Regex 6.4 (unicodeScalar semantics, simple word boundaries): r10b campaign
+
+* 4,027,648 patterns, 42 tables, 8,020 distinct findings
+* findings by kind: 4,000 wrong_result, 2,000 wrong_span, 2,000 wrong_capture, 20 timeout (batch)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 468 | wrong_span | `u` | `"a"` | `"_ "` | `\w` | 03 |
+| 467 | wrong_capture | `u` | `"a"` | `"_ "` | `\w` | 03 |
+| 287 | wrong_span | `u` | `""` | `"_ "` | `\w*` | 03 |
+| 287 | wrong_capture | `u` | `""` | `"_ "` | `\w*` | 03 |
+| 148 | wrong_result | `u` | `"aaaaaa0θ"` | `"aaaaaaa"` | `(?:\w.)*` | 00 |
+| 108 | wrong_capture | `u` | `""` | `"_ "` | `\w\|` | 03 |
+| 106 | wrong_span | `u` | `""` | `"_ "` | `\w\|` | 03 |
+| 104 | wrong_span | `u` | `""` | `"_ "` | `\w\|()` | 03 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END swift-regex r10b results -->
+
+<!-- BEGIN swift-regex r2h results -->
+### Swift Regex 6.4 (unicodeScalar semantics, simple word boundaries): r2h campaign
+
+* 61,925,600 patterns, 621 tables, 8,481 distinct findings; self-check 5,101,568 probes, 8,416 mismatches, 0 engine failures
+* findings by kind: 4,000 wrong_result, 2,000 wrong_capture, 2,000 wrong_span, 481 timeout (batch), 80 selfcheck_mismatch (selfcheck)
+
+Most common minimized shapes (kind, flags, A, R, pattern, observed bits):
+
+| n | kind | flags | A | R | pattern | bits |
+|---|---|---|---|---|---|---|
+| 468 | wrong_span | `u` | `"a"` | `"_ "` | `\w` | 03 |
+| 467 | wrong_capture | `u` | `"a"` | `"_ "` | `\w` | 03 |
+| 287 | wrong_capture | `u` | `""` | `"_ "` | `\w*` | 03 |
+| 287 | wrong_span | `u` | `""` | `"_ "` | `\w*` | 03 |
+| 162 | wrong_result | `u` | `"aaaaaa0θ"` | `"aaaaaaa"` | `(?:\w.)*` | 00 |
+| 108 | wrong_capture | `u` | `""` | `"_ "` | `\w\|` | 03 |
+| 106 | wrong_span | `u` | `""` | `"_ "` | `\w\|` | 03 |
+| 106 | wrong_result | `u` | `"aaaaaa0θ"` | `"aaaaaaa"` | `(?:\w.)+` | 00 |
+
+Unreviewed counts: a mismatch is an engine bug or a model gap until triaged; confirmed bugs are in the bug ledger, and the triage notes below say which findings are which.
+<!-- END swift-regex r2h results -->
+<!-- BEGIN swift-regex r2h triage -->
+### swift-regex: r2h (2-hour) campaign triage
+
+Swift Regex (Swift 6.4), `.unicodeScalar` semantics.
+
+* New: IRX-SWIFT-8 (backreferences ignore case-insensitive matching: `(?i)(a)\1` misses `"aA"`).
+* Known: IRX-SWIFT-6 (`\w` misses `_` or a digit before a scalar at U+0300 or above, e.g. U+2028), most wrong answers; IRX-SWIFT-5 (a greedy loop before an alternation does not backtrack: `a+(?:-|a)` misses `"aa"`); IRX-SWIFT-1 (`\b`/`\B`), all 8,416 self-check mismatches.
+<!-- END swift-regex r2h triage -->
