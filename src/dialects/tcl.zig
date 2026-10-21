@@ -2,7 +2,7 @@
 //! plus U+180E U+200B U+2060 U+FEFF; word boundaries are \y / \Y. The irx m flag maps
 //! to -lineanchor; without s (-linestop) neither `.` nor any negated class or escape
 //! ([^..], \D, \W, \S) matches \n. -nocase: a pattern char p (each member of a class
-//! or range) matches {p, upper(p), lower(p)}, with Tcl's extra ß -> ẞ uppercase.
+//! or range) matches {p, upper(p), lower(p), title(p)}, with Tcl's extra ß -> ẞ uppercase.
 const ucd = @import("../ucd.zig");
 const atoms = @import("../atoms.zig");
 const perl = @import("perl.zig");
@@ -24,8 +24,21 @@ fn upper(c: u21) u21 {
     return if (c == 0xDF) 0x1E9E else ucd.simpleUpper(c);
 }
 
+/// Titlecase, where it differs from both upper and lower case: the Latin digraphs
+/// (DŽ ǅ dž, LJ ǈ lj, NJ ǋ nj, DZ ǲ dz).
+fn title(c: u21) u21 {
+    return switch (c) {
+        0x1C4...0x1C6 => 0x1C5,
+        0x1C7...0x1C9 => 0x1C8,
+        0x1CA...0x1CC => 0x1CB,
+        0x1F1...0x1F3 => 0x1F2,
+        else => c,
+    };
+}
+
+/// -nocase also includes the titlecase form: `regexp -nocase {^\u01C4$} \u01C5` is 1.
 fn variant(p: u21, c: u21) bool {
-    return c == p or c == upper(p) or c == ucd.simpleLower(p);
+    return c == p or c == upper(p) or c == ucd.simpleLower(p) or c == title(p);
 }
 
 fn isNegated(spec: *const atoms.AtomSpec) bool {
