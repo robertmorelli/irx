@@ -10,13 +10,13 @@ confirmed by hand, usually against other engines too.
 ### Confirmed findings
 
 The [bug ledger](#bug-ledger) has **138 confirmed bug IDs**, **86 unique reported bugs**
-(distinct upstream issue links), **129 distinct bug shapes**, and **76 candidates**
+(distinct upstream issue links), **129 distinct bug shapes**, and **101 candidates**
 still to audit or report. Bug IDs count
 separate ledger rows, including confirmed repros linked to an existing report.
 Unique bugs count each upstream issue once; shapes group the same failure pattern
 even across engines. Findings with no report or confirmed link to one are excluded.
 Fixed reported bugs remain in these all-time counts.
-Candidates are 53 open, unreported IDs and IRX-JAVA-2, whose recorded examples
+Candidates are 78 open, unreported IDs and IRX-JAVA-2, whose recorded examples
 were fixed but a different counted-loop form still fails in current OpenJDK.
 Resolved, documented, and older-version-only unreported findings are excluded
 from the candidate count.
@@ -85,10 +85,13 @@ For each case irx checks:
   boundary). Full match, match position and capture groups are checked on the long pair against a bit-vector
   evaluation of the model that stays exact at any length.
 
-It drives 32 targets covering about 25 engines: V8 (d8, Node, Deno, Bun), QuickJS, Boa, Hermes, XS,
-engine262, Perl, PCRE2 (and PHP), Python `re`, Ruby (Onigmo), Oniguruma, Java, .NET (interpreter,
-Compiled, NonBacktracking), ICU, Swift Regex, Rust `regex`, fancy-regex, RE#, Go, RE2, nim-regex, Racket,
-Tcl, Emacs, Vectorscan and LLVM Regex. Each engine family has its own semantic model (a *dialect*), checked
+It drives 93 targets (including flavour and ASan/UBSan variants) covering about 40 engines: V8 (d8, Node,
+Deno), SpiderMonkey, JavaScriptCore (system and Bun), GraalJS, QuickJS, Boa and its `regress` crate, Hermes,
+XS, engine262, Perl (5.44 and blead), PCRE2 (and PHP, Erlang `re`), PCRE1, Python `re` and `regex`, Ruby
+(Onigmo), Oniguruma, Java, .NET (interpreter, Compiled, NonBacktracking), ICU (Foundation and ICU4C), Swift
+Regex, Rust `regex`, `regex-lite` and the regex-automata engines, fancy-regex, RE#, Go, RE2, re2j, Boost.Regex,
+libc++ `std::regex`, nim-regex, Racket, Tcl, Emacs, Vectorscan, LLVM Regex, macOS libc regex, GNU regex and
+MinRX. Each engine family has its own semantic model (a *dialect*), checked
 against the engine by a self-check at startup, and each target is a small `target.toml`. Runs are
 deterministic: any case can be regenerated from the run's seed. The original single-engine design for d8 is
 [`spec.md`](spec.md); everything since generalizes it. Bugs found so far are in the [bug ledger](#bug-ledger).
@@ -627,48 +630,48 @@ target has its own. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are 
 |---|---|---|---|---|
 | V8 15.5 (d8) | [`v8`](targets/v8) | `driver.js` | ES2024 (exact) | IRX-V8-1…5 |
 | V8 linear engine; no-optimization and fallback paths | [`v8-linear`](targets/v8-linear), [`v8-noopt`](targets/v8-noopt) | d8 modes `linear`; `noopt`, `nopeephole`, `fallback0` | `es` (exact; linear: `""` and `s` flags only) | sweeps clean (706k / 250k per mode) |
-| SpiderMonkey 158 (jsvu) | [`spidermonkey`](targets/spidermonkey) | `driver.js` (`sm`) | `es` (exact) | new |
+| SpiderMonkey 158 (jsvu) | [`spidermonkey`](targets/spidermonkey) | `driver.js` (`sm`) | `es` (exact) | IRX-V8-2, V8-4, V8-5 (shared irregexp) |
 | JavaScriptCore (system `jsc`) | [`jsc`](targets/jsc) | `driver.js` (`jsc`) | `es` (exact) | new |
 | GraalJS 25.4 (TRegex) | [`graaljs`](targets/graaljs) | `driver.js` (`vendor/graaljs`) | `es` (exact) | IRX-GRAAL-1…3 |
 | C++ `std::regex` (libc++) | [`cpp-regex`](targets/cpp-regex) | `hosts/c/cpp_regex_host` (`std::wregex`, ECMAScript) | `cpp`: ES subset, ASCII pool, `i`/`m` only | IRX-LIBCXX-1…5 |
-| QuickJS (upstream `9d01a96`) | [`quickjs`](targets/quickjs) | `driver.js` (std) | ES2024 | IRX-QJS-1, IRX-QJS-2 |
+| QuickJS (upstream `9d01a96`) | [`quickjs`](targets/quickjs) | `driver.js` (std) | ES2024 | IRX-QJS-1…3 |
 | XS | [`xs`](targets/xs) | bridge | ES2024 | IRX-XS-1…11 |
 | Boa | [`boa`](targets/boa) | bridge | ES2024 | IRX-BOA-1…8 |
 | engine262 | [`engine262`](targets/engine262) | bridge | ES2024 | IRX-E262-1…5 |
 | Hermes | [`hermes`](targets/hermes) | bridge | ES2024 minus `v` | IRX-HERMES-1…4 |
 | JavaScriptCore (Bun 1.4.2) | [`bun`](targets/bun) | `driver.js` (node adapter) | ES2024 | clean (0 self-check mismatches) |
 | V8 14.1 / 15.0 (Node, Deno) | [`node`](targets/node), [`deno`](targets/deno) | `driver.js` | ES2024 | older V8; excluded from the ledger and from `--all` campaigns (`campaign = false`) |
-| Perl 5.44 / blead | [`perl`](targets/perl) | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1…8 |
+| Perl 5.44 / blead | [`perl`](targets/perl) | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1…9 (1, 3, 4 fixed in blead) |
 | Perl 5.44 `/a`, `/aa` | [`perl-a`](targets/perl-a), [`perl-aa`](targets/perl-aa) | `driver.pl` (`IRX_PERL_CHARSET`) | `perl-a`: ASCII classes; `perl-aa`: also no ASCII/non-ASCII case match (exact) | self-check: only IRX-PERL-6/7 |
-| PCRE2 10.49 | [`pcre2`](targets/pcre2) | `hosts/c/pcre2_host` | `pcre2`: Perl with UCP `\w`/`\s` (exact) | IRX-PCRE2-1, 3 (JIT), IRX-PCRE2-2, 4…7 |
+| PCRE2 10.49 | [`pcre2`](targets/pcre2) | `hosts/c/pcre2_host` | `pcre2`: Perl with UCP `\w`/`\s` (exact) | IRX-PCRE2-1, 3 (JIT), IRX-PCRE2-2, 4…8 |
 | PCRE2 10.49 JIT | [`pcre2-jit`](targets/pcre2-jit) | `hosts/c/pcre2_host` (`IRX_PCRE2_JIT=1`) | `pcre2` (exact) | 0 self-check mismatches; IRX-PCRE2-4 in the sweep |
 | PCRE2 10.49 without UCP | [`pcre2-ascii`](targets/pcre2-ascii) | `hosts/c/pcre2_host` (`IRX_PCRE2_NOUCP=1`) | `pcre2-ascii`: ASCII classes, Unicode case folding (exact) | 0 self-check mismatches |
 | Boost.Regex 1.92 | [`boost-regex`](targets/boost-regex) | `hosts/c/boost_regex_host` (`boost::wregex`, Perl syntax) | `boost`: ASCII classes and folding, fixed lookbehind, no quantified assertions | IRX-BOOST-1…5 |
 | Erlang `re` (OTP 29) | [`erlang-re`](targets/erlang-re) | `hosts/erlang/host.escript` | `pcre2` (exact) | new |
-| PCRE1 8.45 (interpreter, JIT) | [`pcre1`](targets/pcre1), [`pcre1-jit`](targets/pcre1-jit) | `hosts/c/pcre1_host` | `pcre1`: older UCP `\w`, fixed-length lookbehind | new |
+| PCRE1 8.45 (interpreter, JIT) | [`pcre1`](targets/pcre1), [`pcre1-jit`](targets/pcre1-jit) | `hosts/c/pcre1_host` | `pcre1`: older UCP `\w`, fixed-length lookbehind | IRX-PCRE1-1, 2; also IRX-PCRE2-4, 8 |
 | Sanitized engines (ASan/UBSan; Rust crates ASan only) | [`pcre2-asan`](targets/pcre2-asan), [`pcre2-jit-asan`](targets/pcre2-jit-asan), [`onig-asan`](targets/onig-asan), [`boost-asan`](targets/boost-asan), [`cpp-asan`](targets/cpp-asan), [`pcre1-asan`](targets/pcre1-asan), [`re2-asan`](targets/re2-asan), [`gnu-regex-asan`](targets/gnu-regex-asan), [`minrx-asan`](targets/minrx-asan), [`llvm-regex-asan`](targets/llvm-regex-asan), [`nim-regex-asan`](targets/nim-regex-asan), [`quickjs-asan`](targets/quickjs-asan), [`icu-c-asan`](targets/icu-c-asan), [`vectorscan-asan`](targets/vectorscan-asan), [`rust-regex-asan`](targets/rust-regex-asan), [`regex-lite-asan`](targets/regex-lite-asan), [`ra-pikevm-asan`](targets/ra-pikevm-asan), [`ra-backtrack-asan`](targets/ra-backtrack-asan), [`fancy-regex-asan`](targets/fancy-regex-asan), [`resharp-asan`](targets/resharp-asan) | `*_host_asan` (`tools/build_asan.sh`; RE2 with abseil, PCRE1, the gawk support library, LLVM's regex sources and QuickJS from source; Rust with nightly `-Zsanitizer=address`) | as the plain targets | no sanitizer reports in sweeps |
 | Sanitized interpreters | [`python-re-asan`](targets/python-re-asan), [`python-regex-asan`](targets/python-regex-asan), [`perl-asan`](targets/perl-asan), [`ruby-onigmo-asan`](targets/ruby-onigmo-asan), [`tcl-asan`](targets/tcl-asan) | CPython 3.14 (also the `regex` module), Perl 5.44, Ruby 4.0, Tcl 9.1 built with sanitizers (`tools/build_asan_big.sh`, also ICU4C and Vectorscan) | as the plain targets | no sanitizer reports in sweeps |
 | PHP 8.5 `preg_*` | [`php-pcre2`](targets/php-pcre2) | `hosts/script/php_host.php` | Perl (exact) | IRX-PCRE2-1…3 |
-| Swift Regex 6.4 | [`swift-regex`](targets/swift-regex) | `hosts/swift` (scalar semantics) | Swift (exact) | IRX-SWIFT-1…7 |
+| Swift Regex 6.4 | [`swift-regex`](targets/swift-regex) | `hosts/swift` (scalar semantics) | Swift (exact) | IRX-SWIFT-1…8 |
 | .NET 9 interpreter / Compiled / NonBacktracking | [`dotnet-interp`](targets/dotnet-interp), [`dotnet-compiled`](targets/dotnet-compiled), [`dotnet-nonbacktracking`](targets/dotnet-nonbacktracking) | `hosts/dotnet` | `dotnet` / `dotnet-nonbacktracking`: UTF-16 units, `\w` = L\|Mn\|Nd\|Pc (exact) | IRX-DOTNET-1…15 |
 | .NET `RegexOptions.ECMAScript` | [`dotnet-ecma`](targets/dotnet-ecma) | `hosts/dotnet` (`ecma`) | `dotnet-ecma`: ECMA word class (with U+0130), `i`/`m` only | 0 self-check mismatches |
 | ICU (`NSRegularExpression`) | [`icu`](targets/icu) | `hosts/swift` | `icu`: UTS #18 classes, Unicode line ends, CRLF `$` (exact) | IRX-ICU-1…7 |
 | ICU4C 78 (uregex C API) | [`icu-c`](targets/icu-c) | `hosts/c/icu_host` | `icu` (exact), with offset and sticky | new |
 | Rust `regex` | [`rust-regex`](targets/rust-regex) | `hosts/rust` | `rust` (exact) | 0 self-check mismatches; 1.2M patterns, 0 findings |
 | Rust `regex-lite` 0.1 | [`regex-lite`](targets/regex-lite) | `hosts/rust` | `rust-lite`: ASCII classes and `(?i)`, no `\p` (exact) | IRX-RLITE-1 |
-| regex-automata 0.4 engines | [`ra-pikevm`](targets/ra-pikevm), [`ra-backtrack`](targets/ra-backtrack), [`ra-onepass`](targets/ra-onepass), [`ra-hybrid`](targets/ra-hybrid), [`ra-dfa`](targets/ra-dfa) | `hosts/rust` (`automata_host`, `IRX_RA_ENGINE`) | `rust` (exact; unsupported patterns skipped) | PikeVM sweep clean |
+| regex-automata 0.4 engines | [`ra-pikevm`](targets/ra-pikevm), [`ra-backtrack`](targets/ra-backtrack), [`ra-onepass`](targets/ra-onepass), [`ra-hybrid`](targets/ra-hybrid), [`ra-dfa`](targets/ra-dfa) | `hosts/rust` (`automata_host`, `IRX_RA_ENGINE`) | `rust` (exact; unsupported patterns skipped) | clean: backtrack, hybrid, one-pass and PikeVM sweeps (r2h) |
 | fancy-regex | [`fancy-regex`](targets/fancy-regex) | `hosts/rust` | `fancy`: fixed-length lookbehind, no empty-body quantifiers (exact) | IRX-FANCY-1 (fixed in 0.19.2), IRX-FANCY-2, 3 |
-| RE# (`resharp`) | [`resharp`](targets/resharp) | `hosts/rust` | `resharp`: UnicodeMode::Full; no lazy, lookbehind, mid-pattern `^`/`\b`, lookahead under `*` (exact) | 0 self-check mismatches; named groups under quantifiers rejected; IRX-RESHARP-1 |
+| RE# (`resharp`) | [`resharp`](targets/resharp) | `hosts/rust` | `resharp`: UnicodeMode::Full; no lazy, lookbehind, mid-pattern `^`/`\b`, lookahead under `*` (exact) | named groups under quantifiers rejected; IRX-RESHARP-1, 2 |
 | RE2 | [`re2`](targets/re2) | `hosts/c/re2_host` | `re2`: ASCII classes (exact) | IRX-RE2-1, 2, 3 |
 | RE2 `longest_match` | [`re2-longest`](targets/re2-longest) | `hosts/c/re2_host` (`IRX_RE2_LONGEST=1`) | `re2-longest`: leftmost-longest spans (exact; no captures) | 0 self-check mismatches |
 | re2j 1.8 | [`re2j`](targets/re2j) | `hosts/java/Re2jHost.java` | `re2j`: RE2, old Unicode tables (U+180E, U+1F600 out of the pool) | IRX-RE2J-1 |
 | Go `regexp` | [`go-regexp`](targets/go-regexp) | `hosts/go` | `go`: ASCII classes (exact) | 0 self-check mismatches |
 | Go `regexp` `Longest` | [`go-longest`](targets/go-longest) | `hosts/go` (`IRX_GO_LONGEST=1`) | `go-longest`: leftmost-longest spans (exact; no captures) | 0 self-check mismatches |
-| Oniguruma 6.9 | [`oniguruma`](targets/oniguruma) | `hosts/c/onig_host` | `oniguruma`: Unicode classes, Ruby anchors (exact) | IRX-ONIG-1 |
+| Oniguruma 6.9 | [`oniguruma`](targets/oniguruma) | `hosts/c/onig_host` | `oniguruma`: Unicode classes, Ruby anchors (exact) | IRX-ONIG-1, 3 |
 | Oniguruma Perl / Java / Python syntax, ASCII classes | [`onig-perl`](targets/onig-perl), [`onig-java`](targets/onig-java), [`onig-python`](targets/onig-python), [`onig-ascii`](targets/onig-ascii) | `hosts/c/onig_host` (`IRX_ONIG_SYNTAX`, `IRX_ONIG_ASCII`) | `onig-*`: single-line anchors, syntax spellings | 0 self-check mismatches |
-| Ruby Onigmo | [`ruby-onigmo`](targets/ruby-onigmo) | `hosts/script/rb_host.rb` | `ruby`: ASCII `\w`, Unicode `\b`, always-on line anchors (exact) | IRX-ONIG-1, IRX-RUBY-1 |
+| Ruby Onigmo | [`ruby-onigmo`](targets/ruby-onigmo) | `hosts/script/rb_host.rb` | `ruby`: ASCII `\w`, Unicode `\b`, always-on line anchors (exact) | IRX-ONIG-1, 3, IRX-RUBY-1 |
 | Python `re` | [`python-re`](targets/python-re) | `hosts/script/py_host.py` | `python`: isalnum `\w`, sre case groups, `(?P<…>)` (exact) | IRX-PYRE-1 |
-| Python `regex` module | [`python-regex`](targets/python-regex) | `hosts/script/py_host.py` (`IRX_PY_ENGINE=regex`, `vendor/pyregex`) | `python-regex`: `\p{Word}` `\w`, `re` case groups, `\p`, variable lookbehind; ı and İ outside the pool (non-transitive case relation) | IRX-PYREGEX-1; self-check: only ı/İ probes |
+| Python `regex` module | [`python-regex`](targets/python-regex) | `hosts/script/py_host.py` (`IRX_PY_ENGINE=regex`, `vendor/pyregex`) | `python-regex`: `\p{Word}` `\w`, `re` case groups, `\p`, variable lookbehind; ı and İ outside the pool (non-transitive case relation) | IRX-PYREGEX-1…5 |
 | Java `java.util.regex` | [`java`](targets/java) | `hosts/java` | `java`: Java line ends, `lower(upper())` fold, range rule (exact) | IRX-JAVA-1…7 |
 | Java without `UNICODE_CHARACTER_CLASS` | [`java-ascii`](targets/java-ascii) | `hosts/java` (`IRX_JAVA_ASCII=1`) | `java-ascii`: ASCII classes, `\b` with Java's non-spacing-mark rule (exact) | self-check: only IRX-JAVA-1 |
 | nim-regex | [`nim-regex`](targets/nim-regex) | `hosts/nim` | `nim`: `(?P<…>)`, end-only `$`, case-mapped range endpoints (exact) | IRX-NIM-1, NIM-1, NIM-3, NIM-6 rediscovered |
