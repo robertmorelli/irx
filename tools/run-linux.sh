@@ -17,6 +17,7 @@ echo "label=$LABEL seed=$SEED duration=${DUR}s jobs=$JOBS targets=$*"
 for t in "$@"; do
   if grep -q "^$t: rc=" "$LOG"; then echo "skip $t ($(grep "^$t: rc=" "$LOG"))"; continue; fi
   echo "disk: $(df -h --output=used,avail / | tail -1)"
+  FREE_GB=$(df -BG --output=avail / | tail -1 | tr -dc 0-9); [ "$FREE_GB" -ge "${IRX_MIN_FREE_GB:-10}" ] || { echo "stopping: only ${FREE_GB}G free (< ${IRX_MIN_FREE_GB:-10}G)"; exit 3; }
   echo "== $t $(date -Is)"
   tools/irx_target.py "$t" --label "$LABEL" --duration "$DUR" --jobs "$JOBS" --seed "$SEED" | tail -1
   echo "$t: rc=${PIPESTATUS[0]}" | tee -a "$LOG"
