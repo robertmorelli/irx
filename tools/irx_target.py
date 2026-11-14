@@ -32,10 +32,23 @@ def apply_block(readme, block):
     s = pat.sub(lambda m: block, s) if pat.search(s) else s.rstrip("\n") + "\n\n" + block
     open(readme, "w").write(s)
 
+def localize(cmd):
+    """Off macOS, map /opt/homebrew/bin/TOOL (as written in target.toml) to TOOL on PATH,
+    dropping a version suffix if needed (python3.14 -> python3). macOS is unchanged."""
+    import shutil
+    def fix(m):
+        if os.path.exists(m.group(0)): return m.group(0)
+        tool = m.group(1)
+        for cand in (tool, re.sub(r"[\d.]+$", "", tool), re.sub(r"\.[\d.]+$", "", tool)):
+            path = cand and shutil.which(cand)
+            if path: return path
+        return m.group(0)
+    return cmd if sys.platform == "darwin" else re.sub(r"/opt/homebrew/bin/([\w.+-]+)", fix, cmd)
+
 def run(name, a):
     meta, text = target_meta(name)
     sub = lambda c: c.replace("{root}", ROOT).replace("{home}", os.path.expanduser("~"))
-    cmd = sub(meta["command"])
+    cmd = localize(sub(meta["command"]))
     label = a.label or ("selfcheck" if a.selfcheck_only else f"{a.duration // 60}m" if a.duration % 60 == 0 else f"{a.duration}s")
     if a.long and not a.label: label = "long-" + label
     out = os.path.join(ROOT, "findings", f"{label}-{name}")
