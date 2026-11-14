@@ -14,7 +14,8 @@ const is_darwin = builtin.os.tag == .macos;
 // posix_spawn bindings (opaque storage works for both Darwin pointers and
 // Linux structs)
 
-const SpawnBuf = extern struct { b: [256]u8 align(16) = [_]u8{0} ** 256 };
+// glibc posix_spawnattr_t is 336 bytes; 256 overflowed on Linux.
+const SpawnBuf = extern struct { b: [512]u8 align(16) = [_]u8{0} ** 512 };
 extern "c" fn posix_spawn(pid: *sys.pid_t, path: [*:0]const u8, fa: *const SpawnBuf, attr: *const SpawnBuf, argv: [*:null]const ?[*:0]const u8, envp: [*:null]const ?[*:0]const u8) c_int;
 extern "c" fn posix_spawn_file_actions_init(fa: *SpawnBuf) c_int;
 extern "c" fn posix_spawn_file_actions_destroy(fa: *SpawnBuf) c_int;
