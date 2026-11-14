@@ -11,7 +11,7 @@ set -u
 ROOT=$(cd "$(dirname "$0")/.." && pwd); cd "$ROOT"
 LABEL=$1 DUR=$2 JOBS=$3; shift 3
 mkdir -p findings; LOG=findings/$LABEL.runlog
-SEED=$(sed -n 's/^# seed=//p' "$LOG" 2>/dev/null | head -1)
+SEED=$(sed -n 's/^# seed=\([0-9]*\).*/\1/p' "$LOG" 2>/dev/null | head -1)
 [ -n "$SEED" ] || { SEED=$(date +%s); echo "# seed=$SEED label=$LABEL duration=$DUR jobs=$JOBS started=$(date -Is)" >> "$LOG"; }
 echo "label=$LABEL seed=$SEED duration=${DUR}s jobs=$JOBS targets=$*"
 for t in "$@"; do
