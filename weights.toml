@@ -79,7 +79,7 @@ max_pending_findings = 256
 batch_size = 512
 startup_deadline_ms = 10000
 batch_deadline_base_ms = 2000
-batch_deadline_per512_ms = 2000
+batch_deadline_per512_ms = 6000
 recycle_cases = 1000000
 
 [adaptive]
