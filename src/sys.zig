@@ -19,10 +19,15 @@ pub extern "c" fn fsync(fd: c_int) c_int;
 pub extern "c" fn kill(pid: pid_t, sig: c_int) c_int;
 pub extern "c" fn waitpid(pid: pid_t, status: *c_int, options: c_int) pid_t;
 pub extern "c" fn getpid() pid_t;
-pub extern "c" fn __error() *c_int;
+const is_linux = builtin.os.tag == .linux;
+extern "c" fn __error() *c_int; // Darwin
+extern "c" fn __errno_location() *c_int; // glibc
 pub extern "c" fn signal(sig: c_int, handler: ?*const anyopaque) ?*const anyopaque;
-pub extern "c" fn sysctlbyname(name: [*:0]const u8, oldp: ?*anyopaque, oldlenp: ?*usize, newp: ?*anyopaque, newlen: usize) c_int;
-pub extern "c" fn clock_gettime_nsec_np(clock: c_int) u64;
+extern "c" fn sysctlbyname(name: [*:0]const u8, oldp: ?*anyopaque, oldlenp: ?*usize, newp: ?*anyopaque, newlen: usize) c_int; // Darwin
+extern "c" fn clock_gettime_nsec_np(clock: c_int) u64; // Darwin
+const timespec = extern struct { sec: c_long, nsec: c_long };
+extern "c" fn clock_gettime(clock: c_int, ts: *timespec) c_int;
+extern "c" fn sysconf(name: c_int) c_long;
 pub extern "c" fn getrusage(who: c_int, usage: *[18]c_long) c_int;
 pub extern "c" fn usleep(us: c_uint) c_int;
 pub extern "c" fn access(path: [*:0]const u8, mode: c_int) c_int;
@@ -41,12 +46,13 @@ pub const POLLNVAL: i16 = 0x020;
 pub const O_RDONLY: c_int = 0;
 pub const O_WRONLY: c_int = 1;
 pub const O_RDWR: c_int = 2;
-pub const O_NONBLOCK: c_int = 0x4;
-pub const O_APPEND: c_int = 0x8;
-pub const O_CREAT: c_int = 0x200;
-pub const O_TRUNC: c_int = 0x400;
-pub const O_EXCL: c_int = 0x800;
-pub const O_CLOEXEC: c_int = 0x1000000;
+// Flag and errno values differ between Darwin and Linux (x86_64/aarch64 generic ABI).
+pub const O_NONBLOCK: c_int = if (is_linux) 0o4000 else 0x4;
+pub const O_APPEND: c_int = if (is_linux) 0o2000 else 0x8;
+pub const O_CREAT: c_int = if (is_linux) 0o100 else 0x200;
+pub const O_TRUNC: c_int = if (is_linux) 0o1000 else 0x400;
+pub const O_EXCL: c_int = if (is_linux) 0o200 else 0x800;
+pub const O_CLOEXEC: c_int = if (is_linux) 0o2000000 else 0x1000000;
 pub const F_GETFD: c_int = 1;
 pub const F_SETFD: c_int = 2;
 pub const F_GETFL: c_int = 3;
@@ -54,7 +60,7 @@ pub const F_SETFL: c_int = 4;
 pub const FD_CLOEXEC: c_int = 1;
 
 pub const EINTR: c_int = 4;
-pub const EAGAIN: c_int = 35;
+pub const EAGAIN: c_int = if (is_linux) 11 else 35;
 pub const EPIPE: c_int = 32;
 pub const EEXIST: c_int = 17;
 pub const ECHILD: c_int = 10;
@@ -71,11 +77,16 @@ comptime {
 }
 
 pub fn errno() c_int {
-    return __error().*;
+    return if (is_linux) __errno_location().* else __error().*;
 }
 
 /// Monotonic nanoseconds (does not advance across sleep on macOS, which is fine for deadlines).
 pub fn nowNs() u64 {
+    if (is_linux) {
+        var ts: timespec = undefined;
+        _ = clock_gettime(1, &ts); // CLOCK_MONOTONIC
+        return @as(u64, @intCast(ts.sec)) * 1_000_000_000 + @as(u64, @intCast(ts.nsec));
+    }
     return clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
 }
 
@@ -91,10 +102,35 @@ pub fn setCloexec(fd: c_int) void {
 }
 
 pub fn physicalCpu() usize {
+    if (is_linux) return linuxPhysicalCpu();
     var n: c_int = 0;
     var len: usize = @sizeOf(c_int);
     if (sysctlbyname("hw.physicalcpu", &n, &len, null, 0) != 0 or n <= 0) return 1;
     return @intCast(n);
+}
+
+/// Linux: distinct (physical id, core id) pairs in /proc/cpuinfo; falls back to online CPUs.
+fn linuxPhysicalCpu() usize {
+    const online: usize = @intCast(@max(sysconf(84), 1)); // _SC_NPROCESSORS_ONLN
+    const data = readFileAlloc(std.heap.page_allocator, "/proc/cpuinfo", 1 << 22) catch return online;
+    defer std.heap.page_allocator.free(data);
+    var seen: [1024]u64 = undefined;
+    var n: usize = 0;
+    var phys: u64 = 0;
+    var lines = std.mem.splitScalar(u8, data, '\n');
+    while (lines.next()) |line| {
+        const colon = std.mem.indexOfScalar(u8, line, ':') orelse continue;
+        const key = std.mem.trim(u8, line[0..colon], " \t");
+        const val = std.fmt.parseInt(u64, std.mem.trim(u8, line[colon + 1 ..], " \t"), 10) catch continue;
+        if (std.mem.eql(u8, key, "physical id")) phys = val else if (std.mem.eql(u8, key, "core id")) {
+            const k = (phys << 32) | val;
+            if (std.mem.indexOfScalar(u64, seen[0..n], k) == null and n < seen.len) {
+                seen[n] = k;
+                n += 1;
+            }
+        }
+    }
+    return if (n == 0) online else n;
 }
 
 /// Resident set size of this process, in bytes (ru_maxrss is peak, in bytes on Darwin).
