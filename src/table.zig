@@ -1174,7 +1174,7 @@ fn Builder(comptime R: type) type {
                 var af: u32 = if (alt) aux_ctx else 0;
                 if (a.kind == .dollar and af_flags.m) af |= aux_md;
                 const multi = atoms.foldsMulti(a, af_flags);
-                if (a.kind == .grapheme or multi) af |= aux_gx else if (a.isConsuming()) af |= aux_atom;
+                if (a.kind == .grapheme or a.kind == .linebreak or multi) af |= aux_gx else if (a.isConsuming()) af |= aux_atom;
                 if (a.kind == .dollar and dialect.active.lookbehind_no_dollar) af |= aux_gx;
                 if (af_flags.i and a.mayFoldMulti()) af |= aux_pi;
                 if (a.kind == .caret or a.kind == .dollar or a.kind == .wordb or a.kind == .nwordb) af |= aux_za;

@@ -669,7 +669,7 @@ pub const Printer = struct {
     pub fn atom(self: *Printer, a: *const AtomSpec) PrintError!void {
         switch (a.kind) {
             .lit => try self.literal(a.syms[0]),
-            .dot => try self.putc('.'),
+            .dot => if (a.sub == 1) try self.put("\\N") else try self.putc('.'),
             .esc => try self.put(escName(@enumFromInt(a.sub))),
             .range => {
                 try self.putc('[');
@@ -699,6 +699,7 @@ pub const Printer = struct {
                 try self.putc(']');
             },
             .grapheme => try self.put("\\X"),
+            .linebreak => try self.put("\\R"),
             .strs => {
                 // [\q{ab|c}]: a class whose alternatives are strings (ES v mode).
                 try self.put("[\\q{");
@@ -712,7 +713,11 @@ pub const Printer = struct {
                 try self.put("}]");
             },
             .caret => try self.put(if (a.sub == 1) "\\A" else "^"),
-            .dollar => try self.put(if (a.sub == 1) "\\z" else "$"),
+            .dollar => try self.put(switch (a.sub) {
+                1 => "\\z",
+                2 => "\\Z",
+                else => "$",
+            }),
             .posix => {
                 try self.put(if (a.neg) "[[:^" else "[[:");
                 try self.put(@tagName(@as(atoms.Posix, @enumFromInt(a.sub))));

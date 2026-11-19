@@ -116,7 +116,7 @@ pub const Eval = struct {
                 .caret, .dollar, .wordb, .nwordb => {
                     for (0..self.w.len + 1) |i| if (atoms.assertionAt(&n.atom, self.nflags[idx], self.w, i)) setBit(m, i);
                 },
-                .strs, .grapheme => unreachable,
+                .strs, .grapheme, .linebreak => unreachable,
                 else => for (self.w, 0..) |c, i| if (atoms.matches(&n.atom, self.nflags[idx], c)) setBit(m, i),
             },
             .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => {
@@ -193,6 +193,16 @@ pub const Eval = struct {
         if (n.op == .atomic or n.op == .backref) return error.Unsupported;
         switch (n.op) {
             .atom => if (atoms.foldsMulti(&n.atom, self.nflags[idx])) return self.foldWalk(idx, s, forward) else switch (n.atom.kind) {
+                .linebreak => {
+                    const out = try self.alloc();
+                    @memset(out, 0);
+                    for (0..self.w.len) |i| if (atoms.linebreakEnd(self.w, i)) |e| {
+                        if (forward) {
+                            if (getBit(s, i)) setBit(out, e);
+                        } else if (getBit(s, e)) setBit(out, i);
+                    };
+                    return out;
+                },
                 .grapheme => {
                     const out = try self.alloc();
                     @memset(out, 0);

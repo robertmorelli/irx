@@ -103,7 +103,7 @@ pub const Nfa = struct {
                     const e = try self.empty();
                     return .{ .start = e, .end = e };
                 }
-                if (n.atom.kind == .strs or n.atom.kind == .grapheme) return error.Unsupported;
+                if (n.atom.kind == .strs or n.atom.kind == .grapheme or n.atom.kind == .linebreak) return error.Unsupported;
                 const s = try self.add(.{ .kind = if (n.atom.isAssertion()) .look else .char, .node = idx });
                 return .{ .start = s, .end = s };
             },
@@ -242,7 +242,7 @@ fn branchMin(self: *Nfa, idx: u8) ?usize {
 fn classLike(self: *const Nfa, idx: u8) bool {
     const n = self.t.nodes[idx];
     return switch (n.op) {
-        .atom => n.atom.isConsuming() and n.atom.kind != .strs and n.atom.kind != .grapheme,
+        .atom => n.atom.isConsuming() and n.atom.kind != .strs and n.atom.kind != .grapheme and n.atom.kind != .linebreak,
         .alt => classLike(self, n.a) and classLike(self, n.b),
         .group_nc, .flag_group => classLike(self, n.a),
         else => false,
@@ -299,7 +299,7 @@ pub fn supported(t: *const ast.Ast) bool {
     for (t.nodes[0..t.len]) |n| switch (n.op) {
         .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .atomic, .backref => return false,
         .atom => {
-            if (n.atom.kind == .strs or n.atom.kind == .grapheme) return false;
+            if (n.atom.kind == .strs or n.atom.kind == .grapheme or n.atom.kind == .linebreak) return false;
             if ((n.atom.kind == .wordb or n.atom.kind == .nwordb) and !dialect.active.nfa_word_boundary) return false;
         },
         else => {},

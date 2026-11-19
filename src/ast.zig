@@ -390,6 +390,16 @@ pub const Matcher = struct {
                     if (!atoms.assertionAt(a, fl, self.w, pos)) return false;
                     return self.run(c, pos);
                 }
+                if (a.kind == .linebreak) {
+                    // \R: one end from each start (\r\n is atomic).
+                    if (dir == .fwd) return if (atoms.linebreakEnd(self.w, pos)) |e| self.run(c, e) else false;
+                    var k = pos;
+                    while (k > 0 and k + 2 >= pos) {
+                        k -= 1;
+                        if (atoms.linebreakEnd(self.w, k) == pos and self.run(c, k)) return true;
+                    }
+                    return false;
+                }
                 if (a.kind == .grapheme) {
                     // \X: the one cluster from here, atomically.
                     if (dir == .fwd) {

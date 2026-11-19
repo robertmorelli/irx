@@ -368,3 +368,27 @@ test "perl: a class with a multi-character fold takes the longest fold first" {
     const s2 = [_]u16{ 'a', 'S', 'a', 'a' };
     try t.expect((reference(&tree, flags, &s2) orelse return error.NoResult).eql(.{ .found = true, .s = 0, .e = 4 }));
 }
+
+test "perl: \\R is (?>\\r\\n|\\v): \\r\\n as one unit, never split" {
+    const t = std.testing;
+    @import("ucd.zig").init();
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    dialect.active = &dialect.perl;
+    const flags = try alpha.Flags.parse("u");
+    const R = try ast.parse("(atom linebreak 0 0 0 0 0 0 0)");
+    // Whole-string matches measured with perl 5.44 and blead.
+    const yes = [_][]const u21{ &.{ '\r', '\n' }, &.{'\r'}, &.{'\n'}, &.{0x0B}, &.{0x0C}, &.{0x85}, &.{0x2028}, &.{0x2029} };
+    const no = [_][]const u21{ &.{ '\n', '\r' }, &.{ '\r', '\r' }, &.{'a'}, &.{' '}, &.{0xA0} };
+    for (yes) |w| try t.expect(ast.fullMatch(&R, flags, w));
+    for (no) |w| try t.expect(!ast.fullMatch(&R, flags, w));
+    // Atomic: \R\n does not match "\r\n" (\R takes both), and neither does \R?\n (Perl's
+    // documented (?>\r\n|\v)?\n; perl itself matches, a bug).
+    const Rn = try ast.parse("(concat (atom linebreak 0 0 0 0 0 0 0) (atom lit 0 0 0 a 0 0 0))");
+    const Rqn = try ast.parse("(concat (quant opt 0 1 0 (atom linebreak 0 0 0 0 0 0 0)) (atom lit 0 0 0 a 0 0 0))");
+    try t.expect(!ast.fullMatch(&Rn, flags, &.{ '\r', '\n' }));
+    try t.expect(!ast.fullMatch(&Rqn, flags, &.{ '\r', '\n' }));
+    // Span: the first \R in "x\r\ny" is [1,3).
+    const s = [_]u16{ 'x', '\r', '\n', 'y' };
+    try t.expect((reference(&R, flags, &s) orelse return error.NoResult).eql(.{ .found = true, .s = 1, .e = 3 }));
+}

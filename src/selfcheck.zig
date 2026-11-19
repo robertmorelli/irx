@@ -171,6 +171,14 @@ pub const Checker = struct {
                     }
                 }
             }
+            if (at.kind == .linebreak) {
+                // \R as a whole match: \r\n is one unit; two separate breaks are not.
+                for ([_][]const u21{ &.{ '\r', '\n' }, &.{ '\n', '\r' }, &.{ '\r', '\r' }, &.{ '\n', '\n' }, &.{ '\r', 'a' }, &.{ 0x2028, '\n' } }) |cps| {
+                    var s2: finding.Subject = .{};
+                    subjectFrom(cps, &s2);
+                    try self.addProbe(flags, at, -1, s2, empty, "linebreak");
+                }
+            }
             if (at.kind == .grapheme) {
                 // Every two- and three-symbol string over the pool: cluster boundaries.
                 var gbuf: [alpha.max_symbols * 2]u21 = undefined;
@@ -255,6 +263,17 @@ pub const Checker = struct {
                 const n = alpha.decode(s.slice(), flags, &syms) orelse continue;
                 for (0..n + 1) |i| try self.addProbe(flags, .{ .kind = kd, .sub = @intCast(v) }, @intCast(i), s, empty, "assertion");
             };
+        }
+        // \A, \z (sub 1) and \Z (dollar sub 2).
+        for ([_]atoms.AtomSpec{ .{ .kind = .caret, .sub = 1 }, .{ .kind = .dollar, .sub = 1 }, .{ .kind = .dollar, .sub = 2 } }) |sp| {
+            if (!dialect.active.assertions.allows(sp.kind)) continue;
+            if (sp.sub == 1 and !dialect.active.abs_anchors) continue;
+            if (sp.sub == 2 and !dialect.active.abs_dollar_newline) continue;
+            for (strings.items) |s| {
+                var syms: [64]u21 = undefined;
+                const n = alpha.decode(s.slice(), flags, &syms) orelse continue;
+                for (0..n + 1) |i| try self.addProbe(flags, sp, @intCast(i), s, empty, "assertion");
+            }
         }
     }
 

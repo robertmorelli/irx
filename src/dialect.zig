@@ -84,6 +84,12 @@ pub const Dialect = struct {
     class_set_ops: bool = false,
     /// \\A and \\z besides ^ and $ (absolute ends, unaffected by m).
     abs_anchors: bool = false,
+    /// \\Z: the end, or just before a final line terminator, whatever the flags (Perl).
+    abs_dollar_newline: bool = false,
+    /// \\N: any character but \\n, whatever the flags (Perl).
+    n_escape: bool = false,
+    /// \\R: (?>\\r\\n|\\v), a line break (Perl).
+    r_escape: bool = false,
     /// POSIX classes [[:alpha:]] [[:^alpha:]] (ASCII).
     posix_classes: bool = false,
     /// Negated POSIX classes [[:^name:]] under i (regex-lite folds after negating: IRX-RLITE-1).
@@ -377,6 +383,7 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (k == .dollar) f |= tb.aux_md;
             if (k == .caret or k == .dollar or k == .wordb or k == .nwordb) f |= tb.aux_za;
             if (k == .grapheme) return .{ .min = 1, .max = cap, .f = tb.aux_gx };
+            if (k == .linebreak) return .{ .min = 1, .max = 2, .f = tb.aux_gx };
             if (k == .dollar and d.lookbehind_no_dollar) f |= tb.aux_gx;
             if (n.atom.isConsuming()) return .{ .min = n.atom.minLen(), .max = n.atom.maxLen(), .f = tb.aux_atom };
             return .{ .min = 0, .max = 0, .f = f };

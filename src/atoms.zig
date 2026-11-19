@@ -16,7 +16,7 @@ const dialect = @import("dialect.zig");
 /// wordb atom `sub`: the plain boundary or one of Rust's half/whole boundary assertions.
 pub const WordbVariant = enum(u8) { plain, start, end, start_half, end_half, lt, gt };
 
-pub const Kind = enum(u8) { lit, dot, esc, range, cls, vset, caret, dollar, wordb, nwordb, empty, prop, strs, grapheme, posix };
+pub const Kind = enum(u8) { lit, dot, esc, range, cls, vset, caret, dollar, wordb, nwordb, empty, prop, strs, grapheme, posix, linebreak };
 
 /// posix atom `sub`: the ASCII class of [[:name:]] (neg: [[:^name:]]).
 pub const Posix = enum(u8) {
@@ -103,6 +103,7 @@ pub const AtomSpec = struct {
     pub fn maxLen(a: AtomSpec) u8 {
         if (a.kind == .strs) return @max(a.n & 0xF, a.n >> 4);
         if (a.kind == .grapheme) return 255;
+        if (a.kind == .linebreak) return 2;
         return if (a.isConsuming()) 1 else 0;
     }
 
@@ -130,7 +131,7 @@ pub const AtomSpec = struct {
 
     pub fn isConsuming(a: AtomSpec) bool {
         return switch (a.kind) {
-            .lit, .dot, .esc, .range, .cls, .vset, .prop, .strs, .grapheme, .posix => true,
+            .lit, .dot, .esc, .range, .cls, .vset, .prop, .strs, .grapheme, .posix, .linebreak => true,
             else => false,
         };
     }
@@ -157,7 +158,7 @@ pub fn category(a: AtomSpec) Category {
         .empty => .empty,
         .prop => .property,
         .strs => .vset,
-        .grapheme => .escape,
+        .grapheme, .linebreak => .escape,
         .posix => .class,
     };
 }
@@ -213,7 +214,7 @@ pub const explicit_ranges = [_][2]u21{
 // ---------------------------------------------------------------------------
 // CharSet expressions
 
-const SetKind = enum { list, range, digit, space, word, dotset, all, comp, fold, closure, uni, inter, diff, symdiff, prop, posix, hspace, vspace };
+const SetKind = enum { list, range, digit, space, word, dotset, nonl, all, comp, fold, closure, uni, inter, diff, symdiff, prop, posix, hspace, vspace };
 const SetNode = struct {
     kind: SetKind,
     lo: u21 = 0,
@@ -244,6 +245,8 @@ fn has(n: *const SetNode, flags: Flags, x: u21) bool {
         .vspace => dialect.active.isVSpace(x),
         .dotset => alpha.inAllCharacters(x, flags) and
             (if (dialect.active.dot_all_unless_m) !flags.m or x != '\n' else flags.s or !(alpha.isLineTerminator(x) or (flags.crlf and x == '\r'))),
+        // \N: anything but \n, whatever the flags.
+        .nonl => alpha.inAllCharacters(x, flags) and x != '\n',
         .all => alpha.inAllCharacters(x, flags),
         // CharacterComplement(rer, S): AllCharacters(rer) minus S.
         .comp => alpha.inAllCharacters(x, flags) and !has(n.a.?, flags, x),
@@ -314,7 +317,7 @@ fn compile(spec: *const AtomSpec, flags: Flags, ar: *SetArena) Compiled {
     switch (spec.kind) {
         // Atom :: PatternCharacter / escaped char: singleton, no folding at compile time.
         .lit => return .{ .root = ar.add(.{ .kind = .list, .syms = spec.syms[0..1] }), .invert = false },
-        .dot => return .{ .root = ar.add(.{ .kind = .dotset }), .invert = false },
+        .dot => return .{ .root = ar.add(.{ .kind = if (spec.sub == 1) .nonl else .dotset }), .invert = false },
         .esc => {
             const e: Esc = @enumFromInt(spec.sub);
             if (dialect.active.negated_escapes_invert) {
@@ -382,10 +385,18 @@ pub fn matchesCaseless(spec: *const AtomSpec, flags: Flags, c: u21) bool {
     return has(cs.root, flags, c) != cs.invert;
 }
 
+/// \R from position i: \r\n as one unit, never \r alone before \n (atomic), else one
+/// vertical-space character; null when none starts at i.
+pub fn linebreakEnd(w: []const u21, i: usize) ?usize {
+    if (i >= w.len) return null;
+    if (w[i] == '\r' and i + 1 < w.len and w[i + 1] == '\n') return i + 2;
+    return if (dialect.active.isVSpace(w[i])) i + 1 else null;
+}
+
 /// CharacterSetMatcher for one symbol (dialect override first).
 pub fn matches(spec: *const AtomSpec, flags: Flags, c: u21) bool {
     // Multi-character atoms have no per-character test (callers handle them first).
-    if (spec.kind == .strs or spec.kind == .grapheme) return false;
+    if (spec.kind == .strs or spec.kind == .grapheme or spec.kind == .linebreak) return false;
     if (dialect.active.matchAtom) |m| return m(spec, flags, c);
     return matchesGeneric(spec, flags, c);
 }
@@ -441,6 +452,10 @@ pub fn assertionAt(spec: *const AtomSpec, flags0: Flags, w: []const u21, i: usiz
     // \A and \z (sub 1): the absolute ends, whatever the flags.
     if (spec.sub == 1 and spec.kind == .caret) return i == 0;
     if (spec.sub == 1 and spec.kind == .dollar) return i == n;
+    // \Z (dollar sub 2): the end, or before a final line terminator, whatever the flags.
+    if (spec.sub == 2 and spec.kind == .dollar) return i == n or
+        (i + 1 == n and alpha.isLineTerminator(w[i]) and !(dl.crlf_atomic and w[i] == '\n' and i > 0 and w[i - 1] == '\r')) or
+        (dl.crlf_atomic and i + 2 == n and w[i] == '\r' and w[i + 1] == '\n');
     if (flags.crlf and flags.m and (spec.kind == .caret or spec.kind == .dollar)) {
         // Rust (?mR): \r and \n both end lines, never between the two of a \r\n.
         const crlfAt = struct {
@@ -573,6 +588,11 @@ pub fn relation(comptime R: type, spec: *const AtomSpec, flags: Flags, w: []cons
             for (0..w.len) |i| r.set(i, grapheme.clusterEndActive(w, i));
             return r;
         },
+        .linebreak => {
+            var r: R = .{};
+            for (0..w.len) |i| if (linebreakEnd(w, i)) |e| r.set(i, e);
+            return r;
+        },
         .strs => {
             var r: R = .{};
             var ss: [2][]const u21 = undefined;
@@ -620,6 +640,8 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
 
     for (syms) |c| try out.append(gpa, .{ .kind = .lit, .syms = .{ c, 0, 0, 0 } });
     try out.append(gpa, .{ .kind = .dot });
+    if (dialect.active.n_escape) try out.append(gpa, .{ .kind = .dot, .sub = 1 });
+    if (dialect.active.r_escape) try out.append(gpa, .{ .kind = .linebreak });
     for (std.enums.values(Esc)) |e| {
         if ((e == .h or e == .H or e == .v or e == .V) and !dialect.active.hv_escapes) continue;
         try out.append(gpa, .{ .kind = .esc, .sub = @intFromEnum(e) });
@@ -695,6 +717,7 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
         if (dialect.active.assertions.allows(.caret)) try out.append(gpa, .{ .kind = .caret, .sub = 1 });
         if (dialect.active.assertions.allows(.dollar)) try out.append(gpa, .{ .kind = .dollar, .sub = 1 });
     }
+    if (dialect.active.abs_dollar_newline and dialect.active.assertions.allows(.dollar)) try out.append(gpa, .{ .kind = .dollar, .sub = 2 });
     if (dialect.active.posix_classes) {
         for (0..std.enums.values(Posix).len) |p| for ([_]bool{ false, true }) |neg| {
             if (neg and flags.i and !dialect.active.posix_neg_ignore_case) continue;
@@ -731,7 +754,7 @@ fn operandAsciiValid(o: *const Operand) bool {
 
 fn asciiModeValid(a: AtomSpec) bool {
     return switch (a.kind) {
-        .dot, .prop, .strs, .grapheme => false,
+        .dot, .prop, .strs, .grapheme, .linebreak => false,
         .esc => a.sub == @intFromEnum(Esc.w) or a.sub == @intFromEnum(Esc.d) or a.sub == @intFromEnum(Esc.s),
         .range => !a.neg and a.syms[1] < 0x80,
         .cls => !a.neg and for (a.syms[0..a.n]) |c| {
@@ -858,4 +881,47 @@ test "inventory sizes are deterministic and bounded" {
     defer gpa.free(inv2);
     try testing.expect(inv2.len > inv1.len);
     try testing.expect(inv1[0].kind == .lit and inv1[0].syms[0] == 'a');
+}
+
+test "perl: \\A, \\z and \\Z ignore /m; \\Z also holds before a final newline" {
+    const t = std.testing;
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    dialect.active = &dialect.perl;
+    const A: AtomSpec = .{ .kind = .caret, .sub = 1 };
+    const z: AtomSpec = .{ .kind = .dollar, .sub = 1 };
+    const Z: AtomSpec = .{ .kind = .dollar, .sub = 2 };
+    // Positions where each holds, as measured with perl 5.44 and blead (for every subject, /m or not).
+    const cases = [_]struct { w: []const u21, A: []const usize, z: []const usize, Z: []const usize }{
+        .{ .w = &.{'a'}, .A = &.{0}, .z = &.{1}, .Z = &.{1} },
+        .{ .w = &.{ 'a', '\n' }, .A = &.{0}, .z = &.{2}, .Z = &.{ 1, 2 } },
+        .{ .w = &.{ 'a', '\n', '\n' }, .A = &.{0}, .z = &.{3}, .Z = &.{ 2, 3 } },
+        .{ .w = &.{'\n'}, .A = &.{0}, .z = &.{1}, .Z = &.{ 0, 1 } },
+    };
+    for ([_][]const u8{ "u", "mu" }) |fs| {
+        const flags = try Flags.parse(fs);
+        for (cases) |c| for (0..c.w.len + 1) |i| {
+            try t.expectEqual(std.mem.indexOfScalar(usize, c.A, i) != null, assertionAt(&A, flags, c.w, i));
+            try t.expectEqual(std.mem.indexOfScalar(usize, c.z, i) != null, assertionAt(&z, flags, c.w, i));
+            try t.expectEqual(std.mem.indexOfScalar(usize, c.Z, i) != null, assertionAt(&Z, flags, c.w, i));
+        };
+    }
+}
+
+test "perl: \\N is anything but \\n, with or without /s and /m" {
+    const t = std.testing;
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    dialect.active = &dialect.perl;
+    ucd.init();
+    const N: AtomSpec = .{ .kind = .dot, .sub = 1 };
+    // Measured with perl 5.44 and blead: a \n \r NEL LS -> 1 0 1 1 1 under every flag set.
+    for ([_][]const u8{ "u", "su", "mu", "msu" }) |fs| {
+        const flags = try Flags.parse(fs);
+        try t.expect(matches(&N, flags, 'a'));
+        try t.expect(!matches(&N, flags, '\n'));
+        try t.expect(matches(&N, flags, '\r'));
+        try t.expect(matches(&N, flags, 0x85));
+        try t.expect(matches(&N, flags, 0x2028));
+    }
 }

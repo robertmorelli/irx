@@ -66,6 +66,11 @@ pub const dialect: D.Dialect = .{
     .pattern_only = &.{ 0xDF, 0x1E9E, 0xFB00, 0xFB01, 0x130 },
     // Perl rejects unbounded lookbehind ("Lookbehind longer than 255").
     .lookbehind_len_cap = 16,
+    // \A, \z and \Z (PCRE2, PCRE1, Boost and nim-regex turn these off until checked).
+    .abs_anchors = true,
+    .abs_dollar_newline = true,
+    .n_escape = true,
+    .r_escape = true,
 };
 
 /// PCRE2 10.43+ with UCP: \w is \p{L}, \p{N}, \p{Mn}, \p{Pc} (no join controls; all of N);
@@ -81,6 +86,10 @@ pub fn pcre2Space(c: u21) bool {
 pub const pcre2: D.Dialect = blk: {
     var d = dialect;
     d.name = "pcre2";
+    d.abs_anchors = false;
+    d.abs_dollar_newline = false;
+    d.n_escape = false;
+    d.r_escape = false;
     d.empty_iteration_at_min = false;
     // Bounded loops are unrolled, so an empty iteration there just counts: `(?:^|.){1,3}a` on
     // "baa" is [0,2) (Perl [0,3)).
@@ -161,6 +170,10 @@ fn boostLineTerminator(c: u21) bool {
 /// case folding, an ASCII pool, fixed-length lookbehind, no \p{…} (that needs the ICU traits).
 pub const boost: D.Dialect = blk: {
     var d = asciiClasses(dialect, "boost");
+    d.abs_anchors = false;
+    d.abs_dollar_newline = false;
+    d.n_escape = false;
+    d.r_escape = false;
     d.empty_iteration_at_min = false;
     // \X is a combining sequence, but after an optional or repeated element regex_match fails
     // (IRX-BOOST-3), which would drown other findings: no \X.
