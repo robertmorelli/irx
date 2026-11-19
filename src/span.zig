@@ -352,3 +352,19 @@ test "host offsets map to UTF-16 offsets" {
     try t.expectEqual(@as(?u16, null), hostToUtf16(&s, 2, .utf8)); // inside é
     try t.expectEqual(@as(?u16, null), hostToUtf16(&s, 9, .utf8)); // past the end
 }
+
+test "perl: a class with a multi-character fold takes the longest fold first" {
+    const t = std.testing;
+    @import("ucd.zig").init();
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    const flags = try alpha.Flags.parse("iu");
+    // a[S\x{DF}].a on "aSSaa": Perl takes "SS" through ß, so the match is [0,5), not [0,4).
+    const tree = try ast.parse("(concat (atom lit 0 0 0 61 0 0 0) (concat (atom cls 0 0 2 53 df 0 0) (concat (atom dot 0 0 0 0 0 0 0) (atom lit 0 0 0 61 0 0 0))))");
+    const s = [_]u16{ 'a', 'S', 'S', 'a', 'a' };
+    dialect.active = &dialect.perl;
+    try t.expect((reference(&tree, flags, &s) orelse return error.NoResult).eql(.{ .found = true, .s = 0, .e = 5 }));
+    // It still falls back to one character: on "aSaa" the match is [0,4).
+    const s2 = [_]u16{ 'a', 'S', 'a', 'a' };
+    try t.expect((reference(&tree, flags, &s2) orelse return error.NoResult).eql(.{ .found = true, .s = 0, .e = 4 }));
+}

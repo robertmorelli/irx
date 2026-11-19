@@ -62,6 +62,7 @@ pub const dialect: D.Dialect = .{
     // /i uses full case folding: a pattern ß matches "ss", also when listed in a class. Subjects
     // keep these characters out (a subject ß would also match the pattern `ss`).
     .full_fold = .classes,
+    .fold_longest_first = true,
     .pattern_only = &.{ 0xDF, 0x1E9E, 0xFB00, 0xFB01, 0x130 },
     // Perl rejects unbounded lookbehind ("Lookbehind longer than 255").
     .lookbehind_len_cap = 16,

@@ -432,6 +432,27 @@ pub const Matcher = struct {
                         }
                         return false;
                     }
+                    if (dialect.active.fold_longest_first) {
+                        // Multi-character folds first, longest first, then one character.
+                        var ends: [8]usize = undefined;
+                        var nends: usize = 0;
+                        const Col = struct {
+                            ends: *[8]usize,
+                            n: *usize,
+                            fn f(x: @This(), e: usize) bool {
+                                for (x.ends[0..x.n.*]) |o| if (o == e) return false;
+                                if (x.n.* < x.ends.len) {
+                                    x.ends[x.n.*] = e;
+                                    x.n.* += 1;
+                                }
+                                return false;
+                            }
+                        };
+                        _ = atoms.forEachFoldMatch(a, fl, self.w, pos, Col{ .ends = &ends, .n = &nends }, Col.f);
+                        std.mem.sort(usize, ends[0..nends], {}, std.sort.desc(usize));
+                        for (ends[0..nends]) |e| if (self.run(c, e)) return true;
+                        return pos < self.w.len and atoms.matches(a, fl, self.w[pos]) and self.run(c, pos + 1);
+                    }
                     if (pos < self.w.len and atoms.matches(a, fl, self.w[pos]) and self.run(c, pos + 1)) return true;
                     const Go = struct {
                         m: *Matcher,

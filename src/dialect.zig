@@ -140,6 +140,10 @@ pub const Dialect = struct {
     /// members listed in a non-negated class (Perl: not inside a range); `ranges`: also
     /// members of a non-negated range (Oniguruma/Onigmo).
     full_fold: FullFold = .none,
+    /// With full folding, try an atom's multi-character folds before its one-character match,
+    /// longest fold first (Perl compiles such a class to a trie: `"aSSaa" =~ /a[S\x{DF}].a/iu`
+    /// is [0,5), and `[\x{FB00}\x{FB03}]` takes "ffi" before "ff"). Otherwise one character first.
+    fold_longest_first: bool = false,
     /// Characters that may appear in patterns but not in subjects: with full folding, a subject
     /// ß would also be matched by pattern sequences like `ss`, which the atom model cannot see.
     pattern_only: []const u21 = &.{},
