@@ -9,8 +9,8 @@ confirmed by hand, usually against other engines too.
 
 ### Confirmed findings
 
-The [bug ledger](#bug-ledger) has **139 confirmed bug IDs**, **86 unique reported bugs**
-(distinct upstream issue links), **130 distinct bug shapes**, and **101 candidates**
+The [bug ledger](#bug-ledger) has **140 confirmed bug IDs**, **86 unique reported bugs**
+(distinct upstream issue links), **131 distinct bug shapes**, and **101 candidates**
 still to audit or report. Bug IDs count
 separate ledger rows, including confirmed repros linked to an existing report.
 Unique bugs count each upstream issue once; shapes group the same failure pattern
@@ -547,6 +547,7 @@ recorded in the tables below. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 =
 | IRX-EMACS-1 | Emacs | Open · not filed | crash (SIGABRT): `emacs -Q --batch -l hosts/emacs/host.el shell < docs/repros/IRX-EMACS-1.jsonl` → `abort()` in `forall_firstchar_1` ← `regex_compile` ← `string_match_1`, while compiling the translation of `[aσ]\|(?:-\|\B)[😀İ](?:)(?:[a-c]\|^)\|(?:\b)?\|(?:\w*?)*\|$` → expected compiles | Tested: GNU Emacs 31.1 (Homebrew, native-comp). deterministic with the recorded 10-pattern batch (each pattern is needed). Compiling that pattern alone, or replaying the same `string-match` calls without the host's JSON work, does not abort, so it looks like stale or uninitialized state in the compiler (8 batches in 10 minutes) |
 | IRX-EMACS-2 | Emacs | Open · not filed | wrong span: `(string-match "\\(?:^\\(?:a*\\)*\\)\\{2\\}" "a")` → `(match-end 0)` = 0; also `\(?:\(?:[^z]\|\)\{0,3\}\b\)\{2\}` on `"\naaa"` → `(0 1)` → expected 1; `(0 4)` (the equivalent `\(?:^a*\)\{2\}` and `\(?:[^z]\{0,3\}\b\)\{2\}` give these) | Tested: GNU Emacs 31.1. A loop whose body can match empty, nested in a repeated group: the second outer iteration takes the empty path instead of the greedy one, so the match is shorter than Emacs's own backtracking order gives. Anchored (full) matches succeed. Found in span/capture mode by the 30-minute campaign |
 | IRX-HS-1 | Vectorscan | Open · not filed | wrong result (length-dependent): `hs_compile("\\A.*\\s\\z", HS_FLAG_UTF8 | HS_FLAG_UCP, …)` matches `"a"×15 + " "` (16 bytes) but not `"a"×16 + " "` (17 bytes) → expected a match at every length | Tested: Vectorscan 5.4.13 (Homebrew), block mode, standalone C. Fails once the text before the final whitespace reaches 16 bytes, whatever the characters (16 ASCII, 8 two-byte, 6 three-byte, 4 four-byte); without `HS_FLAG_UCP`, with `^…$`, and with `.*[ ]` or `\S*\s` it is correct, and `.*\s\z` unanchored fails at 17 bytes but matches at 41. Found by the long-input campaign (`.*\s` on `"ß"×8 + " "`) |
+| IRX-GNU-1 | GNU regex (glibc) | Open · not filed | hang (compile): `regcomp(&re, "((a?\|a?){0,3}){0,3}+", REG_EXTENDED)` >12 s (also `((()\|()){0,3}){0,3}+`, `grep -E '((a?\|a?){0,3}){0,3}+'`, `sed -E`) → expected compiles immediately (Perl `qr/(?:(?:(?:a?\|a?){0,3}){0,3})+/`, Python `re.compile` <1 ms) | Tested: GNU libc 2.44 (`regcomp`, x86_64 Linux). Nested bounded quantifiers over an alternation of nullable branches inside an outer unbounded `+` blow up exponentially during `regcomp` (`((a?\|a?){0,2}){0,2}+` takes 7 ms, `{0,2}{0,3}+` 280 ms, `{0,3}{0,3}+` >12 s; without the outer `+` it takes <1 ms, and `(((a\|b)?){0,3}){0,3}+` takes 29 ms). Found by the porple `linux45` run on `libc-regex` (triage report `linux45-r24-libc-regex`) |
 ### Imported from regex_comparison
 
 <!-- regex engine bugs: 43, structural: 15 -->
@@ -682,7 +683,7 @@ target has its own. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are 
 | Vectorscan (Hyperscan) | [`vectorscan`](targets/vectorscan) | `hosts/c/hs_host` | `vectorscan`: UCP classes, no anchors or `\b` (exact) | IRX-HS-1; ~70 ms per compile |
 | LLVM `Regex` (POSIX ERE) | [`llvm-regex`](targets/llvm-regex) | `hosts/c/llvm_host` (translator) | `llvm`: ASCII-only model of a byte engine (exact) | IRX-LLVM-1, 2 |
 | macOS libc regex (`regcomp`, TRE) | [`libc-regex`](targets/libc-regex) | `hosts/c/libc_regex_host` | `libc`: POSIX ERE, leftmost-longest, no `^`/`$` (exact) | IRX-LIBC-1, 2 |
-| GNU regex (gawk 5.4's copy of the glibc code) | [`gnu-regex`](targets/gnu-regex) | `hosts/c/gnu_regex_host` (`tools/build_gawk_support.sh`) | `gnu`: POSIX ERE, no `^`/`$`, no `i` | new |
+| GNU regex (gawk 5.4's copy of the glibc code) | [`gnu-regex`](targets/gnu-regex) | `hosts/c/gnu_regex_host` (`tools/build_gawk_support.sh`) | `gnu`: POSIX ERE, no `^`/`$`, no `i` | IRX-GNU-1 |
 | MinRX (gawk 5.4) | [`minrx`](targets/minrx) | `hosts/c/minrx_host` | `llvm` (exact) | 1.1M-case sweep clean |
 | Rhombus `rx`, Emacs `rx` | — | — | — | DSL front-ends: need a DSL printer, deferred |
 
