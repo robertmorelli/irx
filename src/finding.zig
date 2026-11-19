@@ -212,6 +212,15 @@ pub fn readCaseRecord(gpa: Allocator, text: []const u8, out: *LoadedCase) !void 
         } else if (e(u8, k, "observed")) out.pred.observed = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "expected")) out.pred.expected = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "diff")) out.pred.diff = try std.fmt.parseInt(u8, v, 16) else if (e(u8, k, "signal")) out.pred.signal = try std.fmt.parseInt(u8, v, 10) else if (e(u8, k, "exit")) out.pred.exit_code = try std.fmt.parseInt(u8, v, 10) else if (e(u8, k, "flags")) out.case.flags = try Flags.parse(v) else if (e(u8, k, "a")) try parseUnits(v, &out.case.a) else if (e(u8, k, "r")) try parseUnits(v, &out.case.r) else if (e(u8, k, "la")) out.case.la = try parseLong(gpa, v) else if (e(u8, k, "off_a")) out.case.off_a = try std.fmt.parseInt(u16, v, 10) else if (e(u8, k, "off_r")) out.case.off_r = try std.fmt.parseInt(u16, v, 10) else if (e(u8, k, "lr")) out.case.lr = try parseLong(gpa, v) else if (e(u8, k, "exp_a")) out.case.exp_a = v.len > 0 and v[0] == '1' else if (e(u8, k, "exp_r")) out.case.exp_r = v.len > 0 and v[0] == '1' else if (e(u8, k, "pattern")) {
             out.case.pattern = .empty;
             try out.case.pattern.appendSlice(gpa, v);
+            // The pattern is written raw and can hold newlines (an x-mode `#` comment ends at
+            // one); writeCaseRecord always follows it with spell= and ast=, so the lines up to
+            // those are the rest of the pattern.
+            while (lines.peek()) |next| {
+                if (std.mem.startsWith(u8, next, "spell=") or std.mem.startsWith(u8, next, "ast=")) break;
+                _ = lines.next();
+                try out.case.pattern.append(gpa, '\n');
+                try out.case.pattern.appendSlice(gpa, next);
+            }
         } else if (e(u8, k, "spell")) out.case.spell = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "ast")) out.case.tree = try ast.parse(v) else if (e(u8, k, "size")) out.case.size = try std.fmt.parseInt(u16, v, 10) else if (e(u8, k, "table_seq")) out.case.table.seq = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "table_attempt")) out.case.table.attempt = try std.fmt.parseInt(u32, v, 10) else if (e(u8, k, "table_seed")) out.case.table.seed = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "table_digest")) {
             if (v.len == 64) _ = std.fmt.hexToBytes(&out.case.table.digest, v) catch {};
         } else if (e(u8, k, "global_seed")) out.case.global_seed = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "lane")) out.case.lane = try std.fmt.parseInt(u32, v, 10) else if (e(u8, k, "index")) out.case.index = try std.fmt.parseInt(u64, v, 10) else if (e(u8, k, "selfcheck")) out.case.selfcheck = v.len > 0 and v[0] == '1' else if (e(u8, k, "derive")) out.case.table_index = std.mem.eql(u8, v, "table");
@@ -525,4 +534,22 @@ test "case record round trip" {
     try std.testing.expectEqualStrings("interp", lc.pred.mode);
     try std.testing.expectEqual(@as(u8, 2), lc.pred.diff);
     try std.testing.expect(lc.case.flags.i and lc.case.flags.u);
+}
+
+test "case record round trip keeps newlines in the pattern" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const gpa = arena.allocator();
+    var c: Case = .{ .id = 9, .flags = .{ .u = true } };
+    c.a.set(&.{'a'});
+    c.r.set(&.{'b'});
+    c.tree.root = try c.tree.add(.{ .op = .atom, .atom = .{ .kind = .lit, .syms = .{ 'a', 0, 0, 0 } } });
+    const pat = "(?x:a # c\n (?:)\n b)";
+    try c.pattern.appendSlice(gpa, pat);
+    var out: std.ArrayList(u8) = .empty;
+    try writeCaseRecord(&out, gpa, &c, .{ .kind = .wrong_result, .mode = "perl", .observed = 0, .expected = 1, .diff = 1 });
+    var lc: LoadedCase = undefined;
+    try readCaseRecord(gpa, out.items, &lc);
+    try std.testing.expectEqualStrings(pat, lc.case.pattern.items);
+    try std.testing.expectEqual(@as(u64, 9), lc.case.id);
 }
