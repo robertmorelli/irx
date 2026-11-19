@@ -9,14 +9,14 @@ confirmed by hand, usually against other engines too.
 
 ### Confirmed findings
 
-The [bug ledger](#bug-ledger) has **143 confirmed bug IDs**, **89 unique reported bugs**
-(distinct upstream issue links), **134 distinct bug shapes**, and **101 candidates**
+The [bug ledger](#bug-ledger) has **145 confirmed bug IDs**, **90 unique reported bugs**
+(distinct upstream issue links), **136 distinct bug shapes**, and **102 candidates**
 still to audit or report. Bug IDs count
 separate ledger rows, including confirmed repros linked to an existing report.
 Unique bugs count each upstream issue once; shapes group the same failure pattern
 even across engines. Findings with no report or confirmed link to one are excluded.
 Fixed reported bugs remain in these all-time counts.
-Candidates are 78 open, unreported IDs and IRX-JAVA-2, whose recorded examples
+Candidates are 79 open, unreported IDs and IRX-JAVA-2, whose recorded examples
 were fixed but a different counted-loop form still fails in current OpenJDK.
 Resolved, documented, and older-version-only unreported findings are excluded
 from the candidate count.
@@ -26,7 +26,7 @@ from the candidate count.
 | XS | 10 | 10 | 10 |
 | Boa | 8 | 8 | 8 |
 | .NET | 9 | 8 | 8 |
-| Perl | 11 | 10 | 10 |
+| Perl | 12 | 11 | 11 |
 | nim-regex | 6 | 7 | 7 |
 | Swift Regex | 6 | 6 | 6 |
 | V8 | 6 | 4 | 4 |
@@ -49,7 +49,7 @@ from the candidate count.
 | PCRE2 | 1 | 1 | 1 |
 | RE2 | 2 | 2 | 2 |
 | Shared shapes across engines | — | — | −5 |
-| **Total** | **93** | **89** | **84** |
+| **Total** | **94** | **90** | **85** |
 
 IRX-V8-1 maps to V8-3's report, IRX-V8-4 to IRX-V8-3's report, and
 IRX-PERL-5 to PERL-3's report. DOTNET-8 and DOTNET-6 also share a report and shape;
@@ -416,6 +416,8 @@ recorded in the tables below. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 =
 | IRX-PERL-7 | Perl | Resolved in blead (between 5.45.4 and a11dd64c7) · not filed | wrong result: `"ß" =~ /^[s\x{FB01}]$/i` → true; also `"ẞ"`, and `[s\x{FB00}]`, `[S\x{FB01}]`, `[\x{17F}\x{FB01}]` → expected false (`/^[s]$/i` is false; ß folds to `ss`, two characters) | Tested: Perl 5.44.0, blead 5.45.4. Adding a ligature with a multi-character fold (ﬁ, ﬀ) to a class makes `s` match ß, which consumes half of its fold `ss` as one class match. Found by pool rotation (case-fold pool). **Rechecked 2026-11-19 on blead 5.45.6 (`a11dd64c7`): resolved (`"ß"`, upgraded `"ß"` and `"ẞ"` no longer match); still fails in 5.44.0.** |
 | IRX-PERL-8 | Perl | Open · [#25081](https://github.com/Perl/perl5/issues/25081) | wrong result (state carried between matches): `perl -le '"" =~ /x?y?/; print "a" =~ /^a(?<!(?>a))/ ? "match" : "no"'` → `match`; without the earlier match → `no` → expected `no` (the `a` before the end is matched by `(?>a)`) | Tested: Perl 5.44.0, blead 5.45.4. A successful earlier match of `/x?y?/` (two optional items; also `/^(x)?a-?b$/` and the ones `Encode::Alias` runs when JSON::PP loads) makes a later negative lookbehind holding an atomic group succeed where it fails; `(?<!(?:a))` and `(?<!a)` are unaffected. Found by mutation mode (atomic groups) through the Perl driver, which loads JSON::PP. The same earlier match also makes a positive lookbehind holding an atomic group fail: `"a" =~ /(?<=(?>(?:)))a/` → no match (a fresh process matches). Rechecked on upstream blead `90cd16d` (2026-10-12): both still reproduce; the blead campaign traces about 8,900 findings to this (atomic groups and possessive quantifiers inside lookarounds). Rechecked 2026-11-19 on blead 5.45.6 (`a11dd64c7`): still reproduces. |
 | IRX-PERL-9 | Perl | Open · [#25082](https://github.com/Perl/perl5/issues/25082) | wrong result: `"\x{410}" =~ /\A\x{450}*\z/i` (А against ѐ*) → true; also `\x{451}*` on Б (U+0411), `\x{45F}*` on П (U+041F), and with `*?`, `?`, `{0,5}`, `(?:\x{450})*` → expected false (А is not a case variant of ѐ, whose only other case is Ѐ U+0400; `/\x{450}/i`, `\x{450}+` and `\x{450}{1,3}` correctly reject it) | Tested: Perl 5.34.1, 5.44.0, blead 5.45.4 (5b2f72d). Only quantifiers with a minimum of 0 are affected, and only where the two cases of the character differ in their UTF-8 lead byte: ѐ is D1 90 and Ѐ is D0 80, and the matcher accepts D0 90 (А), the upper case's lead byte with the lower case's continuation byte. Found by the r2h campaign on `perl-blead` Rechecked 2026-11-19 on blead 5.45.6 (`a11dd64c7`): still reproduces. |
+| IRX-PERL-10 | Perl | Open · [#25083](https://github.com/Perl/perl5/issues/25083) | wrong result: `"a" =~ /\A(?:\|(?:)a)\z/` → false; also `/\A(?:\|(?i:)a)\z/`, `/\A(?:\|(?=)a)\z/`, and `"" =~ /a(?:\|(?:)(?:))\|()/` → false → expected true (Perl 5.44.0, Python) | Tested: Perl blead 5.45.6 (`a11dd64c7`); Perl 5.44.0 and blead `5b2f72d` (2026-10-15) are correct, so this is a regression from a regex commit since then. When an alternation has an empty first branch and a second branch starting with an empty non-capturing/inline-flag/lookahead group `(?:)` followed by more items, `regcomp` (`-Mre=debug`) collapses the alternation to `NOTHING` and drops the rest of that branch and any trailing `\|...` alternatives; `/\A(?:\|a)\z/`, `/\A(?:()\|(?:)a)\z/`, `/\A(?:\|(?:a))\z/`, and `/\A(?:\|(?:)a\|b)\z/` on `"b"` are correct. Found by the porple `linux45` run on `perl-blead` (triage report `linux45-r25-perl-blead`). |
+| IRX-PERL-11 | Perl | Open · not filed | wrong capture: `"a" =~ /^a*(?=^\|())a/` → `$1` at `[1,1)`; also `/^a*(?>^\|())a/` and `/^a*(?<=^\|())a/` → `$1` at `[1,1)` → expected `$1` undef (Python) | Tested: Perl 5.44.0, blead 5.45.6 (`a11dd64c7`). A capture set inside a positive lookahead `(?=...)`, positive lookbehind `(?<=...)`, or atomic group `(?>...)` that succeeded on an earlier backtracking branch is not restored when a later atom fails and forces backtracking out of it; `/^a*(?:^\|())a/` is correct. (IRX-PERL-4 fixed the same leak for failed negative lookaheads in blead `5b2f72d`.) Found by the porple `linux45` run on `perl-blead` (triage report `linux45-r25-perl-blead`). |
 | IRX-XS-1 | XS | Open · [#1751](https://github.com/Moddable-OpenSource/moddable/issues/1751) | rejects valid pattern: `new RegExp("[]", "v")`, `new RegExp("[^]", "v")` → SyntaxError → expected accepted (ES2024) | Tested: XS (jsvu, Moddable). empty `ClassContents` is legal in UnicodeSets mode |
 | IRX-BOOST-1 | Boost.Regex | Open · not filed | wrong result: `boost::regex_match("", boost::regex("(?:$)+"))` (Perl syntax, `^`/`$` at lines) → false; also `a(?:$)+` and `a(?:$){1,1}` on `"a"` → expected true (`(?:$)` alone matches `""`) | Tested: Boost 1.92 (Homebrew). Repeating an assertion that holds at the current position fails the match. The `boost` dialect stops generating quantified assertions. Found by the new `boost-regex` target's sweep. |
 | IRX-BOOST-2 | Boost.Regex | Open · not filed | wrong span (not leftmost): `boost::regex_search("aaaa", m, boost::regex("a{0,2}?a\\b"))` → `[2,4)`; `a{0,3}?a$` on `"aaaaa"` → `[3,5)` → expected `[1,4)`; `[1,5)` (Perl) | Tested: Boost 1.92 (Homebrew). A lazy bounded repeat `{0,n}?` (n ≥ 2) at the start of the pattern makes the search skip a valid starting position; `a{0,1}?a$` and the greedy `a{0,2}a\b` are correct. Found by span mode on the `boost-regex` target. |
@@ -646,7 +648,7 @@ target has its own. Structural matchers (CSS, DOM, FileCheck, macros, ISel) are 
 | Hermes | [`hermes`](targets/hermes) | bridge | ES2024 minus `v` | IRX-HERMES-1…4 |
 | JavaScriptCore (Bun 1.4.2) | [`bun`](targets/bun) | `driver.js` (node adapter) | ES2024 | clean (0 self-check mismatches) |
 | V8 14.1 / 15.0 (Node, Deno) | [`node`](targets/node), [`deno`](targets/deno) | `driver.js` | ES2024 | older V8; excluded from the ledger and from `--all` campaigns (`campaign = false`) |
-| Perl 5.44 / blead | [`perl`](targets/perl) | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1…9 (1–5 and 7 fixed in blead) |
+| Perl 5.44 / blead | [`perl`](targets/perl) | `driver.pl` | Perl `/u` (exact) | IRX-PERL-1…11 (1–5 and 7 fixed in blead; 10 is a blead regression) |
 | Perl 5.44 `/a`, `/aa` | [`perl-a`](targets/perl-a), [`perl-aa`](targets/perl-aa) | `driver.pl` (`IRX_PERL_CHARSET`) | `perl-a`: ASCII classes; `perl-aa`: also no ASCII/non-ASCII case match (exact) | self-check: only IRX-PERL-6/7 |
 | PCRE2 10.49 | [`pcre2`](targets/pcre2) | `hosts/c/pcre2_host` | `pcre2`: Perl with UCP `\w`/`\s` (exact) | IRX-PCRE2-1, 3 (JIT), IRX-PCRE2-2, 4…8 |
 | PCRE2 10.49 JIT | [`pcre2-jit`](targets/pcre2-jit) | `hosts/c/pcre2_host` (`IRX_PCRE2_JIT=1`) | `pcre2` (exact) | 0 self-check mismatches; IRX-PCRE2-4 in the sweep |
