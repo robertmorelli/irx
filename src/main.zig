@@ -664,23 +664,32 @@ fn cmdReplay(gpa: Allocator, o: *const Options) !u8 {
     const spec = harness.findMode(lc.pred.mode) orelse return error.UnknownMode;
     var triage: shrink.Triage = .{ .run = run, .gpa = gpa };
     defer triage.deinit();
-    var req: std.ArrayList(u8) = .empty;
-    try req.appendSlice(gpa, "[1,[");
-    try harness.encodeCase(&req, gpa, .{ .flags = finding.flagStr(c.flags), .a = c.a.slice(), .r = c.r.slice(), .pattern = c.pattern.items });
-    try req.appendSlice(gpa, "]]\n");
-    const ch = try harness.Child.create(gpa, spec, .{ .exe = run.d8_exe, .driver_path = run.driver_path, .journal_path = null, .cfg = &run.cfg });
-    defer ch.destroy();
-    try ch.start();
-    var bits: [1]u8 = undefined;
-    var b: harness.Batch = .{ .seq = 1, .ncases = 1, .req = req.items, .bits = &bits };
-    const st = harness.runSync(ch, &b);
-    if (st == .answered) {
-        const p = finding.classify(spec.expect, spec.name, bits[0], c.exp_a, c.exp_r);
-        sys.stdoutPrint("engine {s}: bits={x:0>2} -> {s}\n", .{ spec.name, bits[0], if (p) |pp| (if (pp.eqlShape(lc.pred)) "failure REPRODUCED" else "different failure") else "agrees with oracle (not reproduced)" });
-        return if (p != null and p.?.eqlShape(lc.pred)) 1 else 0;
+    // The triage path: host flags (offsets), the mode's result width, and span/capture checks
+    // against the model, so span, capture, offset and long findings replay like full matches.
+    switch (triage.runCase(spec, &c, true)) {
+        .bits => |b| {
+            const p = finding.classify(spec.expect, spec.name, b, c.exp_a, c.exp_r);
+            var pp = lc.pred;
+            if (p) |x| if (pp.kind == .sanity_disagreement) {
+                pp.kind = x.kind;
+            };
+            const same = if (p) |x| x.eqlShape(pp) else false;
+            sys.stdoutPrint("engine {s}: bits={x:0>2} -> {s}\n", .{ spec.name, b, if (p == null) "agrees with oracle (not reproduced)" else if (same) "failure REPRODUCED" else "different failure" });
+            if (spec.expect.isSpan() or spec.expect.isCapture() or spec.expect == .global) {
+                var detail: std.ArrayList(u8) = .empty;
+                defer detail.deinit(gpa);
+                try triage.spanDetail(gpa, spec, &c, &detail);
+                const d = std.mem.trimStart(u8, detail.items, ",\n ");
+                if (d.len > 0) sys.stdoutPrint("detail: {s}\n", .{d});
+            }
+            return if (same) 1 else 0;
+        },
+        .failed => |f| {
+            const same = f.kind == lc.pred.kind and (f.kind != .crash or f.signal == lc.pred.signal);
+            sys.stdoutPrint("engine {s}: {s} (signal {d}) -> {s}\n", .{ spec.name, @tagName(f.kind), f.signal, if (same) "failure REPRODUCED" else "different failure" });
+            return if (same) 1 else 0;
+        },
     }
-    sys.stdoutPrint("engine {s}: batch failed ({s}, {s})\n", .{ spec.name, @tagName(ch.failure), ch.message() });
-    return 1;
 }
 
 /// Performance gate: single-lane runs over a fixed, checked-in corpus of

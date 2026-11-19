@@ -93,7 +93,7 @@ pub const Triage = struct {
         return std.fmt.bufPrint(buf, "{s}@{d},{d}", .{ finding.flagStr(c.flags), spanmod.utf16ToHost(c.a.slice(), c.off_a, u), spanmod.utf16ToHost(c.r.slice(), c.off_r, u) }) catch finding.flagStr(c.flags);
     }
 
-    fn runCase(self: *Triage, spec: *const harness.ModeSpec, c: *const finding.Case, fresh: bool) Outcome {
+    pub fn runCase(self: *Triage, spec: *const harness.ModeSpec, c: *const finding.Case, fresh: bool) Outcome {
         var req: std.ArrayList(u8) = .empty;
         defer req.deinit(self.gpa);
         req.appendSlice(self.gpa, "[1,[") catch return .{ .failed = .{ .kind = .crash, .signal = 0 } };
@@ -112,7 +112,7 @@ pub const Triage = struct {
     }
 
     /// Reference vs reported spans of the minimized case (span mode).
-    fn spanDetail(self: *Triage, a: Allocator, spec: *const harness.ModeSpec, c: *const finding.Case, report: *std.ArrayList(u8)) !void {
+    pub fn spanDetail(self: *Triage, a: Allocator, spec: *const harness.ModeSpec, c: *const finding.Case, report: *std.ArrayList(u8)) !void {
         const long = spec.expect.isLong();
         var req: std.ArrayList(u8) = .empty;
         try req.appendSlice(a, "[1,[");
