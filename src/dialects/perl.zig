@@ -71,6 +71,7 @@ pub const dialect: D.Dialect = .{
     .abs_dollar_newline = true,
     .n_escape = true,
     .r_escape = true,
+    .grapheme_whole_string = true,
 };
 
 /// PCRE2 10.43+ with UCP: \w is \p{L}, \p{N}, \p{Mn}, \p{Pc} (no join controls; all of N);
@@ -90,6 +91,7 @@ pub const pcre2: D.Dialect = blk: {
     d.abs_dollar_newline = false;
     d.n_escape = false;
     d.r_escape = false;
+    d.grapheme_whole_string = false;
     d.empty_iteration_at_min = false;
     // Bounded loops are unrolled, so an empty iteration there just counts: `(?:^|.){1,3}a` on
     // "baa" is [0,2) (Perl [0,3)).
@@ -174,6 +176,7 @@ pub const boost: D.Dialect = blk: {
     d.abs_dollar_newline = false;
     d.n_escape = false;
     d.r_escape = false;
+    d.grapheme_whole_string = false;
     d.empty_iteration_at_min = false;
     // \X is a combining sequence, but after an optional or repeated element regex_match fails
     // (IRX-BOOST-3), which would drown other findings: no \X.

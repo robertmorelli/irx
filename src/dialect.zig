@@ -141,6 +141,9 @@ pub const Dialect = struct {
     /// Follow UAX #29 for Prepend + emoji and regional indicator + Extend (PCRE2 does not:
     /// IRX-PCRE2-6).
     grapheme_prepend_pict: bool = true,
+    /// \\X takes its cluster boundaries from the whole string, so a start inside a cluster runs to
+    /// that cluster's end (Perl); otherwise a cluster starts fresh at the current position.
+    grapheme_whole_string: bool = false,
     /// Full case folding under i: a pattern character with a multi-character fold (ß → ss)
     /// matches subject strings with that fold. `literals`: literal characters; `classes`: also
     /// members listed in a non-negated class (Perl: not inside a range); `ranges`: also

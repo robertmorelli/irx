@@ -206,8 +206,11 @@ pub const Eval = struct {
                 .grapheme => {
                     const out = try self.alloc();
                     @memset(out, 0);
+                    const ends = try self.gpa.alloc(usize, self.w.len);
+                    defer self.gpa.free(ends);
+                    grapheme.clusterEndsActive(self.w, ends);
                     for (0..self.w.len) |i| {
-                        const e = grapheme.clusterEndActive(self.w, i);
+                        const e = ends[i];
                         if (forward) {
                             if (getBit(s, i)) setBit(out, e);
                         } else if (getBit(s, e)) setBit(out, i);

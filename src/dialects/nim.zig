@@ -29,6 +29,7 @@ pub const dialect: D.Dialect = blk: {
     d.abs_dollar_newline = false;
     d.n_escape = false;
     d.r_escape = false;
+    d.grapheme_whole_string = false;
     d.name = "nim";
     d.atomic_groups = false;
     d.possessive = false;

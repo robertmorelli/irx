@@ -174,9 +174,43 @@ pub fn clusterEnd(w: []const u21, i: usize, gb9c: bool) usize {
 pub const Opts = struct { gb9c: bool = false, gb9c_any_base: bool = false, prepend_pict: bool = true, combining: bool = false };
 
 /// The cluster end for the active dialect's \X.
-pub fn clusterEndActive(w: []const u21, i: usize) usize {
+pub fn activeOpts() Opts {
     const d = @import("dialect.zig").active;
-    return clusterEndOpts(w, i, .{ .gb9c = d.grapheme_escape == .extended_gb9c or d.grapheme_escape == .extended_gb9c_18, .gb9c_any_base = d.grapheme_escape == .extended_gb9c_18, .prepend_pict = d.grapheme_prepend_pict, .combining = d.grapheme_escape == .combining });
+    return .{ .gb9c = d.grapheme_escape == .extended_gb9c or d.grapheme_escape == .extended_gb9c_18, .gb9c_any_base = d.grapheme_escape == .extended_gb9c_18, .prepend_pict = d.grapheme_prepend_pict, .combining = d.grapheme_escape == .combining };
+}
+
+pub fn clusterEndActive(w: []const u21, i: usize) usize {
+    const o = activeOpts();
+    if (@import("dialect.zig").active.grapheme_whole_string) return clusterEndWhole(w, i, o);
+    return clusterEndOpts(w, i, o);
+}
+
+/// clusterEndActive for every start position at once: ends[i] for i < w.len (O(n)).
+pub fn clusterEndsActive(w: []const u21, ends: []usize) void {
+    const o = activeOpts();
+    if (!@import("dialect.zig").active.grapheme_whole_string) {
+        for (0..w.len) |i| ends[i] = clusterEndOpts(w, i, o);
+        return;
+    }
+    var b: usize = 0;
+    while (b < w.len) {
+        const e = clusterEndOpts(w, b, o);
+        for (b..e) |i| ends[i] = e;
+        b = e;
+    }
+}
+
+/// \X from i when cluster boundaries come from segmenting the whole string (Perl): the first
+/// boundary after i, so a start inside a cluster runs to that cluster's end (Perl 5.44 and blead:
+/// pos 1 of three regional indicators ends at 2, a ZWJ inside an emoji sequence at its end).
+pub fn clusterEndWhole(w: []const u21, i: usize, o: Opts) usize {
+    var b: usize = 0;
+    while (b < w.len) {
+        const e = clusterEndOpts(w, b, o);
+        if (e > i) return e;
+        b = e;
+    }
+    return w.len;
 }
 
 pub fn clusterEndOpts(w: []const u21, i: usize, o: Opts) usize {
@@ -221,4 +255,31 @@ test "grapheme clusters" {
     try std.testing.expectEqual(@as(usize, 2), clusterEnd(&.{ 0x915, 0x94D, 0x915 }, 0, false));
     try std.testing.expectEqual(@as(usize, 2), T.end(&.{ 0x600, 'a', 'b' }));
     try std.testing.expectEqual(@as(usize, 1), T.end(&.{ 'a', 0x1F1E6 }));
+}
+
+test "perl: \\X from inside a cluster runs to that cluster's end" {
+    const t = std.testing;
+    const dialect = @import("dialect.zig");
+    @import("ucd.zig").init();
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    // End of \G\X from every start, measured with perl 5.44 and blead.
+    const cases = [_]struct { w: []const u21, ends: []const usize }{
+        .{ .w = &.{ 0x1F1E6, 0x1F1E7, 0x1F1E8 }, .ends = &.{ 2, 2, 3 } },
+        .{ .w = &.{ 0x1F1E6, 0x1F1E7, 0x1F1E8, 0x1F1E9 }, .ends = &.{ 2, 2, 4, 4 } },
+        .{ .w = &.{ 0x1F600, 0x200D, 0x2764, 'x' }, .ends = &.{ 3, 3, 3, 4 } },
+        .{ .w = &.{ 'a', 0x301, 'b' }, .ends = &.{ 2, 2, 3 } },
+        .{ .w = &.{ '\r', '\n' }, .ends = &.{ 2, 2 } },
+        .{ .w = &.{ 0x915, 0x94D, 0x924 }, .ends = &.{ 3, 3, 3 } },
+        .{ .w = &.{ 0x1100, 0x1161, 0x11A8 }, .ends = &.{ 3, 3, 3 } },
+    };
+    for ([_]*const dialect.Dialect{ &dialect.perl, &dialect.perl_blead }) |d| {
+        dialect.active = d;
+        for (cases) |c| {
+            var ends: [8]usize = undefined;
+            clusterEndsActive(c.w, ends[0..c.w.len]);
+            try t.expectEqualSlices(usize, c.ends, ends[0..c.w.len]);
+            for (c.ends, 0..) |e, i| try t.expectEqual(e, clusterEndActive(c.w, i));
+        }
+    }
 }
