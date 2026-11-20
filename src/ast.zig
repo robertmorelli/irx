@@ -272,7 +272,7 @@ pub const Matcher = struct {
     }
 
     const Dir = enum { fwd, back };
-    const ContKind = enum { done, accept, record, seq, rep, close, commit };
+    const ContKind = enum { done, accept, record, seq, rep, close, commit, at };
     const Cont = struct {
         kind: ContKind,
         node: u8 = 0,
@@ -311,6 +311,8 @@ pub const Matcher = struct {
         switch (c.kind) {
             .done => return pos == self.w.len,
             .accept => return true,
+            // Forward lookbehind body: succeed only when it ends exactly at the lookbehind position.
+            .at => return pos == c.start,
             .commit => {
                 c.out.?.* = pos;
                 return true;
@@ -496,24 +498,31 @@ pub const Matcher = struct {
                 const lazy = (n.quant.lazy and !(counted and dialect.active.lazy_counted_is_greedy)) != self.flagsAt(idx).swap;
                 return self.repeat(n.a, n.quant.min, n.quant.max, !lazy, pos, dir, c);
             },
-            .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => {
-                const acc: Cont = .{ .kind = .accept };
-                const ldir: Dir = if (n.op == .look_ahead or n.op == .neg_look_ahead) .fwd else .back;
-                const neg = n.op == .neg_look_ahead or n.op == .neg_look_behind;
-                if (self.caps) |caps| {
-                    // Captures made inside a positive lookaround stay set; a negative one leaves none.
-                    const saved = caps.slot;
-                    const r = self.m(n.a, pos, ldir, &acc);
-                    if (neg) caps.slot = saved;
-                    if (r == neg) return false;
-                    if (self.run(c, pos)) return true;
-                    caps.slot = saved;
-                    return false;
+            .look_behind, .neg_look_behind => if (dialect.active.lookbehind_forward and dir == .fwd) if (maxLenSub(self.t, n.a)) |hi| {
+                // Perl: from the farthest start to the nearest, match the body forward; it must end
+                // exactly here. The first start that works wins (and keeps its captures).
+                const lo = minLenSub(self.t, n.a);
+                const neg = n.op == .neg_look_behind;
+                const at: Cont = .{ .kind = .at, .start = pos };
+                var saved: @TypeOf(self.caps.?.slot) = undefined;
+                if (self.caps) |caps| saved = caps.slot;
+                var found = false;
+                if (pos >= lo) {
+                    var s: usize = if (pos >= hi) pos - hi else 0;
+                    while (s + lo <= pos) : (s += 1) if (self.m(n.a, s, .fwd, &at)) {
+                        found = true;
+                        break;
+                    };
                 }
-                const r = self.m(n.a, pos, ldir, &acc);
-                if (r == neg) return false;
-                return self.run(c, pos);
-            },
+                if (neg) if (self.caps) |caps| {
+                    caps.slot = saved;
+                };
+                if (found == neg) return false;
+                if (self.run(c, pos)) return true;
+                if (self.caps) |caps| caps.slot = saved;
+                return false;
+            } else return self.lookaround(n, idx, pos, c) else return self.lookaround(n, idx, pos, c),
+            .look_ahead, .neg_look_ahead => return self.lookaround(n, idx, pos, c),
             .group_cap, .group_named => {
                 const caps = self.caps orelse return self.m(n.a, pos, dir, c);
                 const k: Cont = .{ .kind = .close, .node = caps.ordinal[idx], .dir = dir, .start = pos, .next = c };
@@ -555,6 +564,27 @@ pub const Matcher = struct {
                 }
             },
         }
+    }
+
+    /// A lookaround read in its own direction (lookbehind right to left from `pos`).
+    fn lookaround(self: *Matcher, n: Node, idx: u8, pos: usize, c: *const Cont) bool {
+        _ = idx;
+        const acc: Cont = .{ .kind = .accept };
+        const ldir: Dir = if (n.op == .look_ahead or n.op == .neg_look_ahead) .fwd else .back;
+        const neg = n.op == .neg_look_ahead or n.op == .neg_look_behind;
+        if (self.caps) |caps| {
+            // Captures made inside a positive lookaround stay set; a negative one leaves none.
+            const saved = caps.slot;
+            const r = self.m(n.a, pos, ldir, &acc);
+            if (neg) caps.slot = saved;
+            if (r == neg) return false;
+            if (self.run(c, pos)) return true;
+            caps.slot = saved;
+            return false;
+        }
+        const r = self.m(n.a, pos, ldir, &acc);
+        if (r == neg) return false;
+        return self.run(c, pos);
     }
 
     /// Backreference comparison: equal, or case-equivalent under i.
@@ -845,4 +875,87 @@ test "serialization round trip" {
     defer buf2.deinit(testing.allocator);
     try serialize(&t2, &buf2, testing.allocator);
     try testing.expectEqualStrings(buf.items, buf2.items);
+}
+
+/// Minimum symbols a subtree matches (zero-width constructs 0; a backreference 0).
+pub fn minLenSub(t: *const Ast, idx: u8) usize {
+    const n = t.nodes[idx];
+    return switch (n.op) {
+        .atom => n.atom.minLen(),
+        .concat => minLenSub(t, n.a) + minLenSub(t, n.b),
+        .alt => @min(minLenSub(t, n.a), minLenSub(t, n.b)),
+        .quant => minLenSub(t, n.a) * n.quant.min,
+        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .backref => 0,
+        .group_cap, .group_nc, .group_named, .flag_group, .atomic => minLenSub(t, n.a),
+    };
+}
+
+/// Maximum symbols a subtree matches, or null when unbounded or unknown (a backreference, \X,
+/// a multi-character fold).
+pub fn maxLenSub(t: *const Ast, idx: u8) ?usize {
+    const n = t.nodes[idx];
+    return switch (n.op) {
+        .atom => if (n.atom.kind == .grapheme) null else if (n.atom.isConsuming() and atoms.foldsMulti(&n.atom, .{ .i = true })) 3 else n.atom.maxLen(),
+        .concat => if (maxLenSub(t, n.a)) |a| (if (maxLenSub(t, n.b)) |b| a + b else null) else null,
+        .alt => if (maxLenSub(t, n.a)) |a| (if (maxLenSub(t, n.b)) |b| @max(a, b) else null) else null,
+        .quant => if (n.quant.max == inf) (if (maxLenSub(t, n.a)) |a| (if (a == 0) @as(?usize, 0) else null) else null) else if (maxLenSub(t, n.a)) |a| a * n.quant.max else null,
+        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => 0,
+        .group_cap, .group_nc, .group_named, .flag_group, .atomic => maxLenSub(t, n.a),
+        .backref => null,
+    };
+}
+
+test "perl: lookbehind tries the farthest start first and matches forward" {
+    const t = std.testing;
+    @import("ucd.zig").init();
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    dialect.active = &dialect.perl;
+    const flags = try Flags.parse("u");
+    const a = "(atom lit 0 0 0 61 0 0 0)";
+    const b = "(atom lit 0 0 0 62 0 0 0)";
+    // Measured with perl 5.44 and blead, each in a fresh process: match span and captures 1, 2.
+    const Case = struct { src: []const u8, w: []const u21, s: i16, e: i16, c1: [2]i16 = .{ -1, -1 }, c2: [2]i16 = .{ -1, -1 } };
+    const cases = [_]Case{
+        // (?<=(a{1,3}))b and its lazy form on "aaab": the farthest start wins, $1 = [0,3).
+        .{ .src = "(concat (look_behind (group_cap (quant range 1 3 0 " ++ a ++ "))) " ++ b ++ ")", .w = &.{ 'a', 'a', 'a', 'b' }, .s = 3, .e = 4, .c1 = .{ 0, 3 } },
+        .{ .src = "(concat (look_behind (group_cap (quant range 1 3 1 " ++ a ++ "))) " ++ b ++ ")", .w = &.{ 'a', 'a', 'a', 'b' }, .s = 3, .e = 4, .c1 = .{ 0, 3 } },
+        // (?<=(a|aa))b on "aab": $1 = [0,2).
+        .{ .src = "(concat (look_behind (group_cap (alt " ++ a ++ " (concat " ++ a ++ " " ++ a ++ ")))) " ++ b ++ ")", .w = &.{ 'a', 'a', 'b' }, .s = 2, .e = 3, .c1 = .{ 0, 2 } },
+        // (?<=(a)|(aa))b on "aab": $1 unset, $2 = [0,2).
+        .{ .src = "(concat (look_behind (alt (group_cap " ++ a ++ ") (group_cap (concat " ++ a ++ " " ++ a ++ ")))) " ++ b ++ ")", .w = &.{ 'a', 'a', 'b' }, .s = 2, .e = 3, .c2 = .{ 0, 2 } },
+        // (?<=(a?)(a))b on "xaab": $1 = [1,2), $2 = [2,3).
+        .{ .src = "(concat (look_behind (concat (group_cap (quant opt 0 1 0 " ++ a ++ ")) (group_cap " ++ a ++ "))) " ++ b ++ ")", .w = &.{ 'x', 'a', 'a', 'b' }, .s = 3, .e = 4, .c1 = .{ 1, 2 }, .c2 = .{ 2, 3 } },
+        // (?<=(?>a|aa))b on "aab": matches (from start 1).
+        .{ .src = "(concat (look_behind (atomic (alt " ++ a ++ " (concat " ++ a ++ " " ++ a ++ ")))) " ++ b ++ ")", .w = &.{ 'a', 'a', 'b' }, .s = 2, .e = 3 },
+        // (?<=a?+)b on "ab": matches; (?<=a?+)a on "a": no match (a?+ runs past the lookbehind).
+        .{ .src = "(concat (look_behind (atomic (quant opt 0 1 0 " ++ a ++ "))) " ++ b ++ ")", .w = &.{ 'a', 'b' }, .s = 1, .e = 2 },
+        .{ .src = "(concat (look_behind (atomic (quant opt 0 1 0 " ++ a ++ "))) " ++ a ++ ")", .w = &.{'a'}, .s = -1, .e = -1 },
+        // (?<=(?>(a{0,2})))b on "aaab": $1 = [1,3).
+        .{ .src = "(concat (look_behind (atomic (group_cap (quant range 0 2 0 " ++ a ++ ")))) " ++ b ++ ")", .w = &.{ 'a', 'a', 'a', 'b' }, .s = 3, .e = 4, .c1 = .{ 1, 3 } },
+    };
+    for (cases) |c| {
+        const tree = try parse(c.src);
+        var caps = Caps.init(&tree) orelse return error.Caps;
+        var mt: Matcher = .{ .t = &tree, .flags = flags, .w = c.w, .caps = &caps };
+        var s: i16 = -1;
+        var e: i16 = -1;
+        var i: usize = 0;
+        while (i <= c.w.len) : (i += 1) {
+            caps = Caps.init(&tree).?;
+            if ((mt.matchAt(i) orelse return error.Budget)) {
+                s = @intCast(i);
+                e = @intCast(mt.end);
+                break;
+            }
+        }
+        errdefer std.debug.print("case {s}: got [{d},{d}) $1 [{d},{d}) $2 [{d},{d})\n", .{ c.src, s, e, caps.slot[0].s, caps.slot[0].e, caps.slot[1].s, caps.slot[1].e });
+        try t.expectEqual(c.s, s);
+        try t.expectEqual(c.e, e);
+        if (s < 0) continue;
+        try t.expectEqual(c.c1[0], caps.slot[0].s);
+        try t.expectEqual(c.c1[1], caps.slot[0].e);
+        try t.expectEqual(c.c2[0], caps.slot[1].s);
+        try t.expectEqual(c.c2[1], caps.slot[1].e);
+    }
 }

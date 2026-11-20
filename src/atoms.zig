@@ -537,6 +537,13 @@ pub fn multiFold(c: u21) ?[]const u21 {
         0xFB04 => &.{ 'f', 'f', 'l' },
         0xFB05, 0xFB06 => &.{ 's', 't' },
         0x130 => &.{ 'i', 0x307 },
+        // multi_fold_pool (Perl): CaseFolding.txt status F.
+        0x149 => &.{ 0x2BC, 'n' },
+        0x1F0 => &.{ 'j', 0x30C },
+        0x3B0 => &.{ 0x3C5, 0x308, 0x301 },
+        0x1E96 => &.{ 'h', 0x331 },
+        0xFB13 => &.{ 0x574, 0x576 },
+        0x587 => &.{ 0x565, 0x582 },
         else => null,
     };
 }

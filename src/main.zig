@@ -291,6 +291,10 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
         run.pools[run.n_pools] = try kept.toOwnedSlice(gpa);
         run.n_pools += 1;
     }
+    if (dl.multi_fold_pool) {
+        run.pools[run.n_pools] = &alpha.multi_fold_pool;
+        run.n_pools += 1;
+    }
     run.store.max_per_group = run.cfg.max_findings_per_group;
     run.store.max_per_mode = run.cfg.max_findings_per_mode;
     // Validate every configured flag set's printed-length bound up front.

@@ -503,6 +503,21 @@ pub const Printer = struct {
                     try self.fmt("(?:\\k<g{d}>)", .{named});
                 } else if (dialect.active.named_groups_last) {
                     try self.fmt("(?:\\{d})", .{self.tree_unnamed[n.fmod]});
+                } else if (dialect.active.perl_backref_spellings) {
+                    // Perl's spellings: numbered, relative (\g{-k} counts the groups opened so
+                    // far, the empty () the printer adds included), and by name for named targets.
+                    const rel = self.printed_groups - num + 1;
+                    switch (self.pick(if (named != 0) 9 else 4)) {
+                        0 => try self.fmt("(?:\\{d})", .{num}),
+                        1 => try self.fmt("(?:\\g{d})", .{num}),
+                        2 => try self.fmt("(?:\\g{{{d}}})", .{num}),
+                        3 => try self.fmt("(?:\\g{{-{d}}})", .{rel}),
+                        4 => try self.fmt("(?:\\k<g{d}>)", .{named}),
+                        5 => try self.fmt("(?:\\k{{g{d}}})", .{named}),
+                        6 => try self.fmt("(?:\\k'g{d}')", .{named}),
+                        7 => try self.fmt("(?:\\g{{g{d}}})", .{named}),
+                        else => try self.fmt("(?:(?P=g{d}))", .{named}),
+                    }
                 } else try self.fmt("(?:\\{d})", .{num});
             },
         }

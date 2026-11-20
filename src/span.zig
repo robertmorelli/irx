@@ -415,3 +415,32 @@ test "perl: (*FAIL) never matches" {
         try t.expectEqual(c.b, ast.fullMatch(&tree, flags, &.{'b'}));
     }
 }
+
+test "perl: the multi_fold_pool characters match their full folds in every case mix under /i" {
+    const t = std.testing;
+    @import("ucd.zig").init();
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    dialect.active = &dialect.perl;
+    const flags = try alpha.Flags.parse("iu");
+    const plain = try alpha.Flags.parse("u");
+    const atoms = @import("atoms.zig");
+    // Measured with perl 5.44 and blead: \A X \z, \A[X]\z and \A[aX]\z all match every case mix of
+    // the fold (180 checks), and nothing matches without /i.
+    for ([_]u21{ 0x149, 0x1F0, 0x3B0, 0x1E96, 0xFB02, 0xFB06, 0xFB13, 0x587 }) |x| {
+        const fold = atoms.multiFold(x) orelse return error.NoFold;
+        var buf: [96]u8 = undefined;
+        const lit = try std.fmt.bufPrint(buf[0..48], "(atom lit 0 0 0 {x} 0 0 0)", .{x});
+        const cls = try std.fmt.bufPrint(buf[48..], "(atom cls 0 0 2 61 {x} 0 0)", .{x});
+        for ([_][]const u8{ lit, cls }) |src| {
+            const tree = try ast.parse(src);
+            var mask: usize = 0;
+            while (mask < (@as(usize, 1) << @intCast(fold.len))) : (mask += 1) {
+                var w: [3]u21 = undefined;
+                for (fold, 0..) |c, k| w[k] = if (mask >> @intCast(k) & 1 == 1) @import("ucd.zig").simpleUpper(c) else c;
+                try t.expect(ast.fullMatch(&tree, flags, w[0..fold.len]));
+                try t.expect(!ast.fullMatch(&tree, plain, w[0..fold.len]));
+            }
+        }
+    }
+}

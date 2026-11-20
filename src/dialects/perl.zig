@@ -46,9 +46,11 @@ pub const dialect: D.Dialect = .{
     // An empty loop iteration ends the loop (PCRE: "the loop is forcibly broken").
     .empty_iteration = .stop,
     .empty_iteration_at_min = true,
-    // Lookbehind bodies are matched forward from a start position, so an atomic group or
-    // possessive loop can run past the lookbehind ((?<=a?+)a fails on "a"); the model reads
-    // lookbehind right to left. Keeps them out (inherited by PCRE2 and Boost).
+    // Lookbehind bodies are matched forward from a start position, farthest first, so an atomic
+    // group or possessive loop can run past the lookbehind ((?<=a?+)a fails on "a"); the model
+    // does the same (lookbehind_forward). Atomic groups stay out of lookbehind anyway: once any
+    // earlier match has run (the driver's JSON::PP load does), perl gets them wrong (IRX-PERL-8),
+    // which would drown every campaign. Allow them again once that is fixed.
     .lookbehind_no_atomic = true,
     .isLineTerminator = lineTerminator,
     .isSpace = space,
@@ -63,7 +65,7 @@ pub const dialect: D.Dialect = .{
     // keep these characters out (a subject ß would also match the pattern `ss`).
     .full_fold = .classes,
     .fold_longest_first = true,
-    .pattern_only = &.{ 0xDF, 0x1E9E, 0xFB00, 0xFB01, 0x130 },
+    .pattern_only = &.{ 0xDF, 0x1E9E, 0xFB00, 0xFB01, 0x130, 0x149, 0x1F0, 0x3B0, 0x1E96, 0xFB02, 0xFB06, 0xFB13, 0x587 },
     // Perl rejects unbounded lookbehind ("Lookbehind longer than 255").
     .lookbehind_len_cap = 16,
     // \A, \z and \Z (PCRE2, PCRE1, Boost and nim-regex turn these off until checked).
@@ -74,6 +76,9 @@ pub const dialect: D.Dialect = .{
     .grapheme_whole_string = true,
     .prop_perl_extra = true,
     .fail_verb = true,
+    .perl_backref_spellings = true,
+    .multi_fold_pool = true,
+    .lookbehind_forward = true,
 };
 
 /// PCRE2 10.43+ with UCP: \w is \p{L}, \p{N}, \p{Mn}, \p{Pc} (no join controls; all of N);
@@ -96,6 +101,10 @@ pub const pcre2: D.Dialect = blk: {
     d.grapheme_whole_string = false;
     d.prop_perl_extra = false;
     d.fail_verb = false;
+    d.perl_backref_spellings = false;
+    d.multi_fold_pool = false;
+    d.lookbehind_forward = false;
+    d.lookbehind_no_atomic = true;
     d.empty_iteration_at_min = false;
     // Bounded loops are unrolled, so an empty iteration there just counts: `(?:^|.){1,3}a` on
     // "baa" is [0,2) (Perl [0,3)).
@@ -183,6 +192,10 @@ pub const boost: D.Dialect = blk: {
     d.grapheme_whole_string = false;
     d.prop_perl_extra = false;
     d.fail_verb = false;
+    d.perl_backref_spellings = false;
+    d.multi_fold_pool = false;
+    d.lookbehind_forward = false;
+    d.lookbehind_no_atomic = true;
     d.empty_iteration_at_min = false;
     // \X is a combining sequence, but after an optional or repeated element regex_match fails
     // (IRX-BOOST-3), which would drown other findings: no \X.

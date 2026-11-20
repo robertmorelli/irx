@@ -108,6 +108,10 @@ pub const space_digit_pool = [_]u21{ 'a', 'b', '_', '0', '9', ' ', '\n', '\r', '
 /// emoji with a modifier, regional indicators, Hangul jamo and syllables, a prepended
 /// concatenation mark, a Devanagari consonant and virama (GB9c), a format control.
 pub const grapheme_pool = [_]u21{ 'a', 'b', ' ', '\n', '\r', 0x0301, 0x200D, 0x200C, 0xFE0F, 0x1F600, 0x2764, 0x1F3FB, 0x1F1E6, 0x1F1E7, 0x1100, 0x1161, 0x11A8, 0xAC00, 0xAC01, 0x0903, 0x0600, 0x0915, 0x094D, 0x200B };
+/// More multi-character case folds (dialect multi_fold_pool, Perl): ŉ ǰ ΰ ẖ ﬂ ﬆ and the Armenian
+/// ligatures ﬓ և, with the characters that spell their folds in both cases (combining caron,
+/// diaeresis, acute and macron below included). The ligatures themselves are pattern-only.
+pub const multi_fold_pool = [_]u21{ 'a', ' ', 0x149, 0x1F0, 0x3B0, 0x1E96, 0xFB02, 0xFB06, 0xFB13, 0x587, 0x2BC, 'n', 'N', 'j', 'J', 0x30C, 0x3C5, 0x3A5, 0x308, 0x301, 'h', 'H', 0x331, 'f', 'l', 's', 't', 0x574, 0x544, 0x576, 0x565, 0x582 };
 pub const alt_pools = [_][]const u21{ &fold_pool, &cyrillic_greek_pool, &space_digit_pool, &grapheme_pool };
 
 /// Pool symbols as decoded in the given mode: the astral char becomes its

@@ -95,6 +95,14 @@ pub const Dialect = struct {
     prop_perl_extra: bool = false,
     /// (*FAIL): never matches (the empty atom with sub 1).
     fail_verb: bool = false,
+    /// Backreferences in all of Perl's spellings: \\1, \\g1, \\g{1}, \\g{-1}, \\k<n>, \\k{n},
+    /// \\k'n', \\g{n}, (?P=n).
+    perl_backref_spellings: bool = false,
+    /// Rotate in alphabet.multi_fold_pool (its multi-fold characters must be pattern_only).
+    multi_fold_pool: bool = false,
+    /// Lookbehind as Perl runs it: from the farthest possible start to the nearest, the body is
+    /// matched forward and must end at the current position; the first start that works wins.
+    lookbehind_forward: bool = false,
     /// POSIX classes [[:alpha:]] [[:^alpha:]] (ASCII).
     posix_classes: bool = false,
     /// Negated POSIX classes [[:^name:]] under i (regex-lite folds after negating: IRX-RLITE-1).
