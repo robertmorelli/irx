@@ -9,8 +9,8 @@ confirmed by hand, usually against other engines too.
 
 ### Confirmed findings
 
-The [bug ledger](#bug-ledger) has **147 confirmed bug IDs**, **93 unique reported bugs**
-(distinct upstream issue links), **138 distinct bug shapes**, and **101 candidates**
+The [bug ledger](#bug-ledger) has **148 confirmed bug IDs**, **93 unique reported bugs**
+(distinct upstream issue links), **139 distinct bug shapes**, and **102 candidates**
 still to audit or report. Bug IDs count
 separate ledger rows, including confirmed repros linked to an existing report.
 Unique bugs count each upstream issue once; shapes group the same failure pattern
@@ -26,7 +26,7 @@ from the candidate count.
 | XS | 10 | 10 | 10 |
 | Boa | 8 | 8 | 8 |
 | .NET | 9 | 8 | 8 |
-| Perl | 15 | 14 | 14 |
+| Perl | 16 | 14 | 15 |
 | nim-regex | 6 | 7 | 7 |
 | Swift Regex | 6 | 6 | 6 |
 | V8 | 6 | 4 | 4 |
@@ -49,7 +49,7 @@ from the candidate count.
 | PCRE2 | 1 | 1 | 1 |
 | RE2 | 2 | 2 | 2 |
 | Shared shapes across engines | — | — | −5 |
-| **Total** | **97** | **93** | **88** |
+| **Total** | **98** | **93** | **89** |
 
 IRX-V8-1 maps to V8-3's report, IRX-V8-4 to IRX-V8-3's report, and
 IRX-PERL-5 to PERL-3's report. DOTNET-8 and DOTNET-6 also share a report and shape;
@@ -420,6 +420,7 @@ recorded in the tables below. Older V8 builds (Node 25.8 = V8 14.1, Deno 2.9.7 =
 | IRX-PERL-11 | Perl | Open · [#25084](https://github.com/Perl/perl5/issues/25084) | wrong capture: `"a" =~ /^a*(?=^\|())a/` → `$1` at `[1,1)`; also `/^a*(?>^\|())a/` and `/^a*(?<=^\|())a/` → `$1` at `[1,1)` → expected `$1` undef (Python) | Tested: Perl 5.44.0, blead 5.45.6 (`a11dd64c7`). A capture set inside a positive lookahead `(?=...)`, positive lookbehind `(?<=...)`, or atomic group `(?>...)` that succeeded on an earlier backtracking branch is not restored when a later atom fails and forces backtracking out of it; `/^a*(?:^\|())a/` is correct. (IRX-PERL-4 fixed the same leak for failed negative lookaheads in blead `5b2f72d`.) Found by the porple `linux45` run on `perl-blead` (triage report `linux45-r25-perl-blead`). Narrowed 2026-11-19 on blead `a11dd64c7`: only a capture in an alternative *after* the one that matches leaks (`(?=^\|(\z))` leaks `[1,1)`; `(?=(\z)\|^)` and `(?=x\|(\z)\|^)` are correct); without alternation, `^a*(?=(\z)?)a` is correct in blead but leaks in 5.44.0. |
 | IRX-PERL-12 | Perl | Open · [#25085](https://github.com/Perl/perl5/issues/25085) | wrong result: `"\r\n" =~ /\A\R?\n\z/` → true; also `\R*`, `\R{0,1}`, `\R??`, `(?:\R)?`, and `"\r\n\r\n" =~ /\A\R+\n\z/` → true → expected false (perlrebackslash: `\R` is `(?>\x0D\x0A\|\v)`, and `/\A(?>\r\n\|\v)?\n\z/` is false) | Tested: Perl 5.44.0 and blead 5.45.6 (`a11dd64c7`). A quantified `\R` gives back the `\n` of a `\r\n` it matched, so it matches the `\r` alone; unquantified `\R\n` and `\R{1}\n` are correctly false. Found 2026-11-19 while adding `\R` to the Perl model. |
 | IRX-PERL-13 | Perl | Open · [#25086](https://github.com/Perl/perl5/issues/25086) | wrong result: `"\x{3A9}\x{1FD3}a" =~ /(?<=\x{3A9}\x{1FD3})a/iu` → false; also `(?<=\x{3B1}\x{1FD3})a` on `"\x{3B1}\x{1FD3}a"` → false, and `"\x{3A9}\x{1FD3}a" =~ /(?<!\x{3A9}\x{1FD3})a/iu` → true → expected true, true, false | Tested: Perl 5.44.0 and blead 5.45.6 (`a11dd64c7`). Under `/i`, a lookbehind holding a letter followed by ΐ (U+1FD3, whose full fold is three code points) measures its length from the folded text (`-Mre=debug`: `UNLESSM[-4..-3]` for two characters), so it looks too far back. Without `/i`, `(?<=\x{1FD3})a` alone, and `(?<=b\x{DF})a` are correct. Found by the porple `linux45` run on `perl-blead` (triage report `linux45-r28-perl-blead`). |
+| IRX-PERL-14 | Perl | Open · not filed | wrong result: `"\x{3A9}\x{1FD3}" =~ /\A\x{3A9}\x{390}\z/iu` → false; also `"\x{3A9}\x{390}" =~ /\A\x{3A9}\x{390}\z/iu`, `"\x{3A9}\x{1FD3}" =~ /\b\x{3A9}\x{390}/iu`, `"\x{3A9}\x{1FD3}" =~ /\x{3A9}\x{390}\z/iu`, `"\x{3A9}\x{390}x" =~ /\A\x{3A9}\x{390}x\z/iu` → false → expected true (Python `re`) | Tested: Perl 5.44.0 and blead 5.45.6 (`a11dd64c7`). Under `/iu`, when a non-Latin1 character (`\x{3A9}`, `\x{3C9}`, `\x{2126}`) is followed by `\x{390}` or `\x{1FD3}` (whose full fold is three code points) in an `EXACTFU_REQ8` node, `regcomp` (`-Mre=debug`) computes `minlen 3` instead of `2` (and `floating ""$ at 3..4`), so anchored or assertion-prefixed matches on 2-character subjects (and `\A\x{3A9}\x{390}x\z` on 3-character subjects) are rejected. `a\x{390}`, `\x{E9}\x{390}`, `\x{3A9}\x{DF}`, `\x{3A9}\x{FB01}`, unanchored `\x{3A9}\x{390}`, and without `/i` are correct. Found by the porple `linux45` run on `perl-blead` (triage report `linux45-r32-perl-blead`). |
 | IRX-XS-1 | XS | Open · [#1751](https://github.com/Moddable-OpenSource/moddable/issues/1751) | rejects valid pattern: `new RegExp("[]", "v")`, `new RegExp("[^]", "v")` → SyntaxError → expected accepted (ES2024) | Tested: XS (jsvu, Moddable). empty `ClassContents` is legal in UnicodeSets mode |
 | IRX-BOOST-1 | Boost.Regex | Open · not filed | wrong result: `boost::regex_match("", boost::regex("(?:$)+"))` (Perl syntax, `^`/`$` at lines) → false; also `a(?:$)+` and `a(?:$){1,1}` on `"a"` → expected true (`(?:$)` alone matches `""`) | Tested: Boost 1.92 (Homebrew). Repeating an assertion that holds at the current position fails the match. The `boost` dialect stops generating quantified assertions. Found by the new `boost-regex` target's sweep. |
 | IRX-BOOST-2 | Boost.Regex | Open · not filed | wrong span (not leftmost): `boost::regex_search("aaaa", m, boost::regex("a{0,2}?a\\b"))` → `[2,4)`; `a{0,3}?a$` on `"aaaaa"` → `[3,5)` → expected `[1,4)`; `[1,5)` (Perl) | Tested: Boost 1.92 (Homebrew). A lazy bounded repeat `{0,n}?` (n ≥ 2) at the start of the pattern makes the search skip a valid starting position; `a{0,1}?a$` and the greedy `a{0,2}a\b` are correct. Found by span mode on the `boost-regex` target. |
