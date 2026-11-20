@@ -392,3 +392,26 @@ test "perl: \\R is (?>\\r\\n|\\v): \\r\\n as one unit, never split" {
     const s = [_]u16{ 'x', '\r', '\n', 'y' };
     try t.expect((reference(&R, flags, &s) orelse return error.NoResult).eql(.{ .found = true, .s = 1, .e = 3 }));
 }
+
+test "perl: (*FAIL) never matches" {
+    const t = std.testing;
+    @import("ucd.zig").init();
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    dialect.active = &dialect.perl;
+    const flags = try alpha.Flags.parse("u");
+    // Measured with perl 5.44 and blead, on "a" and "b": a(*FAIL)|b -> 0 1, (*FAIL)*a -> 1 0,
+    // (*FAIL)?a -> 1 0, (?<=(*FAIL))a -> 0 0, (?<!(*FAIL))a -> 1 0.
+    const cases = [_]struct { ast: []const u8, a: bool, b: bool }{
+        .{ .ast = "(alt (concat (atom lit 0 0 0 61 0 0 0) (atom empty 1 0 0 0 0 0 0)) (atom lit 0 0 0 62 0 0 0))", .a = false, .b = true },
+        .{ .ast = "(concat (quant star 0 255 0 (atom empty 1 0 0 0 0 0 0)) (atom lit 0 0 0 61 0 0 0))", .a = true, .b = false },
+        .{ .ast = "(concat (quant opt 0 1 0 (atom empty 1 0 0 0 0 0 0)) (atom lit 0 0 0 61 0 0 0))", .a = true, .b = false },
+        .{ .ast = "(concat (look_behind (atom empty 1 0 0 0 0 0 0)) (atom lit 0 0 0 61 0 0 0))", .a = false, .b = false },
+        .{ .ast = "(concat (neg_look_behind (atom empty 1 0 0 0 0 0 0)) (atom lit 0 0 0 61 0 0 0))", .a = true, .b = false },
+    };
+    for (cases) |c| {
+        const tree = try ast.parse(c.ast);
+        try t.expectEqual(c.a, ast.fullMatch(&tree, flags, &.{'a'}));
+        try t.expectEqual(c.b, ast.fullMatch(&tree, flags, &.{'b'}));
+    }
+}

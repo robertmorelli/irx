@@ -90,6 +90,11 @@ pub const Dialect = struct {
     n_escape: bool = false,
     /// \\R: (?>\\r\\n|\\v), a line break (Perl).
     r_escape: bool = false,
+    /// \\p{…} also takes Perl's scripts (bare names: Script_Extensions) and Alpha, Upper, Lower,
+    /// Cased (atoms.Prop.isPerlExtra).
+    prop_perl_extra: bool = false,
+    /// (*FAIL): never matches (the empty atom with sub 1).
+    fail_verb: bool = false,
     /// POSIX classes [[:alpha:]] [[:^alpha:]] (ASCII).
     posix_classes: bool = false,
     /// Negated POSIX classes [[:^name:]] under i (regex-lite folds after negating: IRX-RLITE-1).

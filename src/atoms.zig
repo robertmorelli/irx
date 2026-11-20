@@ -49,9 +49,33 @@ pub const Posix = enum(u8) {
 /// controls).
 pub const Prop = enum(u8) {
     L, Lu, Ll, N, Nd, P, Pc, Pd, Po, S, So, Z, Zs, Zl, C, Cc,
+    // Perl only (dialect prop_perl_extra): scripts as Script_Extensions (a bare \p{Greek}), and
+    // binary properties.
+    Latin, Greek, Cyrillic, Common, Inherited, Hangul, Devanagari, Arabic,
+    Alpha, Upper, Lower, Cased,
 
-    /// Does code point x have this general category (one letter: the major class)?
+    /// A script or binary property rather than a general category.
+    pub fn isPerlExtra(p: Prop) bool {
+        return @intFromEnum(p) > @intFromEnum(Prop.Cc);
+    }
+
+    /// Does code point x have this property (a general category: one letter is the major class)?
     pub fn has(p: Prop, x: u21) bool {
+        switch (p) {
+            .Latin => return ucd.hasScriptExt(x, .Latin),
+            .Greek => return ucd.hasScriptExt(x, .Greek),
+            .Cyrillic => return ucd.hasScriptExt(x, .Cyrillic),
+            .Common => return ucd.hasScriptExt(x, .Common),
+            .Inherited => return ucd.hasScriptExt(x, .Inherited),
+            .Hangul => return ucd.hasScriptExt(x, .Hangul),
+            .Devanagari => return ucd.hasScriptExt(x, .Devanagari),
+            .Arabic => return ucd.hasScriptExt(x, .Arabic),
+            .Alpha => return ucd.isAlphabetic(x),
+            .Upper => return ucd.isUppercase(x),
+            .Lower => return ucd.isLowercase(x),
+            .Cased => return ucd.isCased(x),
+            else => {},
+        }
         const cat = ucd.category(x);
         const name = @tagName(p);
         if (cat[0] != name[0]) return false;
@@ -264,6 +288,8 @@ fn has(n: *const SetNode, flags: Flags, x: u21) bool {
             const p: Prop = @enumFromInt(n.lo);
             if (flags.i and dialect.active.prop_case == .cased and (p == .Lu or p == .Ll))
                 break :blk Prop.Lu.has(x) or Prop.Ll.has(x) or std.mem.eql(u8, &ucd.category(x), "Lt");
+            // Perl: under /i, \p{Upper} and \p{Lower} are \p{Cased} (scripts and Alpha are unchanged).
+            if (flags.i and dialect.active.prop_case == .cased and (p == .Upper or p == .Lower)) break :blk ucd.isCased(x);
             break :blk p.has(x);
         },
     };
@@ -581,7 +607,7 @@ pub fn stringAt(s: []const u21, w: []const u21, i: usize, flags: Flags) bool {
 pub fn relation(comptime R: type, spec: *const AtomSpec, flags: Flags, w: []const u21) R {
     const dim = w.len + 1;
     switch (spec.kind) {
-        .empty => return R.identity(dim),
+        .empty => return if (spec.sub == 1) .{} else R.identity(dim), // sub 1: (*FAIL) never matches
         .caret, .dollar, .wordb, .nwordb => return R.diagFromMask(assertionMask(spec, flags, w)),
         .grapheme => {
             var r: R = .{};
@@ -642,6 +668,7 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
     try out.append(gpa, .{ .kind = .dot });
     if (dialect.active.n_escape) try out.append(gpa, .{ .kind = .dot, .sub = 1 });
     if (dialect.active.r_escape) try out.append(gpa, .{ .kind = .linebreak });
+    if (dialect.active.fail_verb) try out.append(gpa, .{ .kind = .empty, .sub = 1 });
     for (std.enums.values(Esc)) |e| {
         if ((e == .h or e == .H or e == .v or e == .V) and !dialect.active.hv_escapes) continue;
         try out.append(gpa, .{ .kind = .esc, .sub = @intFromEnum(e) });
@@ -653,6 +680,7 @@ pub fn buildInventory(gpa: std.mem.Allocator, cfg: InventoryConfig, flags: Flags
     // Unicode properties where the dialect has them (ES: only with u or v).
     if (dialect.active.unicode_props and (flags.unicode() or !dialect.active.props_need_u) and !(flags.i and dialect.active.props_multi_fold)) {
         for (std.enums.values(Prop)) |p| for ([_]bool{ false, true }) |neg| {
+            if (p.isPerlExtra() and !dialect.active.prop_perl_extra) continue;
             try out.append(gpa, .{ .kind = .prop, .sub = @intFromEnum(p), .neg = neg });
         };
     }
@@ -923,5 +951,125 @@ test "perl: \\N is anything but \\n, with or without /s and /m" {
         try t.expect(matches(&N, flags, '\r'));
         try t.expect(matches(&N, flags, 0x85));
         try t.expect(matches(&N, flags, 0x2028));
+    }
+}
+
+test "perl: scripts and binary properties match perl over the pool, with and without /i" {
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    dialect.active = &dialect.perl;
+    ucd.init();
+    // Generated with perl v5.44.0 over the pool characters: which \p{X} each matches (no /i, then /i).
+    const perl_props = [_]struct { c: u21, m: []const u8, mi: []const u8 }{
+        .{ .c = 0x9, .m = "Common", .mi = "Common" },
+        .{ .c = 0xA, .m = "Common", .mi = "Common" },
+        .{ .c = 0xB, .m = "Common", .mi = "Common" },
+        .{ .c = 0xC, .m = "Common", .mi = "Common" },
+        .{ .c = 0xD, .m = "Common", .mi = "Common" },
+        .{ .c = 0x20, .m = "Common", .mi = "Common" },
+        .{ .c = 0x2D, .m = "Common", .mi = "Common" },
+        .{ .c = 0x2E, .m = "Common", .mi = "Common" },
+        .{ .c = 0x30, .m = "Common", .mi = "Common" },
+        .{ .c = 0x39, .m = "Common", .mi = "Common" },
+        .{ .c = 0x41, .m = "Latin Alpha Upper Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x46, .m = "Latin Alpha Upper Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x49, .m = "Latin Alpha Upper Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x4B, .m = "Latin Alpha Upper Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x53, .m = "Latin Alpha Upper Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x5F, .m = "Common", .mi = "Common" },
+        .{ .c = 0x61, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x62, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x66, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x69, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x6B, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x73, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x85, .m = "Common", .mi = "Common" },
+        .{ .c = 0xA0, .m = "Common", .mi = "Common" },
+        .{ .c = 0xB5, .m = "Common Alpha Lower Cased", .mi = "Common Alpha Upper Lower Cased" },
+        .{ .c = 0xDF, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0xE0, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0xE5, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0xE9, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x130, .m = "Latin Alpha Upper Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x131, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x17F, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x1C4, .m = "Latin Alpha Upper Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x1C5, .m = "Latin Alpha Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x1C6, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x301, .m = "Latin Greek Cyrillic", .mi = "Latin Greek Cyrillic" },
+        .{ .c = 0x390, .m = "Greek Alpha Lower Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3A3, .m = "Greek Alpha Upper Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3A9, .m = "Greek Alpha Upper Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3B8, .m = "Greek Alpha Lower Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3BC, .m = "Greek Alpha Lower Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3C2, .m = "Greek Alpha Lower Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3C3, .m = "Greek Alpha Lower Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3C6, .m = "Greek Alpha Lower Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3C9, .m = "Greek Alpha Lower Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3D1, .m = "Greek Alpha Lower Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3D5, .m = "Greek Alpha Lower Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3DC, .m = "Greek Alpha Upper Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3DD, .m = "Greek Alpha Lower Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x3F4, .m = "Greek Alpha Upper Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x401, .m = "Cyrillic Alpha Upper Cased", .mi = "Cyrillic Alpha Upper Lower Cased" },
+        .{ .c = 0x410, .m = "Cyrillic Alpha Upper Cased", .mi = "Cyrillic Alpha Upper Lower Cased" },
+        .{ .c = 0x430, .m = "Cyrillic Alpha Lower Cased", .mi = "Cyrillic Alpha Upper Lower Cased" },
+        .{ .c = 0x450, .m = "Cyrillic Alpha Lower Cased", .mi = "Cyrillic Alpha Upper Lower Cased" },
+        .{ .c = 0x451, .m = "Cyrillic Alpha Lower Cased", .mi = "Cyrillic Alpha Upper Lower Cased" },
+        .{ .c = 0x4C0, .m = "Cyrillic Alpha Upper Cased", .mi = "Cyrillic Alpha Upper Lower Cased" },
+        .{ .c = 0x4CF, .m = "Cyrillic Alpha Lower Cased", .mi = "Cyrillic Alpha Upper Lower Cased" },
+        .{ .c = 0x600, .m = "Arabic", .mi = "Arabic" },
+        .{ .c = 0x663, .m = "Arabic", .mi = "Arabic" },
+        .{ .c = 0x903, .m = "Devanagari Alpha", .mi = "Devanagari Alpha" },
+        .{ .c = 0x915, .m = "Devanagari Alpha", .mi = "Devanagari Alpha" },
+        .{ .c = 0x94D, .m = "Devanagari", .mi = "Devanagari" },
+        .{ .c = 0x1100, .m = "Hangul Alpha", .mi = "Hangul Alpha" },
+        .{ .c = 0x1161, .m = "Hangul Alpha", .mi = "Hangul Alpha" },
+        .{ .c = 0x11A8, .m = "Hangul Alpha", .mi = "Hangul Alpha" },
+        .{ .c = 0x1680, .m = "", .mi = "" },
+        .{ .c = 0x180E, .m = "", .mi = "" },
+        .{ .c = 0x1E9E, .m = "Latin Alpha Upper Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x1FD3, .m = "Greek Alpha Lower Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x2007, .m = "Common", .mi = "Common" },
+        .{ .c = 0x200B, .m = "Common", .mi = "Common" },
+        .{ .c = 0x200C, .m = "Inherited", .mi = "Inherited" },
+        .{ .c = 0x200D, .m = "Inherited", .mi = "Inherited" },
+        .{ .c = 0x2028, .m = "Common", .mi = "Common" },
+        .{ .c = 0x2029, .m = "Common", .mi = "Common" },
+        .{ .c = 0x202F, .m = "Latin", .mi = "Latin" },
+        .{ .c = 0x2126, .m = "Greek Alpha Upper Cased", .mi = "Greek Alpha Upper Lower Cased" },
+        .{ .c = 0x212A, .m = "Latin Alpha Upper Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x212B, .m = "Latin Alpha Upper Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x2177, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0x2460, .m = "Common", .mi = "Common" },
+        .{ .c = 0x2764, .m = "Common", .mi = "Common" },
+        .{ .c = 0x3000, .m = "Common", .mi = "Common" },
+        .{ .c = 0xAC00, .m = "Hangul Alpha", .mi = "Hangul Alpha" },
+        .{ .c = 0xAC01, .m = "Hangul Alpha", .mi = "Hangul Alpha" },
+        .{ .c = 0xFB00, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0xFB01, .m = "Latin Alpha Lower Cased", .mi = "Latin Alpha Upper Lower Cased" },
+        .{ .c = 0xFE0F, .m = "Inherited", .mi = "Inherited" },
+        .{ .c = 0xFEFF, .m = "Common", .mi = "Common" },
+        .{ .c = 0x1D7CE, .m = "Common", .mi = "Common" },
+        .{ .c = 0x1F1E6, .m = "Common", .mi = "Common" },
+        .{ .c = 0x1F1E7, .m = "Common", .mi = "Common" },
+        .{ .c = 0x1F3FB, .m = "Common", .mi = "Common" },
+        .{ .c = 0x1F600, .m = "Common", .mi = "Common" },
+    };
+    const extra = [_]Prop{ .Latin, .Greek, .Cyrillic, .Common, .Inherited, .Hangul, .Devanagari, .Arabic, .Alpha, .Upper, .Lower, .Cased };
+    for ([_]bool{ false, true }) |ci| {
+        const flags = try Flags.parse(if (ci) "iu" else "u");
+        for (perl_props) |row| for (extra) |p| {
+            var want = false;
+            var it = std.mem.tokenizeScalar(u8, if (ci) row.mi else row.m, ' ');
+            while (it.next()) |name| if (std.mem.eql(u8, name, @tagName(p))) {
+                want = true;
+            };
+            const spec: AtomSpec = .{ .kind = .prop, .sub = @intFromEnum(p) };
+            if (want != matches(&spec, flags, row.c)) {
+                std.debug.print("mismatch U+{X:0>4} \\p{{{s}}} i={} perl={} model={}\n", .{ row.c, @tagName(p), ci, want, !want });
+                return error.TestUnexpectedResult;
+            }
+        };
     }
 }

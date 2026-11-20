@@ -383,7 +383,7 @@ pub const Matcher = struct {
         switch (n.op) {
             .atom => {
                 const a = &n.atom;
-                if (a.kind == .empty) return self.run(c, pos);
+                if (a.kind == .empty) return if (a.sub == 1) false else self.run(c, pos); // sub 1: (*FAIL)
                 const fl = self.flagsAt(idx);
                 if (a.isAssertion()) {
                     // At this position only: a whole-string mask is O(n) per step and only 32 bits.

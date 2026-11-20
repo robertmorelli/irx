@@ -233,7 +233,7 @@ pub const Eval = struct {
                 },
                 .empty => {
                     const out = try self.alloc();
-                    @memcpy(out, s);
+                    if (n.atom.sub == 1) @memset(out, 0) else @memcpy(out, s); // sub 1: (*FAIL)
                     return out;
                 },
                 .caret, .dollar, .wordb, .nwordb => return self.andMask(s, idx),

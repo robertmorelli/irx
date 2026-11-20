@@ -359,6 +359,10 @@ pub const Printer = struct {
         switch (n.op) {
             .atom => {
                 // Assertions as quantifier bodies are wrapped by the caller.
+                if (n.atom.kind == .empty and n.atom.sub == 1) {
+                    self.bare_ok = false;
+                    return self.put("(*FAIL)");
+                }
                 if (n.atom.kind == .empty) return self.emptyAtom();
                 self.bare_ok = false;
                 try self.atom(&n.atom);
@@ -480,7 +484,7 @@ pub const Printer = struct {
                 if (dialect.active.possessive and prec != .quant_body and ch.op == .quant and !ch.quant.lazy and isQuantAtom(t, ch.a) and (!counted or dialect.active.possessive_counted)) {
                     try self.node(t, n.a, .concat);
                     try self.putc('+');
-                } else if (ch.op == .atom and ch.atom.kind == .empty) {
+                } else if (ch.op == .atom and ch.atom.kind == .empty and ch.atom.sub == 0) {
                     try self.put("(?>(?:))"); // some engines reject an empty atomic group
                 } else {
                     try self.put("(?>");
@@ -639,6 +643,8 @@ pub const Printer = struct {
             .Zl => "Line_Separator",
             .C => "Other",
             .Cc => "Control",
+            // Perl-only properties: the short name is the only spelling printed.
+            else => @tagName(p),
         };
     }
 
@@ -733,7 +739,7 @@ pub const Printer = struct {
                 .gt => "\\>",
             }),
             .nwordb => try self.put(dialect.active.nonword_boundary),
-            .empty => try self.put("(?:)"),
+            .empty => try self.put(if (a.sub == 1) "(*FAIL)" else "(?:)"),
             .prop => try self.property(@enumFromInt(a.sub), a.neg),
         }
     }

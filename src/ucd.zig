@@ -10,15 +10,43 @@ pub const manifest_json = @embedFile("ucd/manifest.json");
 const case_folding_txt = @embedFile("ucd/CaseFolding.txt");
 const special_casing_txt = @embedFile("ucd/SpecialCasing.txt");
 const unicode_data_txt = @embedFile("ucd/UnicodeData.txt");
+const scripts_txt = @embedFile("ucd/Scripts.txt");
+const script_extensions_txt = @embedFile("ucd/ScriptExtensions.txt");
+const prop_list_txt = @embedFile("ucd/PropList.txt");
 
 pub const FileHash = struct { name: []const u8, data: []const u8, sha256: []const u8 };
 pub const files = [_]FileHash{
     .{ .name = "CaseFolding.txt", .data = case_folding_txt, .sha256 = "ff8d8fefbf123574205085d6714c36149eb946d717a0c585c27f0f4ef58c4183" },
     .{ .name = "SpecialCasing.txt", .data = special_casing_txt, .sha256 = "efc25faf19de21b92c1194c111c932e03d2a5eaf18194e33f1156e96de4c9588" },
     .{ .name = "UnicodeData.txt", .data = unicode_data_txt, .sha256 = "2e1efc1dcb59c575eedf5ccae60f95229f706ee6d031835247d843c11d96470c" },
+    .{ .name = "Scripts.txt", .data = scripts_txt, .sha256 = "9f5e50d3abaee7d6ce09480f325c706f485ae3240912527e651954d2d6b035bf" },
+    .{ .name = "ScriptExtensions.txt", .data = script_extensions_txt, .sha256 = "ec2107e58825a1586acee8e0911ce18260394ac8b87e535ca325f1ccbeb06bc6" },
+    .{ .name = "PropList.txt", .data = prop_list_txt, .sha256 = "130dcddcaadaf071008bdfce1e7743e04fdfbc910886f017d9f9ac931d8c64dd" },
 };
 
 const Pair = struct { from: u21, to: u21 };
+
+/// The scripts \p{…} uses (those of the pool characters); long name (Scripts.txt) and code
+/// (ScriptExtensions.txt).
+pub const Script = enum(u4) {
+    Latin, Greek, Cyrillic, Common, Inherited, Hangul, Devanagari, Arabic,
+
+    pub fn code(s: Script) []const u8 {
+        return switch (s) {
+            .Latin => "Latn", .Greek => "Grek", .Cyrillic => "Cyrl", .Common => "Zyyy",
+            .Inherited => "Zinh", .Hangul => "Hang", .Devanagari => "Deva", .Arabic => "Arab",
+        };
+    }
+};
+/// A run of code points with one Script (sc) value, for the scripts in `Script`.
+const ScriptRun = struct { lo: u21, hi: u21, sc: Script };
+/// A run with an explicit Script_Extensions list: bit i set when the list has Script i.
+const ScxRun = struct { lo: u21, hi: u21, mask: u16 };
+/// PropList bits: Other_Alphabetic, Other_Uppercase, Other_Lowercase.
+const other_alpha: u8 = 1;
+const other_upper: u8 = 2;
+const other_lower: u8 = 4;
+const PropRun = struct { lo: u21, hi: u21, bits: u8 };
 const CatRun = struct { lo: u21, hi: u21, cat: [2]u8 };
 
 const Data = struct {
@@ -38,6 +66,10 @@ const Data = struct {
     zs: []u21,
     /// General category runs: sorted, non-overlapping.
     cats: []CatRun,
+    /// Script runs (sorted), Script_Extensions runs (sorted), PropList runs (sorted).
+    scripts: []ScriptRun,
+    scx: []ScxRun,
+    props: []PropRun,
     /// Canonicalize for /i without u/v, over all code units.
     canon_nu: [65536]u16,
     /// Code units sorted by canon_nu value; class_start indexes into it.
@@ -183,6 +215,7 @@ fn load() !void {
     data.lower_multi = lmulti.items;
     data.zs = zs.items;
     data.cats = cats.items;
+    try loadScriptsAndProps(gpa);
 
     for (0..65536) |c| data.canon_nu[c] = canonNonUnicodeCompute(@intCast(c));
     for (0..65536) |c| data.nu_sorted[c] = @intCast(c);
@@ -365,4 +398,115 @@ test "pinned data loads and hashes match" {
     try testing.expectEqual(@as(u16, 'K'), canonNonUnicode('k'));
     try testing.expectEqual(@as(u16, 0xDF), canonNonUnicode(0xDF)); // ß -> SS (length 2)
     try testing.expect(isZs(0x3000) and isZs(' ') and !isZs('\n'));
+}
+
+/// "lo..hi" or "lo" from a UCD data line's first field.
+fn parseRange(f: []const u8) ![2]u21 {
+    const t = std.mem.trim(u8, f, " \t");
+    if (std.mem.indexOf(u8, t, "..")) |d| return .{ try parseHex(t[0..d]), try parseHex(t[d + 2 ..]) };
+    const c = try parseHex(t);
+    return .{ c, c };
+}
+
+/// Data lines of a UCD property file as (range, value) with comments stripped.
+fn forEachLine(text: []const u8, ctx: anytype, comptime f: anytype) !void {
+    var it = std.mem.splitScalar(u8, text, '\n');
+    while (it.next()) |raw| {
+        const line = if (std.mem.indexOfScalar(u8, raw, '#')) |h| raw[0..h] else raw;
+        if (std.mem.trim(u8, line, " \t\r").len == 0) continue;
+        var parts = std.mem.splitScalar(u8, line, ';');
+        const r = try parseRange(parts.next() orelse continue);
+        try f(ctx, r, std.mem.trim(u8, parts.next() orelse continue, " \t\r"));
+    }
+}
+
+fn byLo(comptime T: type) fn (void, T, T) bool {
+    return struct {
+        fn lt(_: void, a: T, b: T) bool {
+            return a.lo < b.lo;
+        }
+    }.lt;
+}
+
+fn loadScriptsAndProps(gpa: std.mem.Allocator) !void {
+    var scripts: std.ArrayList(ScriptRun) = .empty;
+    try forEachLine(scripts_txt, .{ .gpa = gpa, .out = &scripts }, struct {
+        fn f(c: anytype, r: [2]u21, v: []const u8) !void {
+            const sc = std.meta.stringToEnum(Script, v) orelse return;
+            try c.out.append(c.gpa, .{ .lo = r[0], .hi = r[1], .sc = sc });
+        }
+    }.f);
+    std.mem.sort(ScriptRun, scripts.items, {}, byLo(ScriptRun));
+    var scx: std.ArrayList(ScxRun) = .empty;
+    try forEachLine(script_extensions_txt, .{ .gpa = gpa, .out = &scx }, struct {
+        fn f(c: anytype, r: [2]u21, v: []const u8) !void {
+            var mask: u16 = 0;
+            var codes = std.mem.tokenizeScalar(u8, v, ' ');
+            while (codes.next()) |code| for (std.enums.values(Script)) |s| {
+                if (std.mem.eql(u8, code, s.code())) mask |= @as(u16, 1) << @intFromEnum(s);
+            };
+            try c.out.append(c.gpa, .{ .lo = r[0], .hi = r[1], .mask = mask });
+        }
+    }.f);
+    std.mem.sort(ScxRun, scx.items, {}, byLo(ScxRun));
+    var props: std.ArrayList(PropRun) = .empty;
+    try forEachLine(prop_list_txt, .{ .gpa = gpa, .out = &props }, struct {
+        fn f(c: anytype, r: [2]u21, v: []const u8) !void {
+            const bits: u8 = if (std.mem.eql(u8, v, "Other_Alphabetic")) other_alpha else if (std.mem.eql(u8, v, "Other_Uppercase")) other_upper else if (std.mem.eql(u8, v, "Other_Lowercase")) other_lower else return;
+            try c.out.append(c.gpa, .{ .lo = r[0], .hi = r[1], .bits = bits });
+        }
+    }.f);
+    std.mem.sort(PropRun, props.items, {}, byLo(PropRun));
+    data.scripts = scripts.items;
+    data.scx = scx.items;
+    data.props = props.items;
+}
+
+fn findRun(comptime T: type, runs: []const T, c: u21) ?*const T {
+    var lo: usize = 0;
+    var hi: usize = runs.len;
+    while (lo < hi) {
+        const mid = (lo + hi) / 2;
+        if (c < runs[mid].lo) hi = mid else if (c > runs[mid].hi) lo = mid + 1 else return &runs[mid];
+    }
+    return null;
+}
+
+/// Script (sc) of c among `Script`, or null for any other script.
+pub fn script(c: u21) ?Script {
+    return if (findRun(ScriptRun, data.scripts, c)) |r| r.sc else null;
+}
+
+/// Is s in c's Script_Extensions (Perl's bare \p{Greek})? Without an explicit list, scx = {sc}.
+pub fn hasScriptExt(c: u21, s: Script) bool {
+    if (findRun(ScxRun, data.scx, c)) |r| return r.mask & (@as(u16, 1) << @intFromEnum(s)) != 0;
+    return script(c) == s;
+}
+
+fn propBits(c: u21) u8 {
+    var b: u8 = 0;
+    // PropList ranges for different properties may overlap: check every run holding c.
+    for (data.props) |r| {
+        if (r.lo > c) break;
+        if (c <= r.hi) b |= r.bits;
+    }
+    return b;
+}
+
+/// Alphabetic: L&, Lm, Lo, Nl, or Other_Alphabetic.
+pub fn isAlphabetic(c: u21) bool {
+    const k = category(c);
+    return (k[0] == 'L' and (k[1] == 'u' or k[1] == 'l' or k[1] == 't' or k[1] == 'm' or k[1] == 'o')) or (k[0] == 'N' and k[1] == 'l') or propBits(c) & other_alpha != 0;
+}
+/// Uppercase: Lu or Other_Uppercase.
+pub fn isUppercase(c: u21) bool {
+    return std.mem.eql(u8, &category(c), "Lu") or propBits(c) & other_upper != 0;
+}
+/// Lowercase: Ll or Other_Lowercase.
+pub fn isLowercase(c: u21) bool {
+    return std.mem.eql(u8, &category(c), "Ll") or propBits(c) & other_lower != 0;
+}
+/// Cased: Lowercase, Uppercase or Lt.
+pub fn isCased(c: u21) bool {
+    return isUppercase(c) or isLowercase(c) or std.mem.eql(u8, &category(c), "Lt");
 }
