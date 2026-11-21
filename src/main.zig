@@ -145,6 +145,9 @@ fn selfExeHash(gpa: Allocator) [64]u8 {
             const p = std.mem.sliceTo(&buf, 0);
             return sha256File(gpa, p) catch [_]u8{'0'} ** 64;
         }
+    } else if (builtin.os.tag == .freebsd) {
+        const p = sys.freebsdExePath(&buf) orelse return [_]u8{'0'} ** 64;
+        return sha256File(gpa, p) catch [_]u8{'0'} ** 64;
     } else {
         return sha256File(gpa, "/proc/self/exe") catch [_]u8{'0'} ** 64;
     }

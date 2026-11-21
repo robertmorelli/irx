@@ -35,8 +35,10 @@ const SigSet = extern struct { b: [128]u8 align(8) = [_]u8{0} ** 128 };
 extern "c" fn posix_spawnattr_set_qos_class_np(attr: *SpawnBuf, qos: c_uint) c_int;
 extern "c" fn posix_spawnattr_setexceptionports_np(attr: *SpawnBuf, mask: u32, port: u32, behavior: c_int, flavor: c_int) c_int;
 
-const POSIX_SPAWN_SETSIGDEF: c_short = 0x04;
-const POSIX_SPAWN_SETSIGMASK: c_short = 0x08;
+// Darwin and glibc share these values; FreeBSD numbers them differently.
+const is_freebsd = builtin.os.tag == .freebsd;
+const POSIX_SPAWN_SETSIGDEF: c_short = if (is_freebsd) 0x10 else 0x04;
+const POSIX_SPAWN_SETSIGMASK: c_short = if (is_freebsd) 0x20 else 0x08;
 const POSIX_SPAWN_SETPGROUP: c_short = 0x02;
 const POSIX_SPAWN_CLOEXEC_DEFAULT: c_short = 0x4000;
 const EXC_MASK_CRASH: u32 = 1 << 10;

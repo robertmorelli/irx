@@ -1,5 +1,5 @@
-//! Thin libc/Darwin bindings. Everything here is POSIX or Darwin-specific and
-//! deliberately avoids Linux-only APIs. Declarations use plain C types so the
+//! Thin libc bindings for Darwin (primary), Linux and FreeBSD. Everything here is POSIX or
+//! OS-specific with a per-OS branch. Declarations use plain C types so the
 //! rest of the code does not depend on std.c's evolving wrappers.
 const std = @import("std");
 const builtin = @import("builtin");
@@ -20,10 +20,11 @@ pub extern "c" fn kill(pid: pid_t, sig: c_int) c_int;
 pub extern "c" fn waitpid(pid: pid_t, status: *c_int, options: c_int) pid_t;
 pub extern "c" fn getpid() pid_t;
 const is_linux = builtin.os.tag == .linux;
-extern "c" fn __error() *c_int; // Darwin
+const is_freebsd = builtin.os.tag == .freebsd;
+extern "c" fn __error() *c_int; // Darwin, FreeBSD
 extern "c" fn __errno_location() *c_int; // glibc
 pub extern "c" fn signal(sig: c_int, handler: ?*const anyopaque) ?*const anyopaque;
-extern "c" fn sysctlbyname(name: [*:0]const u8, oldp: ?*anyopaque, oldlenp: ?*usize, newp: ?*anyopaque, newlen: usize) c_int; // Darwin
+extern "c" fn sysctlbyname(name: [*:0]const u8, oldp: ?*anyopaque, oldlenp: ?*usize, newp: ?*anyopaque, newlen: usize) c_int; // Darwin, FreeBSD
 extern "c" fn clock_gettime_nsec_np(clock: c_int) u64; // Darwin
 const timespec = extern struct { sec: c_long, nsec: c_long };
 extern "c" fn clock_gettime(clock: c_int, ts: *timespec) c_int;
@@ -47,12 +48,13 @@ pub const O_RDONLY: c_int = 0;
 pub const O_WRONLY: c_int = 1;
 pub const O_RDWR: c_int = 2;
 // Flag and errno values differ between Darwin and Linux (x86_64/aarch64 generic ABI).
+// FreeBSD matches Darwin except for O_CLOEXEC.
 pub const O_NONBLOCK: c_int = if (is_linux) 0o4000 else 0x4;
 pub const O_APPEND: c_int = if (is_linux) 0o2000 else 0x8;
 pub const O_CREAT: c_int = if (is_linux) 0o100 else 0x200;
 pub const O_TRUNC: c_int = if (is_linux) 0o1000 else 0x400;
 pub const O_EXCL: c_int = if (is_linux) 0o200 else 0x800;
-pub const O_CLOEXEC: c_int = if (is_linux) 0o2000000 else 0x1000000;
+pub const O_CLOEXEC: c_int = if (is_linux) 0o2000000 else if (is_freebsd) 0x100000 else 0x1000000;
 pub const F_GETFD: c_int = 1;
 pub const F_SETFD: c_int = 2;
 pub const F_GETFL: c_int = 3;
@@ -73,7 +75,7 @@ pub const WNOHANG: c_int = 1;
 const CLOCK_UPTIME_RAW: c_int = 8;
 
 comptime {
-    if (builtin.os.tag != .macos and builtin.os.tag != .linux) @compileError("irx supports macOS (primary) and Linux (best effort)");
+    if (builtin.os.tag != .macos and !is_linux and !is_freebsd) @compileError("irx supports macOS (primary), Linux and FreeBSD (best effort)");
 }
 
 pub fn errno() c_int {
@@ -82,9 +84,9 @@ pub fn errno() c_int {
 
 /// Monotonic nanoseconds (does not advance across sleep on macOS, which is fine for deadlines).
 pub fn nowNs() u64 {
-    if (is_linux) {
+    if (is_linux or is_freebsd) {
         var ts: timespec = undefined;
-        _ = clock_gettime(1, &ts); // CLOCK_MONOTONIC
+        _ = clock_gettime(if (is_linux) 1 else 4, &ts); // CLOCK_MONOTONIC
         return @as(u64, @intCast(ts.sec)) * 1_000_000_000 + @as(u64, @intCast(ts.nsec));
     }
     return clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
@@ -101,10 +103,26 @@ pub fn setCloexec(fd: c_int) void {
     if (fl >= 0) _ = fcntl(fd, F_SETFD, fl | FD_CLOEXEC);
 }
 
+/// FreeBSD: absolute path of the running executable (kern.proc.pathname; FreeBSD has no /proc by default).
+pub fn freebsdExePath(buf: []u8) ?[]const u8 {
+    var mib = [4]c_int{ 1, 14, 12, -1 }; // CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, current process
+    var len: usize = buf.len;
+    if (sysctl(&mib, 4, buf.ptr, &len, null, 0) != 0 or len == 0) return null;
+    return std.mem.sliceTo(buf[0..len], 0);
+}
+extern "c" fn sysctl(name: [*]c_int, namelen: c_uint, oldp: ?*anyopaque, oldlenp: ?*usize, newp: ?*anyopaque, newlen: usize) c_int;
+
 pub fn physicalCpu() usize {
     if (is_linux) return linuxPhysicalCpu();
     var n: c_int = 0;
     var len: usize = @sizeOf(c_int);
+    if (is_freebsd) {
+        // kern.smp.cores is physical cores; hw.ncpu counts SMT threads.
+        if (sysctlbyname("kern.smp.cores", &n, &len, null, 0) == 0 and n > 0) return @intCast(n);
+        len = @sizeOf(c_int);
+        if (sysctlbyname("hw.ncpu", &n, &len, null, 0) != 0 or n <= 0) return 1;
+        return @intCast(n);
+    }
     if (sysctlbyname("hw.physicalcpu", &n, &len, null, 0) != 0 or n <= 0) return 1;
     return @intCast(n);
 }
