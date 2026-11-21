@@ -18,7 +18,7 @@ MODELS=(${IRX_TRIAGE_MODELS:-$DEF_MODELS})
 WT=${IRX_LEDGER_WT:-$HOME/src/irx-ledger}
 BASE=${IRX_LEDGER_BASE:-origin/main}
 HAVE_GH=$(command -v gh >/dev/null && echo 1 || echo 0)
-out_of_quota() { grep -qiE "RESOURCE_EXHAUSTED|usage limit|hit your (usage )?limit|rate.limit|limit reached|credit balance" "$1"; }
+out_of_quota() { grep -qiE "RESOURCE_EXHAUSTED|usage limit|hit your (usage )?limit|rate.limit|limit reached|credit balance|Not logged in|Please run /login" "$1"; }
 while :; do
   run=$(grep -vxFf <(cut -d" " -f1 "$S/triaged") "$S/queue" | head -1)
   if [ -z "$run" ]; then sleep 60; continue; fi
@@ -56,7 +56,7 @@ Label: ${name%-*}"
     if [ "$rc" != 0 ] && out_of_quota "$S/triage/$name.log"; then echo "$(now) $name: $MODEL out of quota"; continue; fi
     ok=1; break
   done
-  # Every model out of quota: leave the run queued and retry later instead of marking it triaged.
+  # Every model out of quota (or the CLI is logged out): leave the run queued and retry later instead of marking it triaged.
   if [ "$ok" = 0 ]; then echo "$(now) all models out of quota; retrying in 30 min"; sleep 1800; continue; fi
   echo "$run rc=$rc $(now)" | tee -a "$S/triaged"
   if ! git -C "$WT" diff --quiet; then
