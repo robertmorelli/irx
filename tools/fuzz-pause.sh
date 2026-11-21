@@ -1,13 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Pause or resume the fuzz-forever process tree (SIGSTOP/SIGCONT); triage is left alone.
-# Usage: tools/fuzz-pause.sh stop|cont|status
+# Usage: tools/fuzz-pause.sh stop|cont|status   (Linux and FreeBSD)
 set -u
-root=$(pgrep -f '^/bin/bash tools/fuzz-forever.sh$' | head -1)
+cd "$(dirname "$0")/.."
+root=$(cat findings/forever/fuzz.pid 2>/dev/null)
+[ -n "$root" ] && kill -0 "$root" 2>/dev/null || root=$(pgrep -f '^(/usr/local)?/bin/bash tools/fuzz-forever.sh$' | head -1)
 [ -n "$root" ] || { echo "fuzz-forever not running"; exit 1; }
 all=($root); frontier=($root)
 while [ ${#frontier[@]} -gt 0 ]; do
   next=()
-  for p in "${frontier[@]}"; do next+=($(ps -o pid= --ppid "$p")); done
+  for p in "${frontier[@]}"; do next+=($(pgrep -P "$p")); done
   frontier=("${next[@]}"); all+=("${next[@]}")
 done
 case "${1:-status}" in
