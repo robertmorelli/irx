@@ -19,7 +19,7 @@ start() { # name script
 stop() { # kill the whole tree under the recorded pid
   alive "$1" || { echo "$1 not running"; return; }
   local all=($(cat "$S/$1.pid")) frontier=($(cat "$S/$1.pid")) next p
-  while [ ${#frontier[@]} -gt 0 ]; do next=(); for p in "${frontier[@]}"; do next+=($(pgrep -P "$p")); done; frontier=("${next[@]}"); all+=("${next[@]}"); done
+  while [ ${#frontier[@]} -gt 0 ]; do next=(); for p in "${frontier[@]}"; do next+=($(pgrep -P "$p")); done; frontier=(${next[@]+"${next[@]}"}); all+=(${next[@]+"${next[@]}"}); done
   kill -TERM "${all[@]}" 2>/dev/null; rm -f "$S/$1.pid"; echo "$1 stopped (${#all[@]} processes)"
 }
 case "${1:-status}" in

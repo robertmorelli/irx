@@ -1,0 +1,42 @@
+# irx target: Perl PR #25087 (yves/fix_25083_and_friends, vendor/perl5-pr), throughput-tuned like perl_blead_fast.
+# Modes perl + perl-capture + perl-offset only: perl-repeat repeats perl's findings, perl-span is
+# covered by perl-capture, and perl-sticky repeated perl-offset's in porple benchmarks (2026-11-21).
+# No startup self-check: it costs ~3 min per round and only re-finds IRX-PERL-6.
+# Run with jobs = 2x hardware threads (IRX_JOBS): Perl workers idle on pipes, so oversubscribing pays.
+
+[target]
+title = "Perl PR #25087 (fast)"
+kind = "perl"
+command = "{root}/tools/perl-pr"
+dialect = "perl-pr"   # perl-blead plus atomic groups in lookbehind (PR fixes IRX-PERL-8)
+modes = "perl"
+selfcheck = false
+
+[span]
+enabled = false
+units = "cp"
+
+[capture]
+enabled = true
+loop = "unmodeled"
+lookbehind = true
+
+[offset]
+enabled = true
+sticky = false
+
+[strings]
+# IRX-PERL-6 (U+0390/U+1FD3) and IRX-PERL-9 (U+0450) are known and outside PR #25087: keep them in
+# 10% of tables so they stop crowding out everything else (quiet_chars needs irx >= the quiet patch).
+quiet_chars = [0x450, 0x390, 0x1FD3]
+quiet_keep = 0.1
+
+# Wider generator (2026-11-21): more mutation (atomic, possessive, backreferences), patterns up to
+# size 32, classes up to 3 members (4 made table building ~4x slower). Measured ~1.7x faster than before.
+[grammar]
+mutate_rate = 0.4
+max_size = 32
+class_max_members = 3
+
+[sizes]
+uniform = [4, 32]

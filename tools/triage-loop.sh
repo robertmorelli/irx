@@ -44,6 +44,11 @@ Ledger checkout: $WT (edit $WT/README.md only)
 Ledger IDs already taken by open PRs: ${taken:-none}
 Host: $HOST
 Label: ${name%-*}"
+  # A target can add run-specific triage instructions (e.g. the PR it tests, ledger ID suffix).
+  note="targets/${name##*-}/triage-note.md"
+  [ -f "$note" ] && prompt="$prompt
+
+$(cat "$note")"
   ok=0
   for MODEL in "${MODELS[@]}"; do
     echo "== triage $name ($n findings) cli=$CLI model=$MODEL $(now)"

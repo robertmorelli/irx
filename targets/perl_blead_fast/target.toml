@@ -1,0 +1,26 @@
+# irx target: Perl blead, throughput-tuned (same engine as perl-blead).
+# Modes perl + perl-capture + perl-offset only: perl-repeat repeats perl's findings, perl-span is
+# covered by perl-capture, and perl-sticky repeated perl-offset's in porple benchmarks (2026-11-21).
+# No startup self-check: it costs ~3 min per round and only re-finds IRX-PERL-6.
+# Run with jobs = 2x hardware threads (IRX_JOBS): Perl workers idle on pipes, so oversubscribing pays.
+
+[target]
+title = "Perl blead (fast)"
+kind = "perl"
+command = "{root}/tools/perl-blead"
+dialect = "perl-blead"
+modes = "perl"
+selfcheck = false
+
+[span]
+enabled = false
+units = "cp"
+
+[capture]
+enabled = true
+loop = "unmodeled"
+lookbehind = true
+
+[offset]
+enabled = true
+sticky = false
