@@ -1,4 +1,6 @@
-/* PCRE2 host: Perl-like semantics, UTF + UCP, full match via \A(?:p)\z. */
+/* PCRE2 host: Perl-like semantics, UTF + UCP, full match via \A(?:p)\z.
+ * IRX_PCRE2_NOAP=1 compiles with PCRE2_NO_AUTO_POSSESS, so the auto-possessification bugs
+ * (IRX-PCRE2-4, -8) do not bury everything else. */
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 #include "proto.h"
@@ -16,9 +18,9 @@ static int err_bits(int rc) {
         return 0x08;
     }
 }
-const char *host_name(void) { static char b[64]; pcre2_config(PCRE2_CONFIG_VERSION, b); static char o[96]; snprintf(o, sizeof o, "pcre2-%s%s%s", b, getenv("IRX_PCRE2_JIT") ? "-jit" : "", getenv("IRX_PCRE2_NOUCP") ? "-noucp" : ""); return o; }
+const char *host_name(void) { static char b[64]; pcre2_config(PCRE2_CONFIG_VERSION, b); static char o[96]; snprintf(o, sizeof o, "pcre2-%s%s%s%s", b, getenv("IRX_PCRE2_JIT") ? "-jit" : "", getenv("IRX_PCRE2_NOUCP") ? "-noucp" : "", getenv("IRX_PCRE2_NOAP") ? "-noap" : ""); return o; }
 int host_case(const char *flags, const char *a, size_t alen, const char *r, size_t rlen, const char *pat, size_t plen, int repeat) {
-    uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP);
+    uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP) | (getenv("IRX_PCRE2_NOAP") ? PCRE2_NO_AUTO_POSSESS : 0);
     if (strchr(flags, 'i')) opt |= PCRE2_CASELESS;
     if (strchr(flags, 'm')) opt |= PCRE2_MULTILINE;
     if (strchr(flags, 's')) opt |= PCRE2_DOTALL;
@@ -42,7 +44,7 @@ done:
     return bits;
 }
 int host_span(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[4]) {
-    uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP);
+    uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP) | (getenv("IRX_PCRE2_NOAP") ? PCRE2_NO_AUTO_POSSESS : 0);
     if (strchr(flags, 'i')) opt |= PCRE2_CASELESS;
     if (strchr(flags, 'm')) opt |= PCRE2_MULTILINE;
     if (strchr(flags, 's')) opt |= PCRE2_DOTALL;
@@ -62,7 +64,7 @@ int host_span(const char *flags, const char *const subj[2], const size_t lens[2]
     return e;
 }
 int host_capture(const char *flags, const char *const subj[2], const size_t lens[2], const char *pat, size_t plen, long out[2][2 * CAP_PAIRS]) {
-    uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP);
+    uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP) | (getenv("IRX_PCRE2_NOAP") ? PCRE2_NO_AUTO_POSSESS : 0);
     if (strchr(flags, 'i')) opt |= PCRE2_CASELESS;
     if (strchr(flags, 'm')) opt |= PCRE2_MULTILINE;
     if (strchr(flags, 's')) opt |= PCRE2_DOTALL;
@@ -88,7 +90,7 @@ int host_capture(const char *flags, const char *const subj[2], const size_t lens
 /* bench (Shootout 2): compile once, unanchored searches. */
 typedef struct { pcre2_code *re; pcre2_match_data *md; } PB;
 void *host_bench_compile(const char *flags, const char *pat, size_t plen) {
-    uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP);
+    uint32_t opt = PCRE2_UTF | (getenv("IRX_PCRE2_NOUCP") ? 0 : PCRE2_UCP) | (getenv("IRX_PCRE2_NOAP") ? PCRE2_NO_AUTO_POSSESS : 0);
     if (strchr(flags, 'i')) opt |= PCRE2_CASELESS;
     if (strchr(flags, 'm')) opt |= PCRE2_MULTILINE;
     if (strchr(flags, 's')) opt |= PCRE2_DOTALL;
