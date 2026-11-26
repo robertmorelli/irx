@@ -515,8 +515,18 @@ test "perl: where \\K, \\G and branch reset may go" {
         "(concat (quant star 0 255 0 (alt " ++ a ++ " (concat " ++ a ++ " (concat " ++ a ++ " (keep))))) " ++ a ++ ")",
     };
     for (good) |src| try t.expect(ast.perlExtrasValid(&(try ast.parse(src))));
-    // Other dialects: none of them.
+    // PCRE2 has all three and undoes \\K on backtracking, so it may sit in an atomic group or an
+    // optional group there: (?>a\\K)x|ab on "ab" is [0,2) and (?:a\\K)?a on "a" is [0,1)
+    // (pcre2test 10.49). \\K in a lookaround is a compile error.
     dialect.active = &dialect.pcre2;
+    try t.expect(dialect.treeAllowed(&(try ast.parse("(concat " ++ a ++ " (keep))"))));
+    try t.expect(dialect.treeAllowed(&(try ast.parse("(concat (gpos) " ++ a ++ ")"))));
+    try t.expect(dialect.treeAllowed(&(try ast.parse("(branch_reset (alt " ++ a ++ " " ++ a ++ "))"))));
+    try t.expect(ast.perlExtrasValid(&(try ast.parse("(concat (atomic (concat " ++ a ++ " (keep))) " ++ a ++ ")"))));
+    try t.expect(ast.perlExtrasValid(&(try ast.parse("(concat (quant opt 0 1 0 (concat " ++ a ++ " (keep))) " ++ a ++ ")"))));
+    try t.expect(!ast.perlExtrasValid(&(try ast.parse("(look_ahead (concat " ++ a ++ " (keep)))"))));
+    // Other dialects: none of them.
+    dialect.active = &dialect.pcre1;
     try t.expect(!dialect.treeAllowed(&(try ast.parse("(concat " ++ a ++ " (keep))"))));
     try t.expect(!dialect.treeAllowed(&(try ast.parse("(concat (gpos) " ++ a ++ ")"))));
     try t.expect(!dialect.treeAllowed(&(try ast.parse("(branch_reset (alt " ++ a ++ " " ++ a ++ "))"))));

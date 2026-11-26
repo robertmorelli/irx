@@ -364,7 +364,7 @@ pub const Printer = struct {
                 // Assertions as quantifier bodies are wrapped by the caller.
                 if (n.atom.kind == .empty and n.atom.sub == 1) {
                     self.bare_ok = false;
-                    return self.put("(*FAIL)");
+                    return self.put(if (dialect.active.fail_verb_grouped) "(?:(*FAIL))" else "(*FAIL)");
                 }
                 if (n.atom.kind == .empty) return self.emptyAtom();
                 self.bare_ok = false;
@@ -815,7 +815,7 @@ pub const Printer = struct {
                 .gt => "\\>",
             }),
             .nwordb => try self.put(dialect.active.nonword_boundary),
-            .empty => try self.put(if (a.sub == 1) "(*FAIL)" else "(?:)"),
+            .empty => try self.put(if (a.sub == 1) (if (dialect.active.fail_verb_grouped) "(?:(*FAIL))" else "(*FAIL)") else "(?:)"),
             .prop => try self.property(@enumFromInt(a.sub), a.neg),
         }
     }

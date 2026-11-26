@@ -69,7 +69,7 @@ pub const dialect: D.Dialect = .{
     .pattern_only = &.{ 0xDF, 0x1E9E, 0xFB00, 0xFB01, 0x130, 0x149, 0x1F0, 0x3B0, 0x1E96, 0xFB02, 0xFB06, 0xFB13, 0x587 },
     // Perl rejects unbounded lookbehind ("Lookbehind longer than 255").
     .lookbehind_len_cap = 16,
-    // \A, \z and \Z (PCRE2, PCRE1, Boost and nim-regex turn these off until checked).
+    // \A, \z and \Z (PCRE1, Boost and nim-regex turn these off until checked).
     .abs_anchors = true,
     .abs_dollar_newline = true,
     .n_escape = true,
@@ -98,20 +98,19 @@ pub fn pcre2Space(c: u21) bool {
 pub const pcre2: D.Dialect = blk: {
     var d = dialect;
     d.name = "pcre2";
-    d.abs_anchors = false;
-    d.abs_dollar_newline = false;
-    d.n_escape = false;
-    d.r_escape = false;
+    // Kept from Perl, checked against PCRE2 10.49 (interpreter and JIT, also PHP and Erlang):
+    // \A \z \Z, \N, \R, \K, \G, branch reset, (*FAIL), every backreference spelling, and
+    // script and binary properties.
     d.grapheme_whole_string = false;
-    d.prop_perl_extra = false;
-    d.fail_verb = false;
-    d.perl_backref_spellings = false;
     d.multi_fold_pool = false;
+    d.prop_binary_cased = false;
+    d.script_or_scx = true;
+    d.fail_verb_grouped = true;
+    // \K is undone when the matcher backtracks out of an atomic group or a loop: (?>a\K)x|ab on
+    // "ab" is [0,2) (pcre2test 10.49).
+    d.keep_restored = true;
     d.lookbehind_forward = false;
     d.lookbehind_no_atomic = true;
-    d.keep_escape = false;
-    d.gpos_escape = false;
-    d.branch_reset = false;
     d.empty_iteration_at_min = false;
     // Bounded loops are unrolled, so an empty iteration there just counts: `(?:^|.){1,3}a` on
     // "baa" is [0,2) (Perl [0,3)).
@@ -256,6 +255,17 @@ fn pcre1Word(c: u21, _: D.Flags) bool {
 pub const pcre1: D.Dialect = blk: {
     var d = pcre2;
     d.name = "pcre1";
+    d.abs_anchors = false;
+    d.abs_dollar_newline = false;
+    d.n_escape = false;
+    d.r_escape = false;
+    d.prop_perl_extra = false;
+    d.keep_restored = false;
+    d.fail_verb = false;
+    d.perl_backref_spellings = false;
+    d.keep_escape = false;
+    d.gpos_escape = false;
+    d.branch_reset = false;
     // Unicode 10-era grapheme data (emoji modifiers had their own class): no \X.
     d.grapheme_escape = .none;
     d.isWord = pcre1Word;

@@ -60,7 +60,7 @@ pub const Config = struct {
     /// (where the dialect has them), checked against the backtracking matcher.
     mutate_rate: f64 = 0,
     /// Relative weights of the mutation kinds (where the dialect has them): atomic group,
-    /// possessive loop, backreference, the Perl-only \\K, \\G and branch reset (?|…|…), and
+    /// possessive loop, backreference, \\K, \\G and branch reset (?|…|…), and
     /// the conditional group (?(N)yes|no) (Perl, PCRE).
     mutate_atomic: f64 = 1.0,
     mutate_possessive: f64 = 1.0,

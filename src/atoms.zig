@@ -59,17 +59,22 @@ pub const Prop = enum(u8) {
         return @intFromEnum(p) > @intFromEnum(Prop.Cc);
     }
 
+    /// A bare script name: Script_Extensions, or also the Script itself (script_or_scx).
+    fn inScript(x: u21, s: ucd.Script) bool {
+        return ucd.hasScriptExt(x, s) or (dialect.active.script_or_scx and ucd.script(x) == s);
+    }
+
     /// Does code point x have this property (a general category: one letter is the major class)?
     pub fn has(p: Prop, x: u21) bool {
         switch (p) {
-            .Latin => return ucd.hasScriptExt(x, .Latin),
-            .Greek => return ucd.hasScriptExt(x, .Greek),
-            .Cyrillic => return ucd.hasScriptExt(x, .Cyrillic),
-            .Common => return ucd.hasScriptExt(x, .Common),
-            .Inherited => return ucd.hasScriptExt(x, .Inherited),
-            .Hangul => return ucd.hasScriptExt(x, .Hangul),
-            .Devanagari => return ucd.hasScriptExt(x, .Devanagari),
-            .Arabic => return ucd.hasScriptExt(x, .Arabic),
+            .Latin => return inScript(x, .Latin),
+            .Greek => return inScript(x, .Greek),
+            .Cyrillic => return inScript(x, .Cyrillic),
+            .Common => return inScript(x, .Common),
+            .Inherited => return inScript(x, .Inherited),
+            .Hangul => return inScript(x, .Hangul),
+            .Devanagari => return inScript(x, .Devanagari),
+            .Arabic => return inScript(x, .Arabic),
             .Alpha => return ucd.isAlphabetic(x),
             .Upper => return ucd.isUppercase(x),
             .Lower => return ucd.isLowercase(x),
@@ -289,7 +294,7 @@ fn has(n: *const SetNode, flags: Flags, x: u21) bool {
             if (flags.i and dialect.active.prop_case == .cased and (p == .Lu or p == .Ll))
                 break :blk Prop.Lu.has(x) or Prop.Ll.has(x) or std.mem.eql(u8, &ucd.category(x), "Lt");
             // Perl: under /i, \p{Upper} and \p{Lower} are \p{Cased} (scripts and Alpha are unchanged).
-            if (flags.i and dialect.active.prop_case == .cased and (p == .Upper or p == .Lower)) break :blk ucd.isCased(x);
+            if (flags.i and dialect.active.prop_case == .cased and dialect.active.prop_binary_cased and (p == .Upper or p == .Lower)) break :blk ucd.isCased(x);
             break :blk p.has(x);
         },
     };

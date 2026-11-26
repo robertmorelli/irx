@@ -93,12 +93,21 @@ pub const Dialect = struct {
     /// \\p{…} also takes Perl's scripts (bare names: Script_Extensions) and Alpha, Upper, Lower,
     /// Cased (atoms.Prop.isPerlExtra).
     prop_perl_extra: bool = false,
+    /// Under /i (prop_case = cased), \\p{Upper} and \\p{Lower} are \\p{Cased} like \\p{Lu} and \\p{Ll}
+    /// (Perl); false: only the general categories widen (PCRE2: `\\p{Upper}` under caseless is no
+    /// match on "a").
+    prop_binary_cased: bool = true,
+    /// A bare script name also matches by Script, not only Script_Extensions: PCRE2's
+    /// `\\p{Common}` takes U+202F and `\\p{Inherited}` U+0301, whose extension lists leave them out.
+    script_or_scx: bool = false,
     /// (*FAIL): never matches (the empty atom with sub 1).
     fail_verb: bool = false,
+    /// Spell it (?:(*FAIL)): PCRE2 rejects a quantifier right after a verb (`(*FAIL)*` is error 109).
+    fail_verb_grouped: bool = false,
     /// Backreferences in all of Perl's spellings: \\1, \\g1, \\g{1}, \\g{-1}, \\k<n>, \\k{n},
     /// \\k'n', \\g{n}, (?P=n).
     perl_backref_spellings: bool = false,
-    /// Mutation mode, Perl only: \\K (keep), \\G (search start) and branch reset (?|…|…).
+    /// Mutation mode, Perl and PCRE2: \\K (keep), \\G (search start) and branch reset (?|…|…).
     keep_escape: bool = false,
     /// \\K may sit inside an atomic group, possessive loop or a loop over a fixed-length body.
     /// Perl keeps the \\K position after backtracking out of those: `"ab" =~ /(?>a\\K)x|ab/` is
