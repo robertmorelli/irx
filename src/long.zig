@@ -189,8 +189,9 @@ pub const Eval = struct {
     fn walk(self: *Eval, idx: u8, s: []const u64, forward: bool) Error![]u64 {
         try self.charge(1);
         const n = self.t.nodes[idx];
-        // Atomic groups and backreferences have no position-set semantics (mutation mode only).
-        if (n.op == .atomic or n.op == .backref) return error.Unsupported;
+        // Atomic groups, backreferences, conditionals, \K, \G and branch reset have no
+        // position-set semantics (mutation mode only).
+        if (n.op == .atomic or n.op == .backref or n.op == .cond or n.op == .keep or n.op == .gpos or n.op == .branch_reset) return error.Unsupported;
         switch (n.op) {
             .atom => if (atoms.foldsMulti(&n.atom, self.nflags[idx])) return self.foldWalk(idx, s, forward) else switch (n.atom.kind) {
                 .linebreak => {
@@ -275,7 +276,7 @@ pub const Eval = struct {
             },
             .quant => return self.quant(n.a, n.quant, s, forward),
             .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => return self.andMask(s, idx),
-            .atomic, .backref => unreachable,
+            .atomic, .backref, .cond, .keep, .gpos, .branch_reset => unreachable,
             .group_cap, .group_nc, .group_named, .flag_group => return self.walk(n.a, s, forward),
         }
     }

@@ -244,6 +244,9 @@ pub const Printer = struct {
     no_bare_depth: u8 = 0,
     /// Lookbehind nesting depth (Oniguruma/Onigmo reject captures there, so no `()` spelling).
     lb_depth: u8 = 0,
+    /// Branch reset nesting depth: no `()` spelling inside, so every alternative numbers only
+    /// its tree captures.
+    br_depth: u8 = 0,
 
     /// One of `n` equivalent spellings, from (spell, ordinal); 0 when spell is 0.
     fn pick(self: *Printer, n: u64) u64 {
@@ -312,7 +315,7 @@ pub const Printer = struct {
         const n = t.nodes[idx];
         return switch (n.op) {
             .atom => n.atom.isConsuming() or n.atom.kind == .empty,
-            .group_cap, .group_nc, .group_named, .flag_group, .atomic, .backref => true,
+            .group_cap, .group_nc, .group_named, .flag_group, .atomic, .backref, .cond, .branch_reset => true,
             else => false,
         };
     }
@@ -344,7 +347,7 @@ pub const Printer = struct {
         x ^= x >> 31;
         switch (x % 3) {
             1 => if (bare and dialect.active.bare_empty) return,
-            2 => if (dialect.active.empty_capture and !(self.lb_depth > 0 and dialect.active.lookbehind_onig)) {
+            2 => if (dialect.active.empty_capture and self.br_depth == 0 and !(self.lb_depth > 0 and dialect.active.lookbehind_onig)) {
                 self.printed_groups +|= 1;
                 return self.put("()");
             },
@@ -492,6 +495,21 @@ pub const Printer = struct {
                     try self.putc(')');
                 }
             },
+            .keep => try self.put("\\K"),
+            .gpos => try self.put("\\G"),
+            .branch_reset => {
+                try self.put("(?|");
+                self.br_depth += 1;
+                defer self.br_depth -= 1;
+                const p0 = self.printed_groups;
+                const t0 = self.n_tree_groups;
+                var hi_p = p0;
+                var hi_t = t0;
+                try self.branchAlts(t, n.a, p0, t0, &hi_p, &hi_t);
+                self.printed_groups = hi_p;
+                self.n_tree_groups = hi_t;
+                try self.putc(')');
+            },
             .backref => {
                 // By the printed number of the target group (printed earlier: mutation only refers
                 // back); wrapped so a following digit cannot extend the number.
@@ -520,7 +538,50 @@ pub const Printer = struct {
                     }
                 } else try self.fmt("(?:\\{d})", .{num});
             },
+            .cond => {
+                // (?(N)yes|no), or (?(N)yes) when the no branch is the empty atom. The condition
+                // names the target by printed number, or for a named target (whose name no
+                // other group shares) by name in Perl's spellings.
+                const num: u8 = if (n.fmod < self.n_tree_groups) self.tree_groups[n.fmod] else 0;
+                const named = if (n.fmod < self.n_tree_groups) self.named_target[n.fmod] else 0;
+                var shared = false;
+                for (self.alias[0..t.len]) |al| if (al != 255) {
+                    shared = true;
+                };
+                if (named != 0 and !shared and dialect.active.perl_backref_spellings and self.pick(2) == 1) {
+                    if (self.pick(2) == 0) try self.fmt("(?(<g{d}>)", .{named}) else try self.fmt("(?('g{d}')", .{named});
+                } else try self.fmt("(?({d})", .{num});
+                // Each branch is one alternative: an alternation inside is wrapped.
+                self.bare_ok = true;
+                try self.node(t, n.a, .concat);
+                const nb = t.nodes[n.b];
+                if (!(nb.op == .atom and nb.atom.kind == .empty and nb.atom.sub == 0)) {
+                    self.bare_ok = false;
+                    try self.putc('|');
+                    self.bare_ok = true;
+                    try self.node(t, n.b, .concat);
+                }
+                self.bare_ok = false;
+                try self.putc(')');
+            },
         }
+    }
+
+    /// The top-level alternatives of a branch reset, each numbering its groups from the
+    /// numbers in force at the `(?|` (mirrors ast.Caps.walkAlts).
+    fn branchAlts(self: *Printer, t: *const ast.Ast, idx: u8, p0: u8, t0: u8, hi_p: *u8, hi_t: *u8) PrintError!void {
+        const n = t.nodes[idx];
+        if (n.op == .alt) {
+            try self.branchAlts(t, n.a, p0, t0, hi_p, hi_t);
+            try self.putc('|');
+            try self.branchAlts(t, n.b, p0, t0, hi_p, hi_t);
+            return;
+        }
+        self.printed_groups = p0;
+        self.n_tree_groups = t0;
+        try self.bareChild(t, idx);
+        hi_p.* = @max(hi_p.*, self.printed_groups);
+        hi_t.* = @max(hi_t.*, self.n_tree_groups);
     }
 
     fn escapedCodePoint(self: *Printer, c: u21) PrintError!void {
@@ -905,8 +966,8 @@ const TreeEnum = struct {
     fn copySub(dst: *ast.Ast, src: *const ast.Ast, idx: u8) !u8 {
         var n = src.nodes[idx];
         switch (n.op) {
-            .atom, .backref => {},
-            .concat, .alt => {
+            .atom, .backref, .keep, .gpos => {},
+            .concat, .alt, .cond => {
                 n.a = try copySub(dst, src, n.a);
                 n.b = try copySub(dst, src, n.b);
             },

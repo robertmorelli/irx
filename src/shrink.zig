@@ -297,6 +297,7 @@ pub const Triage = struct {
     fn validFor(t: *const ast.Ast, flags: Flags) bool {
         if (!@import("dialect.zig").treeAllowed(t)) return false;
         if (ast.needsMatcher(t) and !ast.backrefsValid(t)) return false;
+        if (!ast.perlExtrasValid(t)) return false;
         for (t.nodes[0..t.len]) |n| {
             if (n.op != .atom) continue;
             const at = n.atom;
@@ -382,7 +383,7 @@ pub const Triage = struct {
                         nv += 1;
                     }
                 },
-                .concat, .alt => {
+                .concat, .alt, .cond => {
                     variants[nv] = .{ .child = n.a };
                     variants[nv + 1] = .{ .child = n.b };
                     nv += 2;
@@ -411,7 +412,7 @@ pub const Triage = struct {
                         nv += 1;
                     }
                 },
-                .backref => {
+                .backref, .keep, .gpos => {
                     variants[nv] = .{ .replace_atom = .{ .kind = .empty } };
                     nv += 1;
                 },
@@ -735,8 +736,8 @@ fn copyWith(src: *const ast.Ast, idx: u8, target: u8, v: Variant, dst: *ast.Ast)
     }
     var n = src.nodes[idx];
     switch (n.op) {
-        .atom, .backref => {},
-        .concat, .alt => {
+        .atom, .backref, .keep, .gpos => {},
+        .concat, .alt, .cond => {
             n.a = try copyWith(src, n.a, target, v, dst);
             n.b = try copyWith(src, n.b, target, v, dst);
         },

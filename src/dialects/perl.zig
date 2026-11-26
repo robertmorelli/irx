@@ -35,6 +35,7 @@ pub const dialect: D.Dialect = .{
     .atomic_groups = true,
     .possessive = true,
     .backrefs = true,
+    .conditionals = true,
     .extended_mode = true,
     .scoped_flags = true,
     .hv_escapes = true,
@@ -50,7 +51,7 @@ pub const dialect: D.Dialect = .{
     // group or possessive loop can run past the lookbehind ((?<=a?+)a fails on "a"); the model
     // does the same (lookbehind_forward). Atomic groups stay out of lookbehind anyway: once any
     // earlier match has run (the driver's JSON::PP load does), perl gets them wrong (IRX-PERL-8),
-    // which would drown every campaign. Allow them again once that is fixed.
+    // which would drown every campaign. perl-pr (PR #25087, which fixes it) allows them again.
     .lookbehind_no_atomic = true,
     .isLineTerminator = lineTerminator,
     .isSpace = space,
@@ -79,6 +80,9 @@ pub const dialect: D.Dialect = .{
     .perl_backref_spellings = true,
     .multi_fold_pool = true,
     .lookbehind_forward = true,
+    .keep_escape = true,
+    .gpos_escape = true,
+    .branch_reset = true,
 };
 
 /// PCRE2 10.43+ with UCP: \w is \p{L}, \p{N}, \p{Mn}, \p{Pc} (no join controls; all of N);
@@ -105,6 +109,9 @@ pub const pcre2: D.Dialect = blk: {
     d.multi_fold_pool = false;
     d.lookbehind_forward = false;
     d.lookbehind_no_atomic = true;
+    d.keep_escape = false;
+    d.gpos_escape = false;
+    d.branch_reset = false;
     d.empty_iteration_at_min = false;
     // Bounded loops are unrolled, so an empty iteration there just counts: `(?:^|.){1,3}a` on
     // "baa" is [0,2) (Perl [0,3)).
@@ -160,6 +167,14 @@ pub const perl_blead: D.Dialect = blk: {
     d.grapheme_escape = .extended_gb9c_18;
     break :blk d;
 };
+/// Perl blead with PR #25087 (atomic groups in lookbehind fixed: IRX-PERL-8): atomic groups
+/// and possessive loops may go inside lookbehind again. perl-blead keeps them out.
+pub const perl_pr: D.Dialect = blk: {
+    var d = perl_blead;
+    d.name = "perl-pr";
+    d.lookbehind_no_atomic = false;
+    break :blk d;
+};
 pub const perl_a: D.Dialect = asciiClasses(dialect, "perl-a");
 pub const perl_aa: D.Dialect = blk: {
     var d = asciiClasses(dialect, "perl-aa");
@@ -196,6 +211,9 @@ pub const boost: D.Dialect = blk: {
     d.multi_fold_pool = false;
     d.lookbehind_forward = false;
     d.lookbehind_no_atomic = true;
+    d.keep_escape = false;
+    d.gpos_escape = false;
+    d.branch_reset = false;
     d.empty_iteration_at_min = false;
     // \X is a combining sequence, but after an optional or repeated element regex_match fails
     // (IRX-BOOST-3), which would drown other findings: no \X.
@@ -204,6 +222,8 @@ pub const boost: D.Dialect = blk: {
     // abandons it (IRX-BOOST-4), which would drown capture findings: no atomic groups.
     d.atomic_groups = false;
     d.possessive = false;
+    // Boost has conditionals, but they are only checked against Perl and PCRE.
+    d.conditionals = false;
     d.full_fold = .none;
     d.pattern_only = &.{};
     d.pool_exclude = &.{ 0xDF, 0x130 };

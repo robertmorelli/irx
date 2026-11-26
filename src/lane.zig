@@ -161,12 +161,26 @@ pub const Lane = struct {
                 var mrng = rngmod.Rng.fromParts(0x707A, &.{ run.global_seed, tab.id.seq, tab.id.attempt, idx });
                 if (mrng.float() < run.cfg.mutate_rate) {
                     const saved = c.tree;
-                    if (mutatemod.apply(&c.tree, &mrng)) {
+                    const mw: mutatemod.Weights = .{ run.cfg.mutate_atomic, run.cfg.mutate_possessive, run.cfg.mutate_backref, run.cfg.mutate_keep, run.cfg.mutate_gpos, run.cfg.mutate_branch_reset, run.cfg.mutate_conditional };
+                    if (mutatemod.applyWeighted(&c.tree, &mrng, &mw)) {
                         const ea = ast.oracle(&c.tree, tab.id.flags, tab.a16);
                         const er = ast.oracle(&c.tree, tab.id.flags, tab.r16);
                         if (ea != null and er != null) {
                             mut_a = ea.?;
                             mut_r = er.?;
+                            _ = run.mutated.fetchAdd(1, .monotonic);
+                            var seen: [4]bool = .{ false, false, false, false };
+                            for (c.tree.nodes[0..c.tree.len]) |nd| switch (nd.op) {
+                                .cond => seen[0] = true,
+                                .keep => seen[1] = true,
+                                .gpos => seen[2] = true,
+                                .branch_reset => seen[3] = true,
+                                else => {},
+                            };
+                            if (seen[0]) _ = run.mutated_cond.fetchAdd(1, .monotonic);
+                            if (seen[1]) _ = run.mutated_keep.fetchAdd(1, .monotonic);
+                            if (seen[2]) _ = run.mutated_gpos.fetchAdd(1, .monotonic);
+                            if (seen[3]) _ = run.mutated_branch_reset.fetchAdd(1, .monotonic);
                         } else c.tree = saved;
                     }
                 }

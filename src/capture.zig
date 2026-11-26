@@ -98,7 +98,7 @@ pub fn reference(c: *const finding.Case, subject: []const u16, gm: *const GroupM
         const r = mt.matchAt(i) orelse return null;
         if (!r) continue;
         out.found = true;
-        out.s[0] = @intCast(span.utf16Offset(w, i));
+        out.s[0] = @intCast(span.utf16Offset(w, mt.keep orelse i)); // \K moves $-[0]
         out.e[0] = @intCast(span.utf16Offset(w, mt.end));
         for (0..gm.n) |t| {
             const p = gm.num[t];
@@ -229,4 +229,36 @@ pub fn extraJson(out: *std.ArrayList(u8), gpa: std.mem.Allocator, ck: Check, raw
     try out.appendSlice(gpa, ", \"raw\": \"");
     for (raw) |b| try out.print(gpa, "{x:0>2}", .{b});
     try out.appendSlice(gpa, "\"}");
+}
+
+test "perl: branch reset numbers each alternative from the same group" {
+    const t = std.testing;
+    @import("ucd.zig").init();
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    dialect.active = &dialect.perl_blead;
+    const a = "(atom lit 0 0 0 61 0 0 0)";
+    const b = "(atom lit 0 0 0 62 0 0 0)";
+    const c = "(atom lit 0 0 0 63 0 0 0)";
+    const d = "(atom lit 0 0 0 64 0 0 0)";
+    const e = "(atom empty 0 0 0 0 0 0 0)";
+    // (?|(a)|(b)(c))d(): the reset's groups are 1 and 2, the last group is 3.
+    const src = "(concat (concat (branch_reset (alt (group_cap " ++ a ++ ") (concat (group_cap " ++ b ++ ") (group_cap " ++ c ++ ")))) " ++ d ++ ") (group_cap " ++ e ++ "))";
+    const cs: finding.Case = .{ .tree = try ast.parse(src), .flags = try alpha.Flags.parse("u") };
+    var buf: [1024]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&buf);
+    var out: std.ArrayList(u8) = .empty;
+    var pr: sample.Printer = .{ .flags = cs.flags, .out = &out, .gpa = fba.allocator() };
+    try pr.print(&cs.tree);
+    try t.expectEqualStrings("(?|(a)|(b)(c))d((?:))", out.items);
+    const gm = groupMap(&cs) orelse return error.NoMap;
+    try t.expectEqual(@as(u8, 3), gm.n);
+    try t.expectEqualSlices(u8, &.{ 1, 2, 3 }, gm.num[0..3]);
+    // Measured with perl-blead and perl-pr: "abcd" -> [1,4) 1=[1,2) 2=[2,3) 3=[4,4);
+    // "ad" -> [0,2) 1=[0,1) 3=[2,2).
+    const r1 = reference(&cs, &[_]u16{ 'a', 'b', 'c', 'd' }, &gm, .keep) orelse return error.NoResult;
+    try t.expectEqualSlices(i16, &.{ 1, 1, 2, 4, -1, -1, -1 }, &r1.s);
+    try t.expectEqualSlices(i16, &.{ 4, 2, 3, 4, -1, -1, -1 }, &r1.e);
+    const r2 = reference(&cs, &[_]u16{ 'a', 'd' }, &gm, .keep) orelse return error.NoResult;
+    try t.expectEqualSlices(i16, &.{ 0, 0, -1, 2, -1, -1, -1 }, &r2.s);
 }

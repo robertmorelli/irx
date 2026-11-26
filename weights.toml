@@ -50,6 +50,15 @@ max_edit_distance = 5   # >0: R = A after 1..k edits (edit distance <= k)
 
 [grammar]
 mutate_rate = 0.15      # share of cases given an atomic group, possessive loop or backreference (mutation mode)
+# relative weight of each mutation kind (kinds the dialect lacks are never drawn);
+# keep (\K), gpos (\G) and branch_reset ((?|…|…)) are Perl-only, conditional ((?(N)yes|no)) Perl/PCRE
+mutate_atomic = 1.0
+mutate_possessive = 1.0
+mutate_backref = 1.0
+mutate_keep = 1.0
+mutate_gpos = 1.0
+mutate_branch_reset = 1.0
+mutate_conditional = 0.5
 max_size = 24
 max_rep_bound = 3
 # large bounds as {0,N} {1,N} {N,} {N}, only over bodies that can't match empty on A/R

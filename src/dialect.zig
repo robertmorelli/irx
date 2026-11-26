@@ -98,6 +98,15 @@ pub const Dialect = struct {
     /// Backreferences in all of Perl's spellings: \\1, \\g1, \\g{1}, \\g{-1}, \\k<n>, \\k{n},
     /// \\k'n', \\g{n}, (?P=n).
     perl_backref_spellings: bool = false,
+    /// Mutation mode, Perl only: \\K (keep), \\G (search start) and branch reset (?|…|…).
+    keep_escape: bool = false,
+    /// \\K may sit inside an atomic group, possessive loop or a loop over a fixed-length body.
+    /// Perl keeps the \\K position after backtracking out of those: `"ab" =~ /(?>a\\K)x|ab/` is
+    /// [1,2) and `"a" =~ /(?:a\\K)?a/` is [1,1), not [0,2) and [0,1) (blead and the PR alike),
+    /// which would drown every \\K finding.
+    keep_restored: bool = false,
+    gpos_escape: bool = false,
+    branch_reset: bool = false,
     /// Rotate in alphabet.multi_fold_pool (its multi-fold characters must be pattern_only).
     multi_fold_pool: bool = false,
     /// Lookbehind as Perl runs it: from the farthest possible start to the nearest, the body is
@@ -127,6 +136,9 @@ pub const Dialect = struct {
     atomic_groups: bool = false,
     possessive: bool = false,
     backrefs: bool = false,
+    /// Conditional groups (?(N)yes|no) and (?(N)yes) on a capture group's state (Perl, PCRE);
+    /// mutation mode only, like backreferences.
+    conditionals: bool = false,
     /// A backreference to a group that has not participated matches empty (ECMAScript) rather
     /// than failing (Perl, PCRE and most others).
     backref_unset_matches_empty: bool = false,
@@ -282,6 +294,7 @@ pub const pcre2 = @import("dialects/perl.zig").pcre2;
 pub const perl_a = @import("dialects/perl.zig").perl_a;
 pub const perl_aa = @import("dialects/perl.zig").perl_aa;
 pub const perl_blead = @import("dialects/perl.zig").perl_blead;
+pub const perl_pr = @import("dialects/perl.zig").perl_pr;
 pub const pcre2_ascii = @import("dialects/perl.zig").pcre2_ascii;
 pub const boost = @import("dialects/perl.zig").boost;
 pub const pcre1 = @import("dialects/perl.zig").pcre1;
@@ -318,7 +331,7 @@ pub const vectorscan = @import("dialects/vectorscan.zig").dialect;
 pub const llvm = @import("dialects/llvm.zig").dialect;
 pub const libc = @import("dialects/llvm.zig").libc;
 pub const gnu = @import("dialects/llvm.zig").gnu;
-pub const all = [_]*const Dialect{ &es, &irregexp, &perl, &perl_blead, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm, &libc, &cpp, &boost, &re2j, &onig_perl, &onig_java, &onig_python, &onig_ascii, &dotnet_ecma, &pcre1, &gnu };
+pub const all = [_]*const Dialect{ &es, &irregexp, &perl, &perl_blead, &perl_pr, &pcre2, &perl_a, &perl_aa, &pcre2_ascii, &swift, &rust, &rust_lite, &fancy, &re2, &go, &re2_longest, &go_longest, &python, &python_regex, &java, &java_ascii, &ruby, &oniguruma, &dotnet, &dotnet_nb, &dotnet_compiled, &icu, &resharp, &nim, &racket, &tcl, &emacs, &vectorscan, &llvm, &libc, &cpp, &boost, &re2j, &onig_perl, &onig_java, &onig_python, &onig_ascii, &dotnet_ecma, &pcre1, &gnu };
 
 /// The active dialect (process-wide; chosen once at startup).
 pub var active: *const Dialect = &es;
@@ -460,6 +473,25 @@ fn lenOf(t: anytype, idx: u8, ok: *bool) Len {
             if (!d.atomic_groups) ok.* = false;
             const c = lenOf(t, n.a, ok);
             return .{ .min = c.min, .max = c.max, .f = (c.f & inherit) | tb.aux_cx };
+        },
+        // Like an alternation of its branches.
+        .cond => {
+            if (!d.conditionals) ok.* = false;
+            const a = lenOf(t, n.a, ok);
+            const b = lenOf(t, n.b, ok);
+            return .{ .min = @min(a.min, b.min), .max = @max(a.max, b.max), .f = ((a.f | b.f) & inherit) | tb.aux_cx | tb.aux_vq };
+        },
+        .keep => {
+            if (!d.keep_escape) ok.* = false;
+            return .{ .min = 0, .max = 0, .f = 0 };
+        },
+        .gpos => {
+            if (!d.gpos_escape) ok.* = false;
+            return .{ .min = 0, .max = 0, .f = tb.aux_za };
+        },
+        .branch_reset => {
+            if (!d.branch_reset) ok.* = false;
+            return lenOf(t, n.a, ok);
         },
         // A backreference's length is the group's: variable, so lookbehind rules reject it.
         .backref => {

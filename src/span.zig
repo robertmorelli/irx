@@ -94,7 +94,8 @@ pub fn referenceAt(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16, 
     var found = false;
     switch (dialect.active.span_semantics) {
         .first => {
-            var mt: ast.Matcher = .{ .t = t, .flags = flags, .w = w, .budget = 200_000 + 200 * n };
+            // \G matches where the search started (Perl: pos(), or 0 without one).
+            var mt: ast.Matcher = .{ .t = t, .flags = flags, .w = w, .budget = 200_000 + 200 * n, .gpos = k };
             // Backreferences read capture slots.
             var caps: ast.Caps = undefined;
             if (ast.needsMatcher(t)) {
@@ -107,7 +108,7 @@ pub fn referenceAt(t: *const ast.Ast, flags: alpha.Flags, subject: []const u16, 
                 const r = mt.matchAt(i) orelse return null;
                 if (r) {
                     found = true;
-                    s_model = i;
+                    s_model = mt.keep orelse i; // \K moves the reported start
                     e_model = mt.end;
                     break;
                 }
@@ -221,11 +222,11 @@ pub fn minLen(t: *const ast.Ast, idx: u8) u32 {
     return switch (n.op) {
         .atom => n.atom.minLen(),
         .concat => minLen(t, n.a) + minLen(t, n.b),
-        .alt => @min(minLen(t, n.a), minLen(t, n.b)),
+        .alt, .cond => @min(minLen(t, n.a), minLen(t, n.b)),
         .quant => minLen(t, n.a) * n.quant.min,
         .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => 0,
-        .group_cap, .group_nc, .group_named, .flag_group, .atomic => minLen(t, n.a),
-        .backref => 0,
+        .group_cap, .group_nc, .group_named, .flag_group, .atomic, .branch_reset => minLen(t, n.a),
+        .backref, .keep, .gpos => 0,
     };
 }
 
@@ -234,10 +235,10 @@ pub fn hasNullableLoop(t: *const ast.Ast, idx: u8) bool {
     const n = t.nodes[idx];
     return switch (n.op) {
         .atom => false,
-        .concat, .alt => hasNullableLoop(t, n.a) or hasNullableLoop(t, n.b),
+        .concat, .alt, .cond => hasNullableLoop(t, n.a) or hasNullableLoop(t, n.b),
         .quant => minLen(t, n.a) == 0 or hasNullableLoop(t, n.a),
-        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .group_cap, .group_nc, .group_named, .flag_group, .atomic => hasNullableLoop(t, n.a),
-        .backref => false,
+        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .group_cap, .group_nc, .group_named, .flag_group, .atomic, .branch_reset => hasNullableLoop(t, n.a),
+        .backref, .keep, .gpos => false,
     };
 }
 
@@ -443,4 +444,92 @@ test "perl: the multi_fold_pool characters match their full folds in every case 
             }
         }
     }
+}
+
+test "perl: \\K moves the reported start, \\G matches at the search start" {
+    const t = std.testing;
+    @import("ucd.zig").init();
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    dialect.active = &dialect.perl_blead;
+    const flags = try alpha.Flags.parse("u");
+    const a = "(atom lit 0 0 0 61 0 0 0)";
+    const b = "(atom lit 0 0 0 62 0 0 0)";
+    const c = "(atom lit 0 0 0 63 0 0 0)";
+    const x = "(atom lit 0 0 0 78 0 0 0)";
+    const dot = "(atom dot 0 0 0 0 0 0 0)";
+    // Measured with perl-blead and perl-pr (offset cases: pos() set, `anch`: /\G$re/g).
+    const Case = struct { src: []const u8, w: []const u8, off: u16 = 0, anch: bool = false, s: u16 = 0, e: u16 = 0, found: bool = true, valid: bool = true };
+    const cases = [_]Case{
+        // a\Kbc on "abcd": [1,3); a(?:b\K)*c: [2,3) (not generated: \K in a fixed-length loop).
+        .{ .src = "(concat " ++ a ++ " (concat (keep) (concat " ++ b ++ " " ++ c ++ ")))", .w = "abcd", .s = 1, .e = 3 },
+        .{ .src = "(concat " ++ a ++ " (concat (quant star 0 255 0 (concat " ++ b ++ " (keep))) " ++ c ++ "))", .w = "abcd", .s = 2, .e = 3, .valid = false },
+        // (?:a\K)x|ab on "ab": the \K is undone with its alternative: [0,2).
+        .{ .src = "(alt (concat (group_nc (concat " ++ a ++ " (keep))) " ++ x ++ ") (concat " ++ a ++ " " ++ b ++ "))", .w = "ab", .s = 0, .e = 2 },
+        // \Gb\K|a on "bbxa" from 1: [2,2).
+        .{ .src = "(alt (concat (gpos) (concat " ++ b ++ " (keep))) " ++ a ++ ")", .w = "bbxa", .off = 1, .s = 2, .e = 2 },
+        // \Ga|b on "bxb" from 1: [2,3); without an offset \G is 0: a\G never matches.
+        .{ .src = "(alt (concat (gpos) " ++ a ++ ") " ++ b ++ ")", .w = "bxb", .off = 1, .s = 2, .e = 3 },
+        .{ .src = "(concat " ++ a ++ " (gpos))", .w = "aab", .found = false, .valid = false },
+        // (?<=\G.)x on "bxbx" from 2: [3,4); from 1: no match.
+        .{ .src = "(concat (look_behind (concat (gpos) " ++ dot ++ ")) " ++ x ++ ")", .w = "bxbx", .off = 2, .s = 3, .e = 4 },
+        .{ .src = "(concat (look_behind (concat (gpos) " ++ dot ++ ")) " ++ x ++ ")", .w = "bxbx", .off = 1, .found = false },
+        // (?:\Gb|\Gx)a on "bbxa" from 2: [2,4), also anchored; \Gb|a anchored from 2: no match.
+        .{ .src = "(concat (alt (concat (gpos) " ++ b ++ ") (concat (gpos) " ++ x ++ ")) " ++ a ++ ")", .w = "bbxa", .off = 2, .s = 2, .e = 4 },
+        .{ .src = "(concat (alt (concat (gpos) " ++ b ++ ") (concat (gpos) " ++ x ++ ")) " ++ a ++ ")", .w = "bbxa", .off = 2, .anch = true, .s = 2, .e = 4 },
+        .{ .src = "(alt (concat (gpos) " ++ b ++ ") " ++ a ++ ")", .w = "bbxa", .off = 2, .anch = true, .found = false },
+    };
+    for (cases) |k| {
+        const tree = try ast.parse(k.src);
+        try t.expectEqual(k.valid, ast.perlExtrasValid(&tree));
+        var s16: [8]u16 = undefined;
+        for (k.w, 0..) |ch, i| s16[i] = ch;
+        const got = referenceAt(&tree, flags, s16[0..k.w.len], k.off, k.anch) orelse return error.NoResult;
+        errdefer std.debug.print("case {s}: got {any}\n", .{ k.src, got });
+        try t.expect(got.eql(.{ .found = k.found, .s = k.s, .e = k.e }));
+    }
+}
+
+test "perl: where \\K, \\G and branch reset may go" {
+    const t = std.testing;
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    dialect.active = &dialect.perl_blead;
+    const a = "(atom lit 0 0 0 61 0 0 0)";
+    const bad = [_][]const u8{
+        "(look_ahead (concat " ++ a ++ " (keep)))", // \K not permitted in lookahead/lookbehind
+        "(concat (atomic (concat " ++ a ++ " (keep))) " ++ a ++ ")", // Perl keeps it after backtracking
+        "(concat (quant opt 0 1 0 (concat " ++ a ++ " (keep))) " ++ a ++ ")", // likewise: (?:a\K)?a is [1,1) on "a"
+        "(concat " ++ a ++ " (gpos))", // Perl starts the search at pos()-1
+        "(concat (quant opt 0 1 0 " ++ a ++ ") (gpos))", // GPOS_FLOAT: from the string start
+        // In a lookaround too: perl-sticky "a" =~ /\G(?:(?!a\G))/g from 1 is no match.
+        "(concat (look_behind (concat " ++ a ++ " (gpos))) " ++ a ++ ")",
+        "(neg_look_ahead (concat " ++ a ++ " (gpos)))",
+        "(branch_reset (alt (group_named " ++ a ++ ") (group_cap " ++ a ++ ")))",
+    };
+    for (bad) |src| try t.expect(!ast.perlExtrasValid(&(try ast.parse(src))));
+    const good = [_][]const u8{
+        "(concat (look_ahead " ++ a ++ ") (concat (gpos) " ++ a ++ "))",
+        "(alt " ++ a ++ " (concat (gpos) " ++ a ++ "))",
+        "(concat " ++ a ++ " (keep))",
+        "(concat (quant star 0 255 0 (alt " ++ a ++ " (concat " ++ a ++ " (concat " ++ a ++ " (keep))))) " ++ a ++ ")",
+    };
+    for (good) |src| try t.expect(ast.perlExtrasValid(&(try ast.parse(src))));
+    // Other dialects: none of them.
+    dialect.active = &dialect.pcre2;
+    try t.expect(!dialect.treeAllowed(&(try ast.parse("(concat " ++ a ++ " (keep))"))));
+    try t.expect(!dialect.treeAllowed(&(try ast.parse("(concat (gpos) " ++ a ++ ")"))));
+    try t.expect(!dialect.treeAllowed(&(try ast.parse("(branch_reset (alt " ++ a ++ " " ++ a ++ "))"))));
+}
+
+test "perl-pr: atomic groups inside lookbehind; perl-blead keeps them out" {
+    const t = std.testing;
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    const src = "(concat (look_behind (atomic (quant opt 0 1 0 (atom lit 0 0 0 61 0 0 0)))) (atom lit 0 0 0 62 0 0 0))";
+    const tree = try ast.parse(src);
+    dialect.active = &dialect.perl_blead;
+    try t.expect(!dialect.treeAllowed(&tree));
+    dialect.active = dialect.byName("perl-pr") orelse return error.NoDialect;
+    try t.expect(dialect.treeAllowed(&tree));
 }

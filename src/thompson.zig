@@ -297,7 +297,7 @@ threadlocal var empty_cache: [1024]EmptyEntry = [_]EmptyEntry{.{}} ** 1024;
 /// The tree has only constructs the NFA compiles.
 pub fn supported(t: *const ast.Ast) bool {
     for (t.nodes[0..t.len]) |n| switch (n.op) {
-        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .atomic, .backref => return false,
+        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .atomic, .backref, .cond, .keep, .gpos, .branch_reset => return false,
         .atom => {
             if (n.atom.kind == .strs or n.atom.kind == .grapheme or n.atom.kind == .linebreak) return false;
             if ((n.atom.kind == .wordb or n.atom.kind == .nwordb) and !dialect.active.nfa_word_boundary) return false;

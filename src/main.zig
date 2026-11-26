@@ -48,6 +48,7 @@ test {
     _ = @import("capture.zig");
     _ = @import("shrink.zig");
     _ = @import("run.zig");
+    _ = @import("mutate.zig");
 }
 
 const Options = struct {
@@ -297,6 +298,18 @@ fn setup(gpa: Allocator, o: *const Options, quiet: bool) !Setup {
     if (dl.multi_fold_pool) {
         run.pools[run.n_pools] = &alpha.multi_fold_pool;
         run.n_pools += 1;
+    }
+    // [strings] quiet_chars: a copy of every pool without them, chosen per table (run.buildOne).
+    if (run.cfg.n_quiet > 0) {
+        const rare = run.cfg.quiet_chars[0..run.cfg.n_quiet];
+        const n_base = run.n_pools;
+        for (run.pools[0..n_base]) |pl| {
+            var kept: std.ArrayList(u21) = .empty;
+            for (pl) |c| if (std.mem.indexOfScalar(u21, rare, c) == null) try kept.append(gpa, c);
+            run.pools[run.n_pools] = if (kept.items.len >= 4) try kept.toOwnedSlice(gpa) else pl;
+            run.n_pools += 1;
+        }
+        run.n_base_pools = n_base;
     }
     run.store.max_per_group = run.cfg.max_findings_per_group;
     run.store.max_per_mode = run.cfg.max_findings_per_mode;
@@ -597,6 +610,7 @@ fn cmdFuzz(gpa: Allocator, o: *const Options) !u8 {
     });
     try harness.jsonAscii(&sumb, gpa, stop_reason);
     try sumb.print(gpa, ", \"long_pairs\": {{\"made\": {d}, \"no_pump\": {d}, \"no_accept\": {d}, \"no_reject\": {d}, \"guarded\": {d}}}", .{ run.long_made.load(.monotonic), run.long_no_pump.load(.monotonic), run.long_no_accept.load(.monotonic), run.long_no_reject.load(.monotonic), run.long_guarded.load(.monotonic) });
+    try sumb.print(gpa, ", \"mutated\": {{\"cases\": {d}, \"conditionals\": {d}, \"keep\": {d}, \"gpos\": {d}, \"branch_reset\": {d}}}", .{ run.mutated.load(.monotonic), run.mutated_cond.load(.monotonic), run.mutated_keep.load(.monotonic), run.mutated_gpos.load(.monotonic), run.mutated_branch_reset.load(.monotonic) });
     try sumb.appendSlice(gpa, ", \"modes\": {");
     for (run.modes, 0..) |m, i| {
         const st = &run.mode_stats[i];
@@ -790,8 +804,8 @@ fn cmdGate(gpa: Allocator, o: *const Options) !u8 {
 fn quantDepth(t: *const ast.Ast, idx: u8) usize {
     const n = t.nodes[idx];
     return switch (n.op) {
-        .atom, .backref => 0,
-        .concat, .alt => @max(quantDepth(t, n.a), quantDepth(t, n.b)),
+        .atom, .backref, .keep, .gpos => 0,
+        .concat, .alt, .cond => @max(quantDepth(t, n.a), quantDepth(t, n.b)),
         .quant => blk: {
             const d = quantDepth(t, n.a);
             break :blk if (n.quant.max == ast.inf or n.quant.max > 1) d + 1 else d;

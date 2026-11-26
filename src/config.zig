@@ -59,6 +59,16 @@ pub const Config = struct {
     /// Mutation mode: share of cases given an atomic group, possessive loop or backreference
     /// (where the dialect has them), checked against the backtracking matcher.
     mutate_rate: f64 = 0,
+    /// Relative weights of the mutation kinds (where the dialect has them): atomic group,
+    /// possessive loop, backreference, the Perl-only \\K, \\G and branch reset (?|…|…), and
+    /// the conditional group (?(N)yes|no) (Perl, PCRE).
+    mutate_atomic: f64 = 1.0,
+    mutate_possessive: f64 = 1.0,
+    mutate_backref: f64 = 1.0,
+    mutate_keep: f64 = 1.0,
+    mutate_gpos: f64 = 1.0,
+    mutate_branch_reset: f64 = 1.0,
+    mutate_conditional: f64 = 0.5,
     /// Extended-mode spellings where the dialect supports (?x:…).
     extended_mode: bool = true,
     /// Large repeat bounds N added as {0,N}, {1,N}, {N,} and {N} (and lazy forms), each at
@@ -84,6 +94,12 @@ pub const Config = struct {
     /// Character pool as code points (empty = built-in default).
     pool: [48]u21 = [_]u21{0} ** 48,
     n_pool: u8 = 0,
+    /// Code points made rare: a table keeps them only with probability `quiet_keep`, and
+    /// otherwise draws from a copy of its pool without them (patterns and subjects alike).
+    /// For keeping known bugs that fire on these characters from crowding out the rest.
+    quiet_chars: [16]u21 = [_]u21{0} ** 16,
+    n_quiet: u8 = 0,
+    quiet_keep: f64 = 1.0,
     /// 0 = A and R drawn independently; k > 0 = R is A after 1..k random
     /// code-point edits (insert/delete/substitute), so edit distance <= k.
     max_edit_distance: u8 = 0,
@@ -222,7 +238,9 @@ pub const Config = struct {
         if (self.max_rep_bound > 254) return error.RepBoundTooLarge;
         for (self.big_rep_bounds[0..self.n_big_rep_bounds]) |b| if (b <= self.max_rep_bound or b > 254) return error.BadBigRepBound;
         if (self.big_rep_weight < 0) return error.BadBigRepWeight;
+        for ([_]f64{ self.mutate_atomic, self.mutate_possessive, self.mutate_backref, self.mutate_keep, self.mutate_gpos, self.mutate_branch_reset, self.mutate_conditional }) |w| if (!std.math.isFinite(w) or w < 0) return error.InvalidWeight;
         if (self.pool_rotation < 0 or self.pool_rotation > 1) return error.BadPoolRotation;
+        if (self.quiet_keep < 0 or self.quiet_keep > 1) return error.BadQuietKeep;
         if (self.class_max_members > 4) return error.ClassMembersTooLarge;
         if (self.batch_size == 0) return error.InvalidBatchSize;
         if (self.max_pairs == 0 or self.max_prods == 0) return error.InvalidLimits;
@@ -390,6 +408,19 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
         }
         return error.UnknownKey;
     }
+    if (eq(u8, section, "strings") and eq(u8, key, "quiet_chars")) {
+        const arr = switch (v) {
+            .nums => |n| n,
+            else => return error.ExpectedCodePointArray,
+        };
+        if (arr.len > cfg.quiet_chars.len) return error.TooManyQuietChars;
+        for (arr, 0..) |x, i| {
+            if (x < 0 or x > 0x10FFFF or x != @floor(x)) return error.BadCodePoint;
+            cfg.quiet_chars[i] = @intFromFloat(x);
+        }
+        cfg.n_quiet = @intCast(arr.len);
+        return;
+    }
     if (eq(u8, section, "strings") and eq(u8, key, "pool")) {
         const arr = switch (v) {
             .nums => |n| n,
@@ -551,8 +582,8 @@ fn apply(cfg: *Config, section: []const u8, key: []const u8, v: Value) !void {
 
 fn sectionOf(comptime name: []const u8) ?[]const u8 {
     @setEvalBranchQuota(100_000);
-    const grammar = .{ "max_size", "max_rep_bound", "big_rep_weight", "class_max_members", "max_pattern_bytes", "allow_diagonal_lookarounds", "duplicate_names", "extended_mode", "mutate_rate", "usefulness_pass", "usefulness_workspace" };
-    const strings = .{ "pool_rotation", "min_len", "max_len", "max_symbols", "max_edit_distance", "long_fraction", "long_min", "long_max" };
+    const grammar = .{ "max_size", "max_rep_bound", "big_rep_weight", "class_max_members", "max_pattern_bytes", "allow_diagonal_lookarounds", "duplicate_names", "extended_mode", "mutate_rate", "mutate_atomic", "mutate_possessive", "mutate_backref", "mutate_keep", "mutate_gpos", "mutate_branch_reset", "mutate_conditional", "usefulness_pass", "usefulness_workspace" };
+    const strings = .{ "pool_rotation", "quiet_keep", "min_len", "max_len", "max_symbols", "max_edit_distance", "long_fraction", "long_min", "long_max" };
     const limits = .{ "max_pairs", "max_combos", "max_prods", "max_count_terms", "max_table_bytes", "max_host_bytes", "max_table_attempts", "samples_per_table", "alias_cache", "alias_arena_bytes", "max_pending_findings", "max_pending_finding_bytes", "max_findings_per_group", "max_findings_per_mode" };
     const harness = .{ "batch_size", "max_request_bytes", "startup_deadline_ms", "batch_deadline_base_ms", "batch_deadline_per512_ms", "recycle_cases", "novelty_cap", "novelty_bytes", "journal_bytes", "stderr_tail_bytes", "keep_journals" };
     const adaptive = .{ "adaptive", "adaptive_factor", "adaptive_cap" };

@@ -203,7 +203,13 @@ Three constructs need engine-specific care:
   `(?>x*)`), or an atom becomes a backreference `(?:\N)` to an earlier capture group outside loops and lookarounds
   (so engines' loop-capture rules do not matter). A reference to a group that has not matched is empty in ECMAScript
   and fails elsewhere (`backref_unset_matches_empty`). Dialect knobs `atomic_groups`, `possessive`, `backrefs` say
-  which engines get which; long mode skips mutated cases.
+  which engines get which; long mode skips mutated cases. In the Perl family and PCRE (`conditionals`), a node after
+  a capture group G can become a conditional `(?(N)X|Y)`, `(?(N)X)` or `(?(N)|X)` (Perl also spells it
+  `(?(<name>)…)`/`(?('name')…)` for named groups), weighted by `[grammar] mutate_conditional` (default 0.5 against
+  1 for each other kind); G is sometimes made optional first. The model tests G's slot on the current backtracking
+  path, so captures abandoned by backtracking (out of alternatives, lookarounds, atomic groups) read as unset. G may
+  sit in lookarounds and atomic groups but not under a loop that can repeat or a nullable `?` (Perl 5.38+ loop
+  capture clearing is unmodelled), and in lookbehind only where the model runs it forward (Perl).
 * **Extended mode**: a quarter of patterns in dialects with scoped `(?x:…)` (Perl family, Java, .NET, Python, Ruby,
   Oniguruma, Rust, ICU, Swift) are printed inside `(?x:…)` with spaces and `# comments` between items, and space and
   `#` literals escaped (hosts that rewrite `\x{H}` use each engine's own escape so it survives `x`).

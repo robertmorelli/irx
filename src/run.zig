@@ -37,8 +37,10 @@ pub const Run = struct {
     cfg: config.Config,
     /// Character pools: [0] the configured pool, then the alternate pools (pool rotation),
     /// filtered like the base pool for the dialect.
-    pools: [2 + alpha.alt_pools.len][]const u21 = undefined,
+    /// With [strings] quiet_chars, entries n_base_pools.. are the same pools without them.
+    pools: [2 * (2 + alpha.alt_pools.len)][]const u21 = undefined,
     n_pools: u8 = 0,
+    n_base_pools: u8 = 0,
     host: Budget,
     global_seed: u64,
     out_dir: []const u8,
@@ -99,6 +101,13 @@ pub const Run = struct {
     wait_ns: std.atomic.Value(u64) = .init(0),
     idle_ns: std.atomic.Value(u64) = .init(0),
     slow_cases: std.atomic.Value(u64) = .init(0),
+    /// Mutation mode: cases mutated, and those holding a conditional group, \K, \G or a
+    /// branch reset.
+    mutated: std.atomic.Value(u64) = .init(0),
+    mutated_cond: std.atomic.Value(u64) = .init(0),
+    mutated_keep: std.atomic.Value(u64) = .init(0),
+    mutated_gpos: std.atomic.Value(u64) = .init(0),
+    mutated_branch_reset: std.atomic.Value(u64) = .init(0),
     /// Long mode: pairs made, and cases without one by reason (long.Stats).
     long_made: std.atomic.Value(u64) = .init(0),
     long_no_pump: std.atomic.Value(u64) = .init(0),
@@ -231,7 +240,10 @@ pub const Run = struct {
         const flags = fsets[rng.below(fsets.len)];
         // Pool rotation and the flag a flag group toggles: from a separate stream of the seed.
         var vrng = rngmod.Rng.fromParts(0x9001, &.{seed});
-        const pool_idx: u8 = if (self.n_pools > 1 and vrng.float() < self.cfg.pool_rotation) @intCast(1 + vrng.below(self.n_pools - 1)) else 0;
+        const n_base = if (self.n_base_pools > 0) self.n_base_pools else self.n_pools;
+        var pool_idx: u8 = if (n_base > 1 and vrng.float() < self.cfg.pool_rotation) @intCast(1 + vrng.below(n_base - 1)) else 0;
+        // Quiet characters: most tables use the pool's copy without them.
+        if (self.n_base_pools > 0 and vrng.float() >= self.cfg.quiet_keep) pool_idx += self.n_base_pools;
         var spool_buf: [64]u21 = undefined;
         const pool = dialect_mod.subjectPool(self.poolAt(pool_idx), &spool_buf);
         var mods: [6]u8 = undefined;

@@ -36,10 +36,14 @@ pub const dialect: D.Dialect = blk: {
     d.multi_fold_pool = false;
     d.lookbehind_forward = false;
     d.lookbehind_no_atomic = true;
+    d.keep_escape = false;
+    d.gpos_escape = false;
+    d.branch_reset = false;
     d.name = "nim";
     d.atomic_groups = false;
     d.possessive = false;
     d.backrefs = false;
+    d.conditionals = false;
     // No \h \v (\H reads as a literal H).
     d.hv_escapes = false;
     d.grapheme_escape = .none;

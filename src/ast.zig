@@ -31,20 +31,35 @@ pub const Op = enum(u8) {
     atomic = 12,
     /// Backreference to capture group Node.fmod (ordinal, opening order). Mutation mode only.
     backref = 13,
+    /// Conditional group (?(N)yes|no): matches child a when capture group Node.fmod (ordinal,
+    /// opening order) is set at that point of the match, else child b. Mutation mode only.
+    cond = 14,
+    /// \K (Perl): the reported match starts where it was last passed. Mutation mode only.
+    keep = 15,
+    /// \G (Perl): matches where the search started (0, or pos() in the offset modes).
+    /// Mutation mode only.
+    gpos = 16,
+    /// Branch reset (?|…|…) (Perl): each top-level alternative of the child numbers its
+    /// captures from the same number. Mutation mode only.
+    branch_reset = 17,
 
-    /// No children: atoms and backreferences.
+    /// No children: atoms, backreferences, \K and \G.
     pub fn isLeaf(op: Op) bool {
-        return op == .atom or op == .backref;
+        return op == .atom or op == .backref or op == .keep or op == .gpos;
     }
 
     pub fn isBinary(op: Op) bool {
-        return op == .concat or op == .alt;
+        return op == .concat or op == .alt or op == .cond;
     }
     pub fn isLook(op: Op) bool {
         return @intFromEnum(op) >= 4 and @intFromEnum(op) <= 7;
     }
+    /// One child, wrapped in a group construct (\K and \G are leaves, conditionals binary).
     pub fn isGroup(op: Op) bool {
-        return @intFromEnum(op) >= 8;
+        return switch (op) {
+            .group_cap, .group_nc, .group_named, .flag_group, .atomic, .branch_reset => true,
+            else => false,
+        };
     }
 };
 
@@ -68,7 +83,7 @@ pub const Node = struct {
     quant: QuantSpec = .{ .form = .star, .min = 0, .max = inf },
     a: u8 = 0,
     b: u8 = 0,
-    /// flag_group: flags toggled for the subtree (fmod_i); backref: the target capture ordinal.
+    /// flag_group: flags toggled for the subtree (fmod_i); backref, cond: the target capture ordinal.
     fmod: u8 = 0,
 };
 
@@ -124,8 +139,8 @@ pub const Ast = struct {
     pub fn size(self: *const Ast, idx: u8) usize {
         const n = self.nodes[idx];
         return switch (n.op) {
-            .atom, .backref => 1,
-            .concat, .alt => 1 + self.size(n.a) + self.size(n.b),
+            .atom, .backref, .keep, .gpos => 1,
+            .concat, .alt, .cond => 1 + self.size(n.a) + self.size(n.b),
             else => 1 + self.size(n.a),
         };
     }
@@ -140,8 +155,8 @@ pub const Ast = struct {
     fn copyInto(src: *const Ast, idx: u8, dst: *Ast) !u8 {
         var n = src.nodes[idx];
         switch (n.op) {
-            .atom, .backref => {},
-            .concat, .alt => {
+            .atom, .backref, .keep, .gpos => {},
+            .concat, .alt, .cond => {
                 n.a = try copyInto(src, n.a, dst);
                 n.b = try copyInto(src, n.b, dst);
             },
@@ -170,17 +185,16 @@ pub fn evalRel(comptime R: type, t: *const Ast, idx: u8, flags: Flags, w: []cons
         .neg_look_ahead => evalRel(R, t, n.a, flags, w).lookahead(dim, true),
         .look_behind => evalRel(R, t, n.a, flags, w).lookbehind(dim, false),
         .neg_look_behind => evalRel(R, t, n.a, flags, w).lookbehind(dim, true),
-        .group_cap, .group_nc, .group_named => evalRel(R, t, n.a, flags, w),
+        .group_cap, .group_nc, .group_named, .branch_reset => evalRel(R, t, n.a, flags, w),
         .flag_group => evalRel(R, t, n.a, applyMod(flags, n.fmod), w),
         // Mutation-mode constructs: the oracle uses the backtracking matcher for these trees.
-        .atomic, .backref => @panic("relation model cannot evaluate atomic groups or backreferences"),
+        .atomic, .backref, .cond, .keep, .gpos => @panic("relation model cannot evaluate atomic groups, backreferences, conditionals, \\K or \\G"),
     };
 }
 
-/// The tree holds constructs only the backtracking matcher evaluates (atomic groups,
-/// backreferences): oracles and long mode take the matcher path or skip.
-/// Every backreference refers to a capture group that closes before it in pattern order (so
-/// the printed \N names a group the engine has seen); false otherwise.
+/// Every backreference and conditional refers to a capture group that closes before it in
+/// pattern order (so the printed \N or (?(N)…) names a group the engine has seen); false
+/// otherwise.
 pub fn backrefsValid(t: *const Ast) bool {
     const caps = Caps.init(t) orelse return false;
     var closed: [max_caps]bool = [_]bool{false} ** max_caps;
@@ -190,8 +204,12 @@ pub fn backrefsValid(t: *const Ast) bool {
 fn backrefWalk(t: *const Ast, idx: u8, caps: *const Caps, closed: *[max_caps]bool, in_look: bool) bool {
     const n = t.nodes[idx];
     switch (n.op) {
-        .atom => return true,
+        .atom, .keep, .gpos => return true,
         .backref => return n.fmod < caps.count and closed[n.fmod] and (!in_look or dialect.active.backref_in_lookaround),
+        .cond => {
+            if (!(n.fmod < caps.count and closed[n.fmod])) return false;
+            return backrefWalk(t, n.a, caps, closed, in_look) and backrefWalk(t, n.b, caps, closed, in_look);
+        },
         .concat, .alt => return backrefWalk(t, n.a, caps, closed, in_look) and backrefWalk(t, n.b, caps, closed, in_look),
         else => {
             const look = in_look or n.op == .look_ahead or n.op == .neg_look_ahead or n.op == .look_behind or n.op == .neg_look_behind;
@@ -208,9 +226,79 @@ pub fn usesNfa(t: *const Ast) bool {
     return dialect.active.empty_iteration == .thompson and thompson.supported(t);
 }
 
+/// The tree holds constructs only the backtracking matcher evaluates (atomic groups,
+/// backreferences, conditionals): oracles and long mode take the matcher path or skip.
 pub fn needsMatcher(t: *const Ast) bool {
-    for (t.nodes[0..t.len]) |n| if (n.op == .atomic or n.op == .backref) return true;
+    for (t.nodes[0..t.len]) |n| switch (n.op) {
+        .atomic, .backref, .cond, .keep, .gpos, .branch_reset => return true,
+        else => {},
+    };
     return false;
+}
+
+/// Perl's \K, \G and branch reset sit where the model's semantics are Perl's:
+/// - \K never inside a lookaround (Perl: "\K not permitted in lookahead/lookbehind"), nor
+///   inside an atomic group or a loop over a fixed-length body unless the dialect restores it
+///   there (keep_restored).
+/// - \G with only zero-width, unquantified constructs before it on its path from the match
+///   start (lookaround bodies included: `(?=a\G)` counts the `a`). Elsewhere Perl starts the
+///   search before pos() (gofs) or at the start of the string (GPOS_FLOAT), and under /\G…/g
+///   anchors it there: perlre says \G is only fully supported at the start of the pattern.
+/// - no named group inside a branch reset (Perl wants the same names at the same numbers).
+pub fn perlExtrasValid(t: *const Ast) bool {
+    return extrasWalk(t, t.root, false, true, false);
+}
+
+fn extrasWalk(t: *const Ast, idx: u8, in_look: bool, at_start: bool, in_atomic: bool) bool {
+    const n = t.nodes[idx];
+    switch (n.op) {
+        .keep => return !in_look and (!in_atomic or dialect.active.keep_restored),
+        .gpos => return at_start,
+        .atom, .backref => return true,
+        .concat => {
+            const zw = (maxLenSub(t, n.a) orelse 1) == 0 and !hasQuant(t, n.a) and !hasOp(t, n.a, .cond);
+            return extrasWalk(t, n.a, in_look, at_start, in_atomic) and extrasWalk(t, n.b, in_look, at_start and zw, in_atomic);
+        },
+        .alt => return extrasWalk(t, n.a, in_look, at_start, in_atomic) and extrasWalk(t, n.b, in_look, at_start, in_atomic),
+        // A conditional's branches are alternatives for \K. \G stays out of them (and out of
+        // whatever follows a conditional): how Perl anchors \G through IFTHEN is unmeasured.
+        .cond => return extrasWalk(t, n.a, in_look, false, in_atomic) and extrasWalk(t, n.b, in_look, false, in_atomic),
+        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => return extrasWalk(t, n.a, true, at_start, in_atomic),
+        .branch_reset => return !hasOp(t, n.a, .group_named) and extrasWalk(t, n.a, in_look, at_start, in_atomic),
+        .atomic => return extrasWalk(t, n.a, in_look, at_start, true),
+        .quant => {
+            // Lengths without multi-character folds: under i Perl may not see the body as fixed,
+            // so this errs on the side of keeping \K out.
+            const fixed = if (plainMaxLen(t, n.a)) |hi| hi == minLenSub(t, n.a) else false;
+            return extrasWalk(t, n.a, in_look, at_start, in_atomic or fixed);
+        },
+        else => return extrasWalk(t, n.a, in_look, at_start, in_atomic),
+    }
+}
+
+/// maxLenSub, but a case-folding atom counts one character.
+fn plainMaxLen(t: *const Ast, idx: u8) ?usize {
+    const n = t.nodes[idx];
+    return switch (n.op) {
+        .atom => if (n.atom.kind == .grapheme) null else n.atom.maxLen(),
+        .concat => if (plainMaxLen(t, n.a)) |a| (if (plainMaxLen(t, n.b)) |b| a + b else null) else null,
+        .alt, .cond => if (plainMaxLen(t, n.a)) |a| (if (plainMaxLen(t, n.b)) |b| @max(a, b) else null) else null,
+        .quant => if (n.quant.max == inf) (if (plainMaxLen(t, n.a)) |a| (if (a == 0) @as(?usize, 0) else null) else null) else if (plainMaxLen(t, n.a)) |a| a * n.quant.max else null,
+        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .keep, .gpos => 0,
+        .group_cap, .group_nc, .group_named, .flag_group, .atomic, .branch_reset => plainMaxLen(t, n.a),
+        .backref => null,
+    };
+}
+
+fn hasQuant(t: *const Ast, idx: u8) bool {
+    return hasOp(t, idx, .quant);
+}
+
+fn hasOp(t: *const Ast, idx: u8, op: Op) bool {
+    const n = t.nodes[idx];
+    if (n.op == op) return true;
+    if (n.op.isLeaf()) return false;
+    return hasOp(t, n.a, op) or (Op.isBinary(n.op) and hasOp(t, n.b, op));
 }
 
 pub fn quantRel(comptime R: type, r: R, q: QuantSpec, dim: usize) R {
@@ -259,6 +347,10 @@ pub const Matcher = struct {
     caps: ?*Caps = null,
     /// Clear a loop body's captures at the start of each iteration (ES, Perl >= 5.38).
     reset_loop_captures: bool = false,
+    /// \K: where the reported match starts, once passed (reset by matchAt).
+    keep: ?usize = null,
+    /// \G: the position where the search started (pos(); 0 for a fresh match).
+    gpos: usize = 0,
     /// Effective flags per node (flag groups), computed on first use.
     nflags: [max_nodes]Flags = undefined,
     nflags_ready: bool = false,
@@ -302,6 +394,7 @@ pub const Matcher = struct {
             return true;
         }
         const rec: Cont = .{ .kind = .record };
+        self.keep = null;
         const r = self.m(self.t.root, start, .fwd, &rec);
         if (self.exhausted) return null;
         return r;
@@ -528,21 +621,33 @@ pub const Matcher = struct {
                 const k: Cont = .{ .kind = .close, .node = caps.ordinal[idx], .dir = dir, .start = pos, .next = c };
                 return self.m(n.a, pos, dir, &k);
             },
-            .group_nc, .flag_group => return self.m(n.a, pos, dir, c),
+            .group_nc, .flag_group, .branch_reset => return self.m(n.a, pos, dir, c),
             .atomic => {
                 // The child's first match only: no backtracking into it once it has matched.
                 var endpos: usize = pos;
                 const k: Cont = .{ .kind = .commit, .out = &endpos };
+                const kept = self.keep;
                 if (self.caps) |caps| {
                     const saved = caps.slot;
                     if (!self.m(n.a, pos, dir, &k)) return false;
                     if (self.run(c, endpos)) return true;
                     caps.slot = saved;
+                    self.keep = kept;
                     return false;
                 }
                 if (!self.m(n.a, pos, dir, &k)) return false;
-                return self.run(c, endpos);
+                if (self.run(c, endpos)) return true;
+                self.keep = kept;
+                return false;
             },
+            .keep => {
+                const old = self.keep;
+                self.keep = pos;
+                if (self.run(c, pos)) return true;
+                self.keep = old;
+                return false;
+            },
+            .gpos => return if (pos == self.gpos) self.run(c, pos) else false,
             .backref => {
                 const caps = self.caps orelse return false;
                 const sp = caps.slot[n.fmod];
@@ -562,6 +667,15 @@ pub const Matcher = struct {
                     for (0..len) |j| if (!sameChar(self.w[s + j], self.w[pos - len + j], fl)) return false;
                     return self.run(c, pos - len);
                 }
+            },
+            .cond => {
+                // The group's state on the current path: set by a match not undone by
+                // backtracking (captures are restored when backtracking out of them).
+                const caps = self.caps orelse {
+                    self.exhausted = true; // no capture state: no answer
+                    return false;
+                };
+                return self.m(if (caps.slot[n.fmod].s >= 0) n.a else n.b, pos, dir, c);
             },
         }
     }
@@ -625,11 +739,32 @@ pub const Caps = struct {
             self.ordinal[idx] = self.count;
             self.count += 1;
         }
-        if (n.op != .atom and n.op != .backref) {
+        if (n.op == .branch_reset) {
+            // Every top-level alternative numbers from the same group; the next group after
+            // the reset takes the highest number any alternative reached.
+            const c0 = self.count;
+            var hi = c0;
+            if (!self.walkAlts(t, n.a, c0, &hi)) return false;
+            self.count = hi;
+        } else if (!n.op.isLeaf()) {
             if (!self.walk(t, n.a)) return false;
             if (Op.isBinary(n.op) and !self.walk(t, n.b)) return false;
         }
         self.end[idx] = self.count;
+        return true;
+    }
+
+    fn walkAlts(self: *Caps, t: *const Ast, idx: u8, c0: u8, hi: *u8) bool {
+        const n = t.nodes[idx];
+        if (n.op == .alt) {
+            self.first[idx] = c0;
+            if (!self.walkAlts(t, n.a, c0, hi) or !self.walkAlts(t, n.b, c0, hi)) return false;
+            self.end[idx] = hi.*;
+            return true;
+        }
+        self.count = c0;
+        if (!self.walk(t, idx)) return false;
+        hi.* = @max(hi.*, self.count);
         return true;
     }
 
@@ -666,6 +801,14 @@ fn serNode(t: *const Ast, idx: u8, out: *std.ArrayList(u8), gpa: std.mem.Allocat
             try out.append(gpa, ')');
         },
         .backref => try out.print(gpa, "(backref {d})", .{n.fmod}),
+        .cond => {
+            try out.print(gpa, "(cond {d} ", .{n.fmod});
+            try serNode(t, n.a, out, gpa);
+            try out.append(gpa, ' ');
+            try serNode(t, n.b, out, gpa);
+            try out.append(gpa, ')');
+        },
+        .keep, .gpos => try out.print(gpa, "({s})", .{@tagName(n.op)}),
         .concat, .alt => {
             try out.print(gpa, "({s} ", .{@tagName(n.op)});
             try serNode(t, n.a, out, gpa);
@@ -735,6 +878,12 @@ const Parser = struct {
                 n.a = try p.node(t);
             },
             .backref => n.fmod = try p.int(u8, 10),
+            .cond => {
+                n.fmod = try p.int(u8, 10);
+                n.a = try p.node(t);
+                n.b = try p.node(t);
+            },
+            .keep, .gpos => {},
             else => n.a = try p.node(t),
         }
         try p.expect(')');
@@ -775,14 +924,16 @@ fn countRec(t: *const Ast, idx: u8, out: *[n_constructs]u16) void {
         .group_nc => .nc_group,
         .group_named => .named_group,
         .flag_group => .flag_group,
-        .atomic => .nc_group,
+        .atomic, .branch_reset => .nc_group,
         .backref => .group,
+        .cond => .alt,
+        .keep, .gpos => .empty,
     };
     out[@intFromEnum(c)] +|= 1;
     if (n.op == .quant and n.quant.lazy) out[@intFromEnum(Construct.lazy)] +|= 1;
     switch (n.op) {
-        .atom, .backref => {},
-        .concat, .alt => {
+        .atom, .backref, .keep, .gpos => {},
+        .concat, .alt, .cond => {
             countRec(t, n.a, out);
             countRec(t, n.b, out);
         },
@@ -883,10 +1034,10 @@ pub fn minLenSub(t: *const Ast, idx: u8) usize {
     return switch (n.op) {
         .atom => n.atom.minLen(),
         .concat => minLenSub(t, n.a) + minLenSub(t, n.b),
-        .alt => @min(minLenSub(t, n.a), minLenSub(t, n.b)),
+        .alt, .cond => @min(minLenSub(t, n.a), minLenSub(t, n.b)),
         .quant => minLenSub(t, n.a) * n.quant.min,
-        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .backref => 0,
-        .group_cap, .group_nc, .group_named, .flag_group, .atomic => minLenSub(t, n.a),
+        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .backref, .keep, .gpos => 0,
+        .group_cap, .group_nc, .group_named, .flag_group, .atomic, .branch_reset => minLenSub(t, n.a),
     };
 }
 
@@ -897,10 +1048,10 @@ pub fn maxLenSub(t: *const Ast, idx: u8) ?usize {
     return switch (n.op) {
         .atom => if (n.atom.kind == .grapheme) null else if (n.atom.isConsuming() and atoms.foldsMulti(&n.atom, .{ .i = true })) 3 else n.atom.maxLen(),
         .concat => if (maxLenSub(t, n.a)) |a| (if (maxLenSub(t, n.b)) |b| a + b else null) else null,
-        .alt => if (maxLenSub(t, n.a)) |a| (if (maxLenSub(t, n.b)) |b| @max(a, b) else null) else null,
+        .alt, .cond => if (maxLenSub(t, n.a)) |a| (if (maxLenSub(t, n.b)) |b| @max(a, b) else null) else null,
         .quant => if (n.quant.max == inf) (if (maxLenSub(t, n.a)) |a| (if (a == 0) @as(?usize, 0) else null) else null) else if (maxLenSub(t, n.a)) |a| a * n.quant.max else null,
-        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind => 0,
-        .group_cap, .group_nc, .group_named, .flag_group, .atomic => maxLenSub(t, n.a),
+        .look_ahead, .neg_look_ahead, .look_behind, .neg_look_behind, .keep, .gpos => 0,
+        .group_cap, .group_nc, .group_named, .flag_group, .atomic, .branch_reset => maxLenSub(t, n.a),
         .backref => null,
     };
 }
