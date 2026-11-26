@@ -112,6 +112,7 @@ pub const pcre2: D.Dialect = blk: {
     d.lookbehind_forward = false;
     d.lookbehind_no_atomic = true;
     d.empty_iteration_at_min = false;
+    d.empty_iteration_at_min_open = true;
     // Bounded loops are unrolled, so an empty iteration there just counts: `(?:^|.){1,3}a` on
     // "baa" is [0,2) (Perl [0,3)).
     d.empty_iteration_bounded = false;
@@ -261,6 +262,7 @@ pub const pcre1: D.Dialect = blk: {
     d.r_escape = false;
     d.prop_perl_extra = false;
     d.keep_restored = false;
+    d.empty_iteration_at_min_open = false;
     d.fail_verb = false;
     d.perl_backref_spellings = false;
     d.keep_escape = false;

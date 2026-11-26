@@ -532,6 +532,28 @@ test "perl: where \\K, \\G and branch reset may go" {
     try t.expect(!dialect.treeAllowed(&(try ast.parse("(branch_reset (alt " ++ a ++ " " ++ a ++ "))"))));
 }
 
+test "pcre2: an empty iteration at the minimum ends an open-ended loop, not a bounded one" {
+    const t = std.testing;
+    @import("ucd.zig").init();
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    dialect.active = &dialect.pcre2;
+    const flags = try alpha.Flags.parse("u");
+    // Measured with pcre2test 10.49 (interpreter and JIT) on "xa": ^(?:x|\\B()|\\1a){2,}$ is no
+    // match, {2,3} and {3,} match. The second iteration can only be the empty \\B(), and \\1a
+    // needs it to have run.
+    const body = "(alt (alt (atom lit 0 0 0 78 0 0 0) (concat (atom nwordb 0 0 0 0 0 0 0) (group_cap (atom empty 0 0 0 0 0 0 0)))) (concat (backref 0) (atom lit 0 0 0 61 0 0 0)))";
+    const cases = [_]struct { ast: []const u8, m: bool }{
+        .{ .ast = "(quant open 2 255 0 " ++ body ++ ")", .m = false },
+        .{ .ast = "(quant range 2 3 0 " ++ body ++ ")", .m = true },
+        .{ .ast = "(quant open 3 255 0 " ++ body ++ ")", .m = true },
+    };
+    for (cases) |c| {
+        const tree = try ast.parse(c.ast);
+        try t.expectEqual(c.m, ast.fullMatch(&tree, flags, &.{ 'x', 'a' }));
+    }
+}
+
 test "perl-pr: atomic groups inside lookbehind; perl-blead keeps them out" {
     const t = std.testing;
     const saved = dialect.active;

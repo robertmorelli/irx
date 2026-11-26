@@ -270,6 +270,11 @@ pub const Dialect = struct {
     /// WHILEM counts it before its empty check: `(?:^|.){2,3}a` on "baa" is [0,3)); false: only
     /// iterations after the minimum (PCRE2 unrolls bounded loops: [0,2)).
     empty_iteration_at_min: bool = false,
+    /// In an open-ended loop (+, {n,}) the iteration that reaches the minimum ends the loop when it
+    /// matched empty, although empty_iteration_at_min is off: PCRE2 compiles X{n,} as n-1 plain
+    /// copies and a loop, so that iteration gets the loop's empty check, while a bounded {n,m} is
+    /// all plain copies. `^(?:x|\\B()|\\1a){2,}$` on "xa" is no match, with {2,3} a match.
+    empty_iteration_at_min_open: bool = false,
     /// When a pattern has named groups, plain `(...)` groups don't capture (Ruby, Oniguruma).
     named_groups_only: bool = false,
     /// Counted quantifiers are always greedy: the host prints `{m,n}` without the lazy `?`

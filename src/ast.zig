@@ -428,7 +428,7 @@ pub const Matcher = struct {
                 // (ES) or ends the loop (Perl/PCRE).
                 // Thompson dialects reach this matcher only for trees the NFA does not compile
                 // (fancy-regex's own backtracking VM), which stops like Perl.
-                const at_min = c.min == 0 or (c.min == 1 and dialect.active.empty_iteration_at_min);
+                const at_min = c.min == 0 or (c.min == 1 and (dialect.active.empty_iteration_at_min or (c.max == inf and dialect.active.empty_iteration_at_min_open)));
                 if (at_min and pos == c.start and (c.max == inf or dialect.active.empty_iteration_bounded)) {
                     if (dialect.active.empty_iteration == .stop or dialect.active.empty_iteration == .thompson) return self.run(c.next.?, pos);
                     return false;
