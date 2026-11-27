@@ -93,6 +93,9 @@ pub const oniguruma: D.Dialect = .{
     .prop_case = .plain,
     // An empty loop iteration ends the loop (span mode; checked against the engine).
     .empty_iteration = .stop,
+    // The iteration that reaches the minimum also ends the loop when it matched empty, as in
+    // Perl: `(?:a|[0-9]??){1,2}a` on "0aa" is [0,3) (Oniguruma 6.9.10).
+    .empty_iteration_at_min = true,
     .name = "oniguruma",
     .isLineTerminator = lineTerminator,
     .isSpace = perl.space,
