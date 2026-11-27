@@ -171,12 +171,12 @@ pub fn clusterEnd(w: []const u21, i: usize, gb9c: bool) usize {
     return clusterEndOpts(w, i, .{ .gb9c = gb9c });
 }
 
-pub const Opts = struct { gb9c: bool = false, gb9c_any_base: bool = false, prepend_pict: bool = true, combining: bool = false };
+pub const Opts = struct { gb9c: bool = false, gb9c_any_base: bool = false, prepend_pict: bool = true, combining: bool = false, ri_lookback: bool = false };
 
 /// The cluster end for the active dialect's \X.
 pub fn activeOpts() Opts {
     const d = @import("dialect.zig").active;
-    return .{ .gb9c = d.grapheme_escape == .extended_gb9c or d.grapheme_escape == .extended_gb9c_18, .gb9c_any_base = d.grapheme_escape == .extended_gb9c_18, .prepend_pict = d.grapheme_prepend_pict, .combining = d.grapheme_escape == .combining };
+    return .{ .gb9c = d.grapheme_escape == .extended_gb9c or d.grapheme_escape == .extended_gb9c_18, .gb9c_any_base = d.grapheme_escape == .extended_gb9c_18, .prepend_pict = d.grapheme_prepend_pict, .combining = d.grapheme_escape == .combining, .ri_lookback = d.grapheme_ri_lookback };
 }
 
 pub fn clusterEndActive(w: []const u21, i: usize) usize {
@@ -226,6 +226,10 @@ pub fn clusterEndOpts(w: []const u21, i: usize, o: Opts) usize {
     var s: State = .{ .any_base = o.gb9c_any_base };
     var g = gcb(w[i]);
     s.push(w[i], g);
+    if (o.ri_lookback and g == .ri) {
+        var k = i;
+        while (k > 0 and gcb(w[k - 1]) == .ri) : (k -= 1) s.ri_odd = !s.ri_odd;
+    }
     var j = i + 1;
     while (j < w.len) : (j += 1) {
         const h = gcb(w[j]);
@@ -281,5 +285,25 @@ test "perl: \\X from inside a cluster runs to that cluster's end" {
             try t.expectEqualSlices(usize, c.ends, ends[0..c.w.len]);
             for (c.ends, 0..) |e, i| try t.expectEqual(e, clusterEndActive(c.w, i));
         }
+    }
+}
+
+test "pcre2: \\X counts the regional indicators before the start" {
+    const t = std.testing;
+    const dialect = @import("dialect.zig");
+    @import("ucd.zig").init();
+    const saved = dialect.active;
+    defer dialect.active = saved;
+    dialect.active = &dialect.pcre2;
+    // End of \X from every start, measured with pcre2test 10.49 (JIT).
+    const cases = [_]struct { w: []const u21, ends: []const usize }{
+        .{ .w = &.{ 0x1F1E7, 0x1F1E7, 0x1F1E6 }, .ends = &.{ 2, 2, 3 } },
+        .{ .w = &.{ 'a', 0x1F1E7, 0x1F1E7, 0x1F1E6, 0x1F1E6 }, .ends = &.{ 1, 3, 3, 5, 5 } },
+        .{ .w = &.{ 0x1F600, 0x200D, 0x2764, 'x' }, .ends = &.{ 3, 2, 3, 4 } },
+    };
+    for (cases) |c| {
+        var ends: [8]usize = undefined;
+        clusterEndsActive(c.w, ends[0..c.w.len]);
+        try t.expectEqualSlices(usize, c.ends, ends[0..c.w.len]);
     }
 }

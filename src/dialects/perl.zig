@@ -102,6 +102,7 @@ pub const pcre2: D.Dialect = blk: {
     // \A \z \Z, \N, \R, \K, \G, branch reset, (*FAIL), every backreference spelling, and
     // script and binary properties.
     d.grapheme_whole_string = false;
+    d.grapheme_ri_lookback = true;
     d.multi_fold_pool = false;
     d.prop_binary_cased = false;
     d.script_or_scx = true;

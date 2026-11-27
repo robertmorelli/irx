@@ -178,6 +178,9 @@ pub const Dialect = struct {
     /// \\X takes its cluster boundaries from the whole string, so a start inside a cluster runs to
     /// that cluster's end (Perl); otherwise a cluster starts fresh at the current position.
     grapheme_whole_string: bool = false,
+    /// \\X starting at a regional indicator counts the regional indicators before it, so a start
+    /// after an odd number of them takes one indicator alone (PCRE2).
+    grapheme_ri_lookback: bool = false,
     /// Full case folding under i: a pattern character with a multi-character fold (ß → ss)
     /// matches subject strings with that fold. `literals`: literal characters; `classes`: also
     /// members listed in a non-negated class (Perl: not inside a range); `ranges`: also
