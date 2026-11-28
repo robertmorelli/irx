@@ -36,6 +36,7 @@ while :; do
   [ "$HAVE_GH" = 1 ] && taken=$(for pr in $(gh pr list --state open --search "head:triage/" --json number -q ".[].number" 2>/dev/null); do gh pr diff "$pr" 2>/dev/null; done | grep -o "^+| IRX-[A-Z0-9]*-[0-9]*" | cut -c4- | sort -u | tr "\n" " ")
   # Without gh, ledger branches committed earlier on this host stand in for open PRs.
   [ "$HAVE_GH" = 0 ] && taken=$(git -C "$WT" for-each-ref --format="%(refname)" refs/heads/triage | while read -r r; do git -C "$WT" diff "$BASE" "$r" -- README.md; done | grep -o "^+| IRX-[A-Z0-9]*-[0-9]*" | cut -c4- | sort -u | tr "\n" " ")
+  SCR=$(mktemp -d /tmp/irxtriage.XXXXXX)
   prompt="$(cat tools/triage-prompt.md)
 
 Run directory: $run
@@ -43,7 +44,8 @@ Write your report to: $S/triage/$name.md
 Ledger checkout: $WT (edit $WT/README.md only)
 Ledger IDs already taken by open PRs: ${taken:-none}
 Host: $HOST
-Label: ${name%-*}"
+Label: ${name%-*}
+Scratch directory: $SCR (every temporary file goes here, never directly in /tmp; it is deleted when you finish)"
   # A target can add run-specific triage instructions (e.g. the PR it tests, ledger ID suffix).
   note="targets/${name##*-}/triage-note.md"
   [ -f "$note" ] && prompt="$prompt
@@ -53,14 +55,17 @@ $(cat "$note")"
   for MODEL in "${MODELS[@]}"; do
     echo "== triage $name ($n findings) cli=$CLI model=$MODEL $(now)"
     if [ "$CLI" = agy ]; then
-      timeout 3000 agy -p "$prompt" --model "$MODEL" --dangerously-skip-permissions --print-timeout 48m > "$S/triage/$name.log" 2>&1
+      TMPDIR="$SCR" CLAUDE_CODE_TMPDIR="$SCR" timeout 3000 agy -p "$prompt" --model "$MODEL" --dangerously-skip-permissions --print-timeout 48m > "$S/triage/$name.log" 2>&1
     else
-      timeout 3000 claude -p "$prompt" --model "$MODEL" --dangerously-skip-permissions < /dev/null > "$S/triage/$name.log" 2>&1
+      TMPDIR="$SCR" CLAUDE_CODE_TMPDIR="$SCR" timeout 3000 claude -p "$prompt" --model "$MODEL" --dangerously-skip-permissions < /dev/null > "$S/triage/$name.log" 2>&1
     fi
     rc=$?
     if [ "$rc" != 0 ] && out_of_quota "$S/triage/$name.log"; then echo "$(now) $name: $MODEL out of quota"; continue; fi
     ok=1; break
   done
+  # Nothing a triage session leaves behind may pile up: /tmp is a small tmpfs on the runners.
+  rm -rf "$SCR"
+  find /tmp -maxdepth 1 \( -name "irxtriage.*" -o -name "sh-np.*" \) -user "$(id -un)" -mmin +120 -exec rm -rf {} + 2>/dev/null
   # Every model out of quota (or the CLI is logged out): leave the run queued and retry later instead of marking it triaged.
   if [ "$ok" = 0 ]; then echo "$(now) all models out of quota; retrying in 30 min"; sleep 1800; continue; fi
   echo "$run rc=$rc $(now)" | tee -a "$S/triaged"
